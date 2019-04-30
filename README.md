@@ -1,1 +1,1 @@
-# blackjack
+This console game allows the user to play blackjack against the computer. The computer is the dealer and the user is able to bet for each round. The game continues until the user runs out of money or decides to quit. 
