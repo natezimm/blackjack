@@ -1,0 +1,31 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Temporary files
+*.swp
+*~
+
+# IDE-specific files
+.idea/
+.classpath
+.project
+.settings/
+
+# Maven-specific files
+target/
+
+# Gradle-specific files
+.gradle/
+build/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
