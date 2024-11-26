@@ -25,37 +25,41 @@ This is a full-stack Blackjack game built with **Spring Boot** (Java) for the ba
 1. Navigate to the `server/` directory:
    ```bash
    cd server
-2.	Build and run the backend using Gradle:   
-   `./gradlew bootRun`
-3.	The backend will run on http://localhost:8080.
+2. Build and run the backend using Gradle:
+   ```bash
+   ./gradlew bootRun
+3. The backend will run on http://localhost:8080.
   
 ### Frontend (React)
-1.	Navigate to the client/ directory:
-    `cd client`
-2.	Install the required dependencies:
-    `npm install`
-3.	Start the frontend development server:
-    `npm start`
-4.	The React app will be available at http://localhost:3000.
+1. Navigate to the client/ directory:
+   ```bash
+   cd client
+2. Install the required dependencies:
+   ```bash
+   npm install
+3. Start the frontend development server:
+   ```bash
+   npm start
+5. The React app will be available at http://localhost:3000.
 
 How It Works
 
-	1.	React frontend communicates with the Spring Boot backend via RESTful API calls.
-	2.	Backend handles the game logic, including card distribution, player actions (hit, stand), and determining the winner.
-	3.	Frontend displays the current state of the game (hands, score, buttons) and sends player actions to the backend.
+1. React frontend communicates with the Spring Boot backend via RESTful API calls.
+2. Backend handles the game logic, including card distribution, player actions (hit, stand), and determining the winner.
+3. Frontend displays the current state of the game (hands, score, buttons) and sends player actions to the backend.
 
 API Endpoints
 
-	•	POST /api/start: Starts a new game and returns the initial game state (player’s and dealer’s hands).
-	•	POST /api/hit: Sends a “hit” action for the player (draws a card).
-	•	POST /api/stand: Sends a “stand” action for the player (ends their turn, dealer plays).
+• POST /api/start: Starts a new game and returns the initial game state (player’s and dealer’s hands).\
+• POST /api/hit: Sends a “hit” action for the player (draws a card).\
+• POST /api/stand: Sends a “stand” action for the player (ends their turn, dealer plays).\
 
 Directory Structure
 
-	•	server/: Contains the Spring Boot backend code, including game logic and API endpoints.
-	•	src/main/java/com/game/blackjack/: Java code for the game and backend logic.
-	•	src/main/resources/static/: Static resources like HTML, CSS, and JavaScript (if needed).
-	•	client/: Contains the React frontend.
-	•	src/components/: React components for the user interface.
-	•	src/api/: API call functions to interact with the backend.
-	•	src/App.js: Main component for rendering the game UI.
+• server/: Contains the Spring Boot backend code, including game logic and API endpoints.\
+• src/main/java/com/game/blackjack/: Java code for the game and backend logic.\
+• src/main/resources/static/: Static resources like HTML, CSS, and JavaScript (if needed).\
+• client/: Contains the React frontend.\
+• src/components/: React components for the user interface.\
+• src/api/: API call functions to interact with the backend.\
+• src/App.js: Main component for rendering the game UI.\
