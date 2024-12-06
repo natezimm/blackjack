@@ -1,0 +1,19 @@
+.player-hand {
+    margin: 20px 0;
+}
+
+.player-hand h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.hand {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.card {
+    width: 80px;
+    height: auto;
+}

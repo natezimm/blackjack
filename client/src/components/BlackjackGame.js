@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { startGame, hit, stand } from '../api/blackjackApi';
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
+import '../styles/BlackjackGame.css';
 
 const BlackjackGame = () => {
     const [playerHand, setPlayerHand] = useState([]);
@@ -30,14 +31,16 @@ const BlackjackGame = () => {
     };
 
     return (
-        <div>
+        <div className="blackjack-game">
             <h1>Blackjack</h1>
-            <button onClick={handleStart}>Start Game</button>
-            <button onClick={handleHit} disabled={gameOver}>Hit</button>
-            <button onClick={handleStand} disabled={gameOver}>Stand</button>
-            <PlayerHand hand={playerHand} />
+            <div className="controls">
+                <button onClick={handleStart}>Start Game</button>
+                <button onClick={handleHit} disabled={gameOver}>Hit</button>
+                <button onClick={handleStand} disabled={gameOver}>Stand</button>
+            </div>
             <DealerHand hand={dealerHand} />
-            {gameOver && <h3>Game Over!</h3>}
+            <PlayerHand hand={playerHand} />
+            {gameOver && <h3 className="game-over">Game Over!</h3>}
         </div>
     );
 };
