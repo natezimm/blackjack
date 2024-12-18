@@ -16,8 +16,8 @@ const BlackjackGame = () => {
             const response = await startGame();
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
-            setGameOver(false); // Reset the game over state
-            setRevealDealerCard(false); // Reset dealer card visibility
+            setGameOver(false);
+            setRevealDealerCard(false);
         } catch (error) {
             console.error('Error starting game:', error);
         }
@@ -29,7 +29,7 @@ const BlackjackGame = () => {
             const response = await hit();
             console.log('Hit response:', response.data);
             setPlayerHand([...response.data.playerHand]);
-            setDealerHand([...response.data.dealerHand]);
+            setDealerHand(response.data.dealerHand);
             setGameOver(response.data.gameOver);
         } catch (error) {
             console.error('Error hitting:', error);
@@ -39,7 +39,7 @@ const BlackjackGame = () => {
     const handleStand = async () => {
         try {
             console.log('Standing...');
-            setRevealDealerCard(true); // Reveal the dealer's first card
+            setRevealDealerCard(true);
             const response = await stand();
             console.log('Stand response:', response.data);
             setPlayerHand([...response.data.playerHand]);

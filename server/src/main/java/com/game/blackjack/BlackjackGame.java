@@ -50,7 +50,8 @@ public class BlackjackGame {
 
     public void hitPlayer() {
         if (!gameOver) {
-            playerHand.add(deck.remove(0));
+            Card newCard = deck.remove(0);
+            playerHand.add(newCard);
             checkGameOver();
         }
     }
@@ -90,10 +91,10 @@ public class BlackjackGame {
     public void dealerPlay() {
         // Dealer hits until their hand is at least 17
         while (calculateHandValue(dealerHand) < 17) {
-            dealerHand.add(deck.remove(0)); // Deal a new card to the dealer
+            dealerHand.add(deck.remove(0));
         }
     
-        checkGameOver(); // Check if the game is over (e.g., dealer busts or reaches 21)
+        checkGameOver();
     }
 
     public boolean isGameOver() {
