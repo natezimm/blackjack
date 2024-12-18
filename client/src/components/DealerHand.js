@@ -14,8 +14,12 @@ const DealerHand = ({ hand }) => {
                 {hand.map((card, index) => (
                     <img
                         key={index}
-                        src={getCardImage(card.value, card.suit)}
-                        alt={`${card.value} of ${card.suit}`}
+                        src={
+                            index === 0
+                                ? '/card-images/card_back_red.png' // Dealer's first card is hidden
+                                : getCardImage(card.value, card.suit)
+                        }
+                        alt={index === 0 ? 'Card Back' : `${card.value} of ${card.suit}`}
                         className="card"
                     />
                 ))}
