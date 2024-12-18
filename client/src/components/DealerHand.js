@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/DealerHand.css';
 
-const DealerHand = ({ hand }) => {
+const DealerHand = ({ hand, reveal }) => {
     const getCardImage = (value, suit) => {
         const fileName = `${value.toLowerCase()}_of_${suit.toLowerCase()}.png`;
         return `/card-images/${fileName}`;
@@ -15,11 +15,15 @@ const DealerHand = ({ hand }) => {
                     <img
                         key={index}
                         src={
-                            index === 0
-                                ? '/card-images/card_back_red.png' // Dealer's first card is hidden
+                            index === 0 && !reveal
+                                ? '/card-images/card_back_red.png'
                                 : getCardImage(card.value, card.suit)
                         }
-                        alt={index === 0 ? 'Card Back' : `${card.value} of ${card.suit}`}
+                        alt={
+                            index === 0 && !reveal
+                                ? 'Card Back'
+                                : `${card.value} of ${card.suit}`
+                        }
                         className="card"
                     />
                 ))}
