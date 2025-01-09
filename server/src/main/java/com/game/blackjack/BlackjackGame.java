@@ -10,12 +10,16 @@ public class BlackjackGame {
     private List<Card> dealerHand;
     private List<Card> deck;
     private boolean gameOver;
+    private int balance;
+    private int currentBet;
 
     public BlackjackGame() {
         this.playerHand = new ArrayList<>();
         this.dealerHand = new ArrayList<>();
         this.deck = new ArrayList<>();
         this.gameOver = false;
+        this.balance = 1000; // Initial balance
+        this.currentBet = 0;
         initializeDeck();
     }
 
@@ -39,6 +43,28 @@ public class BlackjackGame {
         playerHand.add(deck.remove(0));
         dealerHand.add(deck.remove(0));
         gameOver = false;
+    }
+
+    public void placeBet(int bet) {
+        if (bet <= balance) {
+            currentBet = bet;
+            balance -= bet;
+        } else {
+            throw new IllegalArgumentException("Bet exceeds balance");
+        }
+    }
+
+    public void resolveBet(boolean playerWins, boolean tie) {
+        if (playerWins) {
+            balance += currentBet * 2;
+        } else if (tie) {
+            balance += currentBet;
+        }
+        currentBet = 0;
+    }
+
+    public boolean isTie() {
+        return calculateHandValue(playerHand) == calculateHandValue(dealerHand);
     }
 
     public List<Card> getPlayerHand() {
@@ -66,7 +92,7 @@ public class BlackjackGame {
         }
     }
 
-    private int calculateHandValue(List<Card> hand) {
+    public int calculateHandValue(List<Card> hand) {
         int value = 0;
         int aceCount = 0;
 
@@ -98,6 +124,10 @@ public class BlackjackGame {
         checkGameOver();
     }
 
+    public int getBalance() {
+        return balance;
+    
+    }
     public boolean isGameOver() {
         return gameOver;
     }

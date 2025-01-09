@@ -13,3 +13,7 @@ export const hit = async () => {
 export const stand = async () => {
     return axios.post(`${API_BASE_URL}/stand`);
 };
+
+export const placeBet = async (amount) => {
+    return axios.post(`${API_BASE_URL}/bet`, { amount });
+};
