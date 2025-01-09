@@ -38,6 +38,7 @@ public class BlackjackGame {
         dealerHand.add(deck.remove(0));
         playerHand.add(deck.remove(0));
         dealerHand.add(deck.remove(0));
+        gameOver = false;
     }
 
     public List<Card> getPlayerHand() {
