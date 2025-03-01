@@ -19,7 +19,11 @@ public class BlackjackApplication {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/**").allowedOrigins("https://blackjack-frontend.onrender.com");
+                String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
+                if (allowedOrigins != null) {
+                    registry.addMapping("/**")
+                            .allowedOrigins(allowedOrigins.split(","));
+                }
             }
         };
     }
