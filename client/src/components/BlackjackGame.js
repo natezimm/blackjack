@@ -13,6 +13,29 @@ const BlackjackGame = () => {
     const [currentBet, setCurrentBet] = useState(0);
     const [message, setMessage] = useState('');
 
+    const calculateTotal = (hand) => {
+        let total = 0;
+        let aces = 0;
+
+        hand.forEach(card => {
+            if (card.value === 'A') {
+                aces += 1;
+                total += 11;
+            } else if (['K', 'Q', 'J'].includes(card.value)) {
+                total += 10;
+            } else {
+                total += parseInt(card.value, 10);
+            }
+        });
+
+        while (total > 21 && aces > 0) {
+            total -= 10;
+            aces -= 1;
+        }
+
+        return total;
+    };
+
     const handleStart = async () => {
         try {
             console.log('Starting game...');
@@ -32,10 +55,17 @@ const BlackjackGame = () => {
             console.log('Hitting...');
             const response = await hit();
             console.log('Hit response:', response.data);
-            setPlayerHand([...response.data.playerHand]);
+            const newPlayerHand = [...response.data.playerHand];
+            setPlayerHand(newPlayerHand);
             setDealerHand(response.data.dealerHand);
-            setGameOver(response.data.gameOver);
-            if (response.data.gameOver) {
+            const playerTotal = calculateTotal(newPlayerHand);
+            if (playerTotal > 21) {
+                setGameOver(true);
+                setRevealDealerCard(true);
+                setMessage('Busted! Dealer Wins!');
+                setCurrentBet(0);
+            } else if (response.data.gameOver) {
+                setGameOver(true);
                 setRevealDealerCard(true);
                 if (response.data.playerWins) {
                     setMessage('You Win!');
@@ -61,7 +91,7 @@ const BlackjackGame = () => {
             console.log('Stand response:', response.data);
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
-            setGameOver(response.data.gameOver);
+            setGameOver(true); // Set gameOver to true to disable the Hit button
             if (response.data.playerWins) {
                 setMessage('You Win!');
                 setBalance(balance + currentBet * 2);
@@ -100,7 +130,6 @@ const BlackjackGame = () => {
                 <button onClick={() => handleBet(10)}>Bet $10</button>
                 <button onClick={() => handleBet(50)}>Bet $50</button>
                 <button onClick={() => handleBet(100)}>Bet $100</button>
-                
             </div>
             <div className="controls">
                 <button onClick={handleStart} disabled={currentBet === 0}>Deal</button>
