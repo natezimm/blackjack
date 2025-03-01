@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = "http://localhost:8080/api/blackjack";
-
+const API_BASE_URL = "https://blackjack-zyb0.onrender.com/api/blackjack";
 export const startGame = async () => {
     return axios.get(`${API_BASE_URL}/start`);
 };
