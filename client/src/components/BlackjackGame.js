@@ -38,7 +38,6 @@ const BlackjackGame = () => {
 
     const handleStart = async () => {
         try {
-            console.log('Starting game...');
             const response = await startGame();
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
@@ -52,9 +51,7 @@ const BlackjackGame = () => {
 
     const handleHit = async () => {
         try {
-            console.log('Hitting...');
             const response = await hit();
-            console.log('Hit response:', response.data);
             const newPlayerHand = [...response.data.playerHand];
             setPlayerHand(newPlayerHand);
             setDealerHand(response.data.dealerHand);
@@ -85,10 +82,8 @@ const BlackjackGame = () => {
 
     const handleStand = async () => {
         try {
-            console.log('Standing...');
             setRevealDealerCard(true);
             const response = await stand();
-            console.log('Stand response:', response.data);
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
             setGameOver(true); // Set gameOver to true to disable the Hit button
@@ -109,7 +104,6 @@ const BlackjackGame = () => {
 
     const handleBet = async (amount) => {
         try {
-            console.log(`Placing bet of ${amount}...`);
             const newBet = currentBet + amount;
             const response = await placeBet(newBet);
             setBalance(response.data.balance);
