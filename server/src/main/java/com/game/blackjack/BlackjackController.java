@@ -43,7 +43,9 @@ public class BlackjackController {
     @PostMapping("/stand")
     public ResponseEntity<?> stand() {
         game.dealerPlay();
-        boolean playerWins = game.calculateHandValue(game.getPlayerHand()) > game.calculateHandValue(game.getDealerHand()) && game.calculateHandValue(game.getPlayerHand()) <= 21;
+        int playerValue = game.calculateHandValue(game.getPlayerHand());
+        int dealerValue = game.calculateHandValue(game.getDealerHand());
+        boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
         boolean tie = game.isTie();
         game.resolveBet(playerWins, tie);
         return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie, game.isGameOver(), game.getBalance()));

@@ -87,7 +87,7 @@ public class BlackjackGame {
         int playerValue = calculateHandValue(playerHand);
         int dealerValue = calculateHandValue(dealerHand);
 
-        if (playerValue > 21 || dealerValue >= 21) {
+        if (playerValue > 21 || dealerValue > 21) {
             gameOver = true;
         }
     }
