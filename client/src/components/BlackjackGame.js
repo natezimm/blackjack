@@ -44,6 +44,7 @@ const BlackjackGame = () => {
             setGameOver(false);
             setRevealDealerCard(false);
             setMessage('');
+            setBalance(balance - currentBet);
         } catch (error) {
             console.error('Error starting game:', error);
         }
@@ -86,7 +87,7 @@ const BlackjackGame = () => {
             const response = await stand();
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
-            setGameOver(true); // Set gameOver to true to disable the Hit button
+            setGameOver(true);
             if (response.data.playerWins) {
                 setMessage('You Win!');
                 setBalance(balance + currentBet * 2);
@@ -103,10 +104,13 @@ const BlackjackGame = () => {
     };
 
     const handleBet = async (amount) => {
+        if (currentBet + amount > balance) {
+            setMessage('Bet exceeds balance');
+            return;
+        }
         try {
             const newBet = currentBet + amount;
-            const response = await placeBet(newBet);
-            setBalance(response.data.balance);
+            await placeBet(newBet);
             setCurrentBet(newBet);
         } catch (error) {
             console.error('Error placing bet:', error);

@@ -43,12 +43,12 @@ public class BlackjackGame {
         playerHand.add(deck.remove(0));
         dealerHand.add(deck.remove(0));
         gameOver = false;
+        balance -= currentBet;
     }
 
     public void placeBet(int bet) {
         if (bet <= balance) {
             currentBet = bet;
-            balance -= bet;
         } else {
             throw new IllegalArgumentException("Bet exceeds balance");
         }
@@ -126,8 +126,12 @@ public class BlackjackGame {
 
     public int getBalance() {
         return balance;
-    
     }
+
+    public int getCurrentBet() {
+        return currentBet;
+    }
+
     public boolean isGameOver() {
         return gameOver;
     }
