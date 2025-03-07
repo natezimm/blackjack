@@ -9,3 +9,9 @@
 .card:hover {
     transform: scale(1.1);
 }
+
+@media (max-width: 600px) {
+    .card {
+        width: 80px;
+    }
+}

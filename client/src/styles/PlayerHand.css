@@ -12,6 +12,7 @@
     display: flex;
     justify-content: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .card {
@@ -24,4 +25,10 @@
 
 .card:hover {
     transform: scale(1.1);
+}
+
+@media (max-width: 600px) {
+    .card {
+        width: 80px;
+    }
 }
