@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL;
 
@@ -14,6 +14,6 @@ export const stand = async () => {
     return axios.post(`${API_BASE_URL}/stand`);
 };
 
-export const bet = async (amount) => {
+export const placeBet = async (amount) => {
     return axios.post(`${API_BASE_URL}/bet`, { amount });
 };
