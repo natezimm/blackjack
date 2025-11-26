@@ -1,5 +1,9 @@
 .blackjack-game {
-    background: radial-gradient(circle, #4CAF50 0%, #2E7D32 70%, #1B5E20 100%);
+    background-image: url('../assets/blackjack-table-felt.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
     color: white;
     font-family: 'Arial', sans-serif;
     text-align: center;
