@@ -14,31 +14,14 @@
 h1 {
     font-size: 2.5rem;
     margin-bottom: 20px;
+    font-weight: 700;
     color: #fff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.controls button {
-    background-color: #ffa500;
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    margin: 5px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-.controls button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-.controls button:hover:enabled {
-    background-color: #ff8c00;
-    transform: scale(1.1);
-}
+    text-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 3px solid gold;
+    display: inline-block;
+    padding-bottom: 8px;}
 
 .betting-controls {
     margin: 20px;
@@ -50,21 +33,42 @@ h1 {
     color: #fff;
 }
 
-.betting-controls button {
-    background-color: #ffa500;
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    margin: 5px;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
+.betting-controls h2,
+.game-message,
+.game-over {
+    letter-spacing: 1px;
+    font-weight: 600;
 }
 
-.betting-controls button:hover {
-    background-color: #ff8c00;
-    transform: scale(1.1);
+.controls button,
+.betting-controls button {
+    background: linear-gradient(#ffb347, #ff8c00);
+    border: 2px solid #cc7700;
+    color: white;
+    padding: 12px 24px;
+    margin: 6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: bold;
+    box-shadow: 0px 3px 6px rgba(0,0,0,0.3);
+    transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
+}
+
+.controls button:disabled,
+.betting-controls button:disabled {
+    background: #777 !important;
+    border: 2px solid #555 !important;
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.controls button:hover:enabled,
+.betting-controls button:hover:enabled {
+    transform: translateY(-2px);
+    box-shadow: 0px 5px 12px rgba(0,0,0,0.4);
 }
 
 .game-over {
