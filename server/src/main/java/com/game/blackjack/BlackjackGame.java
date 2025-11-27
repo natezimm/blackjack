@@ -12,6 +12,7 @@ public class BlackjackGame {
     private boolean gameOver;
     private int balance;
     private int currentBet;
+    private boolean bettingOpen = true;
 
     public BlackjackGame() {
         this.playerHand = new ArrayList<>();
@@ -44,9 +45,13 @@ public class BlackjackGame {
         dealerHand.add(deck.remove(0));
         gameOver = false;
         balance -= currentBet;
+        bettingOpen = false;
     }
 
     public void placeBet(int bet) {
+        if (!bettingOpen) {
+            throw new IllegalStateException("Cannot bet after cards are dealt");
+        }
         if (bet <= balance) {
             currentBet = bet;
         } else {
@@ -61,6 +66,7 @@ public class BlackjackGame {
             balance += currentBet;
         }
         currentBet = 0;
+        bettingOpen = true;
     }
 
     public boolean isTie() {
@@ -134,5 +140,9 @@ public class BlackjackGame {
 
     public boolean isGameOver() {
         return gameOver;
+    }
+    
+    public boolean isBettingOpen() {
+        return bettingOpen;
     }
 }

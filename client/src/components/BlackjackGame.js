@@ -11,6 +11,7 @@ const BlackjackGame = () => {
     const [revealDealerCard, setRevealDealerCard] = useState(false);
     const [balance, setBalance] = useState(1000);
     const [currentBet, setCurrentBet] = useState(0);
+    const [bettingOpen, setBettingOpen] = useState(true);
     const [message, setMessage] = useState('');
 
     const calculateTotal = (hand) => {
@@ -45,6 +46,7 @@ const BlackjackGame = () => {
             setRevealDealerCard(false);
             setMessage('');
             setBalance(balance - currentBet);
+            setBettingOpen(false);
         } catch (error) {
             console.error('Error starting game:', error);
         }
@@ -62,6 +64,7 @@ const BlackjackGame = () => {
                 setRevealDealerCard(true);
                 setMessage('Busted! Dealer Wins!');
                 setCurrentBet(0);
+                setBettingOpen(true);
             } else if (response.data.gameOver) {
                 setGameOver(true);
                 setRevealDealerCard(true);
@@ -75,6 +78,7 @@ const BlackjackGame = () => {
                     setMessage('Dealer Wins!');
                 }
                 setCurrentBet(0);
+                setBettingOpen(true);
             }
         } catch (error) {
             console.error('Error hitting:', error);
@@ -88,6 +92,7 @@ const BlackjackGame = () => {
             setPlayerHand([...response.data.playerHand]);
             setDealerHand([...response.data.dealerHand]);
             setGameOver(true);
+            setBettingOpen(true);
             if (response.data.playerWins) {
                 setMessage('You Win!');
                 setBalance(balance + currentBet * 2);
@@ -123,11 +128,11 @@ const BlackjackGame = () => {
             <div className="betting-controls">
                 <h2>Balance: ${balance}</h2>
                 <h2>Current Bet: ${currentBet}</h2>
-                <button onClick={() => handleBet(1)}>Bet $1</button>
-                <button onClick={() => handleBet(5)}>Bet $5</button>
-                <button onClick={() => handleBet(10)}>Bet $10</button>
-                <button onClick={() => handleBet(50)}>Bet $50</button>
-                <button onClick={() => handleBet(100)}>Bet $100</button>
+                <button onClick={() => handleBet(1)} disabled={!bettingOpen}>Bet $1</button>
+                <button onClick={() => handleBet(5)} disabled={!bettingOpen}>Bet $5</button>
+                <button onClick={() => handleBet(10)} disabled={!bettingOpen}>Bet $10</button>
+                <button onClick={() => handleBet(50)} disabled={!bettingOpen}>Bet $50</button>
+                <button onClick={() => handleBet(100)} disabled={!bettingOpen}>Bet $100</button>
             </div>
             <div className="controls">
                 <button onClick={handleStart} disabled={currentBet === 0}>Deal</button>
