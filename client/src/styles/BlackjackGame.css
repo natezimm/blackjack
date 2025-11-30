@@ -21,7 +21,14 @@ h1 {
     text-transform: uppercase;
     border-bottom: 3px solid gold;
     display: inline-block;
-    padding-bottom: 8px;}
+    padding-bottom: 8px;
+}
+
+.chip-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
 
 .betting-controls {
     margin: 20px;
