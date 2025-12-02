@@ -1,13 +1,9 @@
 # Blackjack Game
 
-This is a full-stack Blackjack game built with **Spring Boot** (Java) for the backend and **React** for the frontend. Players can play against a dealer with various customizable settings such as the number of decks, whether the dealer hits on soft 17, and whether insurance is available.
+Full-stack blackjack game built with React and Spring Boot, featuring dealer logic, real-time gameplay, and a responsive interface. Players can hit, stand, and play against an automated dealer following standard blackjack rules.
 
 ## Features
 - **Gameplay**: Play Blackjack against the dealer.
-- **Customizable Settings**:
-  - Number of decks used (1, 2, 4, 6, or 8 decks).
-  - Dealer hits on soft 17 (Yes/No).
-  - Insurance (Yes/No).
 - **Game flow**: Start the game, hit, stand, and check the winner.
   
 ## Project Structure
