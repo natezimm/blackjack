@@ -15,7 +15,7 @@ h1 {
     font-size: 2.5rem;
     font-weight: 700;
     color: #fff;
-    text-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
     letter-spacing: 2px;
     text-transform: uppercase;
     border-bottom: 3px solid gold;
@@ -47,8 +47,88 @@ h1 {
     font-weight: 600;
 }
 
-.controls button,
-.betting-controls button {
+/* Settings Modal */
+.settings-button {
+    background: none;
+    border: 2px solid #fff;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    transition: background 0.2s;
+}
+
+.settings-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.settings-modal-content {
+    background: #2c3e50;
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px solid gold;
+    color: white;
+    width: 300px;
+    text-align: left;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.settings-modal-content h3 {
+    margin-top: 0;
+    text-align: center;
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.settings-group select {
+    padding: 5px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.settings-group input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.close-settings {
+    width: 100%;
+    padding: 10px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.close-settings:hover {
+    background: #2980b9;
+}
+
+.controls button {
     background: linear-gradient(#ffb347, #ff8c00);
     border: 2px solid #cc7700;
     color: white;
@@ -58,12 +138,11 @@ h1 {
     cursor: pointer;
     border-radius: 6px;
     font-weight: bold;
-    box-shadow: 0px 3px 6px rgba(0,0,0,0.3);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
     transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
 }
 
-.controls button:disabled,
-.betting-controls button:disabled {
+.controls button:disabled {
     background: #777 !important;
     border: 2px solid #555 !important;
     opacity: 0.6;
@@ -72,10 +151,25 @@ h1 {
     transform: none;
 }
 
-.controls button:hover:enabled,
-.betting-controls button:hover:enabled {
+.controls button:hover:enabled {
     transform: translateY(-2px);
-    box-shadow: 0px 5px 12px rgba(0,0,0,0.4);
+    box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive adjustments for buttons */
+@media (max-width: 768px) {
+    .controls button {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .controls button {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        margin: 4px;
+    }
 }
 
 .game-over {

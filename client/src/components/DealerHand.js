@@ -36,22 +36,35 @@ const DealerHand = ({ hand, reveal }) => {
         <div className="dealer-hand">
             <h2>Dealer's Hand (Total: {total})</h2>
             <div className="hand">
-                {hand.map((card, index) => (
-                    <img
-                        key={index}
-                        src={
-                            index === 0 && !reveal
-                                ? '/card-images/card_back_red.png'
-                                : getCardImage(card.value, card.suit)
-                        }
-                        alt={
-                            index === 0 && !reveal
-                                ? 'Card Back'
-                                : `${card.value} of ${card.suit}`
-                        }
-                        className="card"
-                    />
-                ))}
+                {hand.map((card, index) => {
+                    if (index === 0) {
+                        return (
+                            <div className="card-container" key={index}>
+                                <div className={`card-inner ${reveal ? 'flipped' : ''}`}>
+                                    <div className="card-back">
+                                        <img src="/card-images/card_back_red.png" alt="Card Back" style={{ width: '100%', height: '100%', borderRadius: '5px' }} />
+                                    </div>
+                                    <div className="card-front">
+                                        <img
+                                            src={getCardImage(card.value, card.suit)}
+                                            alt={`${card.value} of ${card.suit}`}
+                                            style={{ width: '100%', height: '100%', borderRadius: '5px' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    } else {
+                        return (
+                            <img
+                                key={index}
+                                src={getCardImage(card.value, card.suit)}
+                                alt={`${card.value} of ${card.suit}`}
+                                className="card"
+                            />
+                        );
+                    }
+                })}
             </div>
         </div>
     );

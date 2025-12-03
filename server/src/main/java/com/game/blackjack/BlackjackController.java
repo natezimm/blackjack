@@ -18,7 +18,10 @@ public class BlackjackController {
     }
 
     @GetMapping("/start")
-    public GameResponse startGame() {
+    public GameResponse startGame(@RequestParam(required = false, defaultValue = "1") int decks,
+            @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17) {
+        game.initializeDeck(decks);
+        game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
         game.dealInitialCards();
         return new GameResponse(game.getPlayerHand(), game.getDealerHand());
     }
@@ -48,7 +51,8 @@ public class BlackjackController {
         boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
         boolean tie = game.isTie();
         game.resolveBet(playerWins, tie);
-        return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie, game.isGameOver(), game.getBalance()));
+        return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie,
+                game.isGameOver(), game.getBalance()));
     }
 
     @GetMapping("/gameover")
@@ -69,7 +73,8 @@ public class BlackjackController {
             this.dealerHand = dealerHand;
         }
 
-        public GameResponse(List<Card> playerHand, List<Card> dealerHand, boolean playerWins, boolean tie, boolean gameOver, int balance) {
+        public GameResponse(List<Card> playerHand, List<Card> dealerHand, boolean playerWins, boolean tie,
+                boolean gameOver, int balance) {
             this.playerHand = playerHand;
             this.dealerHand = dealerHand;
             this.playerWins = playerWins;

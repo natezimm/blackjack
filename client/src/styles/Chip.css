@@ -25,3 +25,17 @@
     transform: none;
     box-shadow: none;
 }
+
+@media (max-width: 768px) {
+    .chip-img {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chip-img {
+        width: 60px;
+        height: 60px;
+    }
+}

@@ -20,6 +20,10 @@ const BlackjackGame = () => {
     const [currentBet, setCurrentBet] = useState(0);
     const [bettingOpen, setBettingOpen] = useState(true);
     const [message, setMessage] = useState('');
+    const [numberOfDecks, setNumberOfDecks] = useState(1);
+    const [dealerHitsOnSoft17, setDealerHitsOnSoft17] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
 
     const calculateTotal = (hand) => {
         let total = 0;
@@ -45,7 +49,7 @@ const BlackjackGame = () => {
 
     const handleStart = async () => {
         try {
-            const response = await startGame();
+            const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
             setPlayerHand(response.data.playerHand);
             setDealerHand(response.data.dealerHand);
             setGameOver(false);
@@ -68,11 +72,15 @@ const BlackjackGame = () => {
             const playerTotal = calculateTotal(newPlayerHand);
 
             if (playerTotal > 21) {
-                setGameOver(true);
+                setIsAnimating(true);
                 setRevealDealerCard(true);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                setGameOver(true);
                 setMessage("Busted! Dealer Wins!");
                 setCurrentBet(0);
                 setBettingOpen(true);
+                setIsAnimating(false);
                 return;
             }
 
@@ -100,11 +108,28 @@ const BlackjackGame = () => {
 
     const handleStand = async () => {
         try {
-            setRevealDealerCard(true);
+            setIsAnimating(true);
             const response = await stand();
+            const finalDealerHand = response.data.dealerHand;
+            const finalPlayerHand = response.data.playerHand;
 
-            setPlayerHand(response.data.playerHand);
-            setDealerHand(response.data.dealerHand);
+            // Sync player hand just in case
+            setPlayerHand(finalPlayerHand);
+
+            // 1. Reveal hidden card
+            setRevealDealerCard(true);
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 2. Deal remaining cards one by one
+            let currentDisplayedHand = finalDealerHand.slice(0, 2);
+            setDealerHand(currentDisplayedHand);
+
+            for (let i = 2; i < finalDealerHand.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                currentDisplayedHand = [...currentDisplayedHand, finalDealerHand[i]];
+                setDealerHand(currentDisplayedHand);
+            }
+
             setGameOver(true);
             setBettingOpen(true);
 
@@ -121,6 +146,8 @@ const BlackjackGame = () => {
             setCurrentBet(0);
         } catch (error) {
             console.error("Error standing:", error);
+        } finally {
+            setIsAnimating(false);
         }
     };
 
@@ -148,6 +175,40 @@ const BlackjackGame = () => {
                 <h2>Balance: ${balance}</h2>
                 <h2>Current Bet: ${currentBet}</h2>
 
+                <button className="settings-button" onClick={() => setShowSettings(true)} disabled={!bettingOpen}>
+                    ⚙️ Settings
+                </button>
+
+                {showSettings && (
+                    <div className="settings-modal-overlay">
+                        <div className="settings-modal-content">
+                            <h3>Game Settings</h3>
+                            <div className="settings-group">
+                                <label>Decks: </label>
+                                <select value={numberOfDecks} onChange={(e) => setNumberOfDecks(parseInt(e.target.value))} disabled={!bettingOpen}>
+                                    <option value={1}>1</option>
+                                    <option value={2}>2</option>
+                                    <option value={4}>4</option>
+                                    <option value={6}>6</option>
+                                    <option value={8}>8</option>
+                                </select>
+                            </div>
+                            <div className="settings-group">
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={dealerHitsOnSoft17}
+                                        onChange={(e) => setDealerHitsOnSoft17(e.target.checked)}
+                                        disabled={!bettingOpen}
+                                    />
+                                    Dealer Hits Soft 17
+                                </label>
+                            </div>
+                            <button className="close-settings" onClick={() => setShowSettings(false)}>Close</button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="chip-row">
                     <Chip amount={5} image={chip5} disabled={!bettingOpen} onClick={handleBet} />
                     <Chip amount={10} image={chip10} disabled={!bettingOpen} onClick={handleBet} />
@@ -157,9 +218,9 @@ const BlackjackGame = () => {
             </div>
 
             <div className="controls">
-                <button onClick={handleStart} disabled={currentBet === 0}>Deal</button>
-                <button onClick={handleHit} disabled={gameOver || playerHand.length === 0}>Hit</button>
-                <button onClick={handleStand} disabled={gameOver || playerHand.length === 0}>Stand</button>
+                <button onClick={handleStart} disabled={currentBet === 0 || isAnimating}>Deal</button>
+                <button onClick={handleHit} disabled={gameOver || playerHand.length === 0 || isAnimating}>Hit</button>
+                <button onClick={handleStand} disabled={gameOver || playerHand.length === 0 || isAnimating}>Stand</button>
             </div>
 
             <DealerHand hand={dealerHand} reveal={revealDealerCard} />

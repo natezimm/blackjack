@@ -21,16 +21,19 @@ public class BlackjackGame {
         this.gameOver = false;
         this.balance = 1000; // Initial balance
         this.currentBet = 0;
-        initializeDeck();
+        initializeDeck(1);
     }
 
-    private void initializeDeck() {
-        String[] suits = {"Hearts", "Diamonds", "Clubs", "Spades"};
-        String[] values = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"};
+    public void initializeDeck(int numberOfDecks) {
+        deck.clear();
+        String[] suits = { "Hearts", "Diamonds", "Clubs", "Spades" };
+        String[] values = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" };
 
-        for (String suit : suits) {
-            for (String value : values) {
-                deck.add(new Card(value, suit));
+        for (int i = 0; i < numberOfDecks; i++) {
+            for (String suit : suits) {
+                for (String value : values) {
+                    deck.add(new Card(value, suit));
+                }
             }
         }
         Collections.shuffle(deck);
@@ -93,7 +96,10 @@ public class BlackjackGame {
         int playerValue = calculateHandValue(playerHand);
         int dealerValue = calculateHandValue(dealerHand);
 
-        if (playerValue > 21 || dealerValue > 21) {
+        if (playerValue > 21) {
+            gameOver = true;
+            resolveBet(false, false);
+        } else if (dealerValue > 21) {
             gameOver = true;
         }
     }
@@ -121,13 +127,43 @@ public class BlackjackGame {
         return value;
     }
 
+    private boolean dealerHitsOnSoft17 = false;
+
+    public void setDealerHitsOnSoft17(boolean dealerHitsOnSoft17) {
+        this.dealerHitsOnSoft17 = dealerHitsOnSoft17;
+    }
+
     public void dealerPlay() {
         // Dealer hits until their hand is at least 17
-        while (calculateHandValue(dealerHand) < 17) {
+        // If dealerHitsOnSoft17 is true, dealer also hits on soft 17
+        while (calculateHandValue(dealerHand) < 17 || (dealerHitsOnSoft17 && isSoft17(dealerHand))) {
             dealerHand.add(deck.remove(0));
         }
-    
+
         checkGameOver();
+    }
+
+    private boolean isSoft17(List<Card> hand) {
+        int value = 0;
+        int aceCount = 0;
+
+        for (Card card : hand) {
+            if ("J".equals(card.getValue()) || "Q".equals(card.getValue()) || "K".equals(card.getValue())) {
+                value += 10;
+            } else if ("A".equals(card.getValue())) {
+                aceCount++;
+                value += 11;
+            } else {
+                value += Integer.parseInt(card.getValue());
+            }
+        }
+
+        while (value > 21 && aceCount > 0) {
+            value -= 10;
+            aceCount--;
+        }
+
+        return value == 17 && aceCount > 0;
     }
 
     public int getBalance() {
@@ -141,8 +177,12 @@ public class BlackjackGame {
     public boolean isGameOver() {
         return gameOver;
     }
-    
+
     public boolean isBettingOpen() {
         return bettingOpen;
+    }
+
+    public int getDeckSize() {
+        return deck.size();
     }
 }
