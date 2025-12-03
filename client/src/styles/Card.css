@@ -1,3 +1,5 @@
+/* Shared card styles used by both dealer and player hands */
+
 .card {
     width: 100px;
     height: auto;

@@ -1,3 +1,7 @@
+/* Import shared card styles */
+@import './Card.css';
+
+/* PlayerHand-specific styles */
 .player-hand {
     margin: 20px 0;
 }
@@ -13,35 +17,4 @@
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
-}
-
-.card {
-    width: 100px;
-    height: auto;
-    border-radius: 5px;
-    box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease;
-    animation: dealCard 0.5s ease-out;
-}
-
-.card:hover {
-    transform: scale(1.1);
-}
-
-@keyframes dealCard {
-    from {
-        opacity: 0;
-        transform: translateY(-50px) scale(0.5);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@media (max-width: 600px) {
-    .card {
-        width: 80px;
-    }
 }
