@@ -3,6 +3,7 @@ package com.game.blackjack;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -11,15 +12,10 @@ import java.util.Map;
 @RequestMapping("/api/blackjack")
 public class BlackjackController {
 
-    private final BlackjackGame game;
-
-    public BlackjackController() {
-        this.game = new BlackjackGame();
-    }
-
     @GetMapping("/start")
     public GameResponse startGame(@RequestParam(required = false, defaultValue = "1") int decks,
-            @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17) {
+            @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17, HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
         game.initializeDeck(decks);
         game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
         game.dealInitialCards();
@@ -27,24 +23,31 @@ public class BlackjackController {
     }
 
     @PostMapping("/bet")
-    public ResponseEntity<?> placeBet(@RequestBody Map<String, Integer> betRequest) {
+    public ResponseEntity<?> placeBet(@RequestBody Map<String, Integer> betRequest, HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
         try {
-            int bet = betRequest.get("amount");
+            Integer amount = betRequest.get("amount");
+            if (amount == null) {
+                return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Bet amount is required"));
+            }
+            int bet = amount;
             game.placeBet(bet);
             return ResponseEntity.ok(Collections.singletonMap("balance", game.getBalance()));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 
     @PostMapping("/hit")
-    public GameResponse hit() {
+    public GameResponse hit(HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
         game.hitPlayer();
         return new GameResponse(game.getPlayerHand(), game.getDealerHand());
     }
 
     @PostMapping("/stand")
-    public ResponseEntity<?> stand() {
+    public ResponseEntity<?> stand(HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
         game.dealerPlay();
         int playerValue = game.calculateHandValue(game.getPlayerHand());
         int dealerValue = game.calculateHandValue(game.getDealerHand());
@@ -56,8 +59,18 @@ public class BlackjackController {
     }
 
     @GetMapping("/gameover")
-    public boolean isGameOver() {
+    public boolean isGameOver(HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
         return game.isGameOver();
+    }
+
+    private BlackjackGame getOrCreateGame(HttpSession session) {
+        BlackjackGame game = (BlackjackGame) session.getAttribute("blackjackGame");
+        if (game == null) {
+            game = new BlackjackGame();
+            session.setAttribute("blackjackGame", game);
+        }
+        return game;
     }
 
     public static class GameResponse {

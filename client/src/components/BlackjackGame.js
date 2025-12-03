@@ -222,11 +222,11 @@ const BlackjackGame = () => {
                     <h3 className="panel-title">Bank & Bets</h3>
                     <div className="betting-summary">
                         <span>Balance</span>
-                        <strong>${balance}</strong>
+                        <strong>{`$${balance}`}</strong>
                     </div>
                     <div className="betting-summary">
                         <span>Current Bet</span>
-                        <strong>${currentBet}</strong>
+                        <strong>{`$${currentBet}`}</strong>
                     </div>
                     <div className="chip-row">
                         <Chip amount={5} image={chip5} disabled={!bettingOpen} onClick={handleBet} />
