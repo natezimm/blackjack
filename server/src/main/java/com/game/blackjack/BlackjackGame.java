@@ -185,4 +185,14 @@ public class BlackjackGame {
     public int getDeckSize() {
         return deck.size();
     }
+
+    public void forfeitRound() {
+        if (!bettingOpen && currentBet > 0) {
+            currentBet = 0;
+            bettingOpen = true;
+            gameOver = true;
+            playerHand.clear();
+            dealerHand.clear();
+        }
+    }
 }

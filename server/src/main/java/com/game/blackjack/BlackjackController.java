@@ -25,6 +25,9 @@ public class BlackjackController {
     @PostMapping("/bet")
     public ResponseEntity<?> placeBet(@RequestBody Map<String, Integer> betRequest, HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
+        if (!game.isBettingOpen()) {
+            game.forfeitRound();
+        }
         try {
             Integer amount = betRequest.get("amount");
             if (amount == null) {
