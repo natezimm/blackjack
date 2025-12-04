@@ -8,7 +8,10 @@ const PlayerHand = ({ hand }) => {
 
     return (
         <div className="player-hand">
-            <h2>Player's Hand (Total: {total})</h2>
+            <div className="hand-header">
+                <h2>You</h2>
+                <span className="hand-total">{total}</span>
+            </div>
             <div className="hand">
                 {hand.map((card, index) => (
                     <img

@@ -6,10 +6,35 @@
     margin: 20px 0;
 }
 
-.player-hand h2 {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
+.hand-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.player-hand h2,
+.dealer-hand h2 {
+    font-size: 1.8rem;
+    margin: 0;
     color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.hand-total {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .hand {

@@ -8,7 +8,10 @@ const DealerHand = ({ hand, reveal }) => {
 
     return (
         <div className="dealer-hand">
-            <h2>Dealer's Hand (Total: {total})</h2>
+            <div className="hand-header">
+                <h2>Dealer</h2>
+                <span className="hand-total">{total}</span>
+            </div>
             <div className="hand">
                 {hand.map((card, index) => {
                     if (index === 0) {
