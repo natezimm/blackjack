@@ -110,7 +110,7 @@ h1 {
 
 /* Floating Settings Button */
 .settings-fab {
-    position: fixed;
+    position: absolute;
     top: clamp(12px, 2vh, 24px);
     right: clamp(12px, 2vw, 24px);
     width: 48px;
@@ -244,8 +244,6 @@ h1 {
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.35);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
-    position: sticky;
-    bottom: 10px;
 }
 
 .controls button:disabled {
