@@ -262,8 +262,16 @@ h1 {
     box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Responsive adjustments for buttons */
+/* Responsive adjustments for controls */
 @media (max-width: 768px) {
+    .controls {
+        position: static;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
     .controls button {
         padding: 10px 20px;
         font-size: 1rem;
