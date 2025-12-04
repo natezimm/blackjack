@@ -129,6 +129,24 @@ h1 {
     z-index: 150;
 }
 
+@media (max-width: 900px) {
+    .settings-fab {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+        border-width: 1.5px;
+    }
+}
+
+@media (max-width: 600px) {
+    .settings-fab {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+        border-width: 1px;
+    }
+}
+
 .settings-fab:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.5);
