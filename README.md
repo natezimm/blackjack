@@ -4,7 +4,10 @@ Full-stack blackjack game built with React and Spring Boot, featuring dealer log
 
 ## Features
 - **Gameplay**: Play Blackjack against the dealer.
-- **Game flow**: Start the game, hit, stand, and check the winner.
+- **Game flow**: Start the game, hit, stand, double down, and check the winner.
+- **Configurable Settings**:
+  - **Number of Decks**: Choose between 1, 2, 4, 6, or 8 decks for gameplay.
+  - **Dealer Soft 17 Rule**: Toggle whether the dealer hits or stands on soft 17.
   
 ## Project Structure
 - `client/`: Contains the **React** frontend for the Blackjack game.
@@ -49,6 +52,7 @@ API Endpoints
 • POST /api/start: Starts a new game and returns the initial game state (player’s and dealer’s hands).\
 • POST /api/hit: Sends a “hit” action for the player (draws a card).\
 • POST /api/stand: Sends a “stand” action for the player (ends their turn, dealer plays).\
+• POST /api/doubledown: Doubles the bet, deals exactly one card, and automatically stands.\
 
 Directory Structure
 

@@ -22,3 +22,7 @@ export const stand = async () => {
 export const placeBet = async (amount) => {
     return apiClient.post('/bet', { amount });
 };
+
+export const doubleDown = async () => {
+    return apiClient.post('/doubledown');
+};

@@ -13,6 +13,7 @@ public class BlackjackGame {
     private int balance;
     private int currentBet;
     private boolean bettingOpen = true;
+    private boolean hasDoubledDown = false;
 
     public BlackjackGame() {
         this.playerHand = new ArrayList<>();
@@ -49,6 +50,7 @@ public class BlackjackGame {
         gameOver = false;
         balance -= currentBet;
         bettingOpen = false;
+        hasDoubledDown = false;
     }
 
     public void placeBet(int bet) {
@@ -90,6 +92,33 @@ public class BlackjackGame {
             playerHand.add(newCard);
             checkGameOver();
         }
+    }
+
+    public void doubleDown() {
+        if (gameOver) {
+            throw new IllegalStateException("Cannot double down after game is over");
+        }
+        if (playerHand.size() != 2) {
+            throw new IllegalStateException("Can only double down on initial two cards");
+        }
+        if (hasDoubledDown) {
+            throw new IllegalStateException("Already doubled down");
+        }
+        if (currentBet > balance) {
+            throw new IllegalArgumentException("Insufficient balance to double down");
+        }
+
+        // Double the bet and deduct from balance
+        balance -= currentBet;
+        currentBet *= 2;
+        hasDoubledDown = true;
+
+        // Deal exactly one card
+        Card newCard = deck.remove(0);
+        playerHand.add(newCard);
+
+        // Check if player busted
+        checkGameOver();
     }
 
     private void checkGameOver() {
@@ -194,5 +223,9 @@ public class BlackjackGame {
             playerHand.clear();
             dealerHand.clear();
         }
+    }
+
+    public boolean hasDoubledDown() {
+        return hasDoubledDown;
     }
 }

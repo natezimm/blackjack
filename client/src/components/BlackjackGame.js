@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { startGame, hit, stand, placeBet } from '../api/blackjackApi';
+import { startGame, hit, stand, placeBet, doubleDown } from '../api/blackjackApi';
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
@@ -153,6 +153,68 @@ const BlackjackGame = () => {
         }
     };
 
+    const handleDoubleDown = async () => {
+        try {
+            setIsAnimating(true);
+
+            // Deduct the additional bet from balance immediately
+            setBalance(balance - currentBet);
+            setCurrentBet(currentBet * 2);
+
+            const response = await doubleDown();
+            const finalDealerHand = response.data.dealerHand;
+            const finalPlayerHand = response.data.playerHand;
+
+            // Update player hand with the one additional card
+            if (finalPlayerHand && finalPlayerHand.length > 0) {
+                setPlayerHand(finalPlayerHand);
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 1. Reveal hidden card
+            setRevealDealerCard(true);
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 2. Deal remaining cards one by one
+            let currentDisplayedHand = finalDealerHand.slice(0, 2);
+            setDealerHand(currentDisplayedHand);
+
+            for (let i = 2; i < finalDealerHand.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                currentDisplayedHand = [...currentDisplayedHand, finalDealerHand[i]];
+                setDealerHand(currentDisplayedHand);
+            }
+
+            setGameOver(true);
+            setBettingOpen(true);
+
+            // Update balance based on result
+            if (response.data.playerWins) {
+                setMessage('You Win!');
+                setBalance(response.data.balance);
+            } else if (response.data.tie) {
+                setMessage("It's a Tie!");
+                setBalance(response.data.balance);
+            } else {
+                setMessage('Dealer Wins!');
+                setBalance(response.data.balance);
+            }
+
+            setCurrentBet(0);
+        } catch (error) {
+            console.error('Error doubling down:', error);
+            // Revert the bet changes if there was an error
+            setCurrentBet(currentBet / 2);
+            setBalance(balance + currentBet / 2);
+            if (error.response && error.response.data && error.response.data.error) {
+                setMessage(error.response.data.error);
+            }
+        } finally {
+            setIsAnimating(false);
+        }
+    };
+
     const handleBet = async (amount) => {
         if (!bettingOpen) return;
         if (currentBet + amount > balance) {
@@ -245,6 +307,17 @@ const BlackjackGame = () => {
                     <div className="controls">
                         <button onClick={handleStart} disabled={currentBet === 0 || isAnimating}>Deal</button>
                         <button onClick={handleHit} disabled={gameOver || playerHand.length === 0 || isAnimating}>Hit</button>
+                        <button
+                            onClick={handleDoubleDown}
+                            disabled={
+                                gameOver ||
+                                playerHand.length !== 2 ||
+                                currentBet > balance ||
+                                isAnimating
+                            }
+                        >
+                            Double Down
+                        </button>
                         <button onClick={handleStand} disabled={gameOver || playerHand.length === 0 || isAnimating}>Stand</button>
                     </div>
 

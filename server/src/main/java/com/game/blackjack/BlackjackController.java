@@ -61,6 +61,30 @@ public class BlackjackController {
                 game.isGameOver(), game.getBalance()));
     }
 
+    @PostMapping("/doubledown")
+    public ResponseEntity<?> doubleDown(HttpSession session) {
+        try {
+            BlackjackGame game = getOrCreateGame(session);
+            game.doubleDown();
+
+            // After doubling down, player must stand, so dealer plays
+            if (!game.isGameOver()) {
+                game.dealerPlay();
+            }
+
+            int playerValue = game.calculateHandValue(game.getPlayerHand());
+            int dealerValue = game.calculateHandValue(game.getDealerHand());
+            boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
+            boolean tie = game.isTie();
+            game.resolveBet(playerWins, tie);
+
+            return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie,
+                    game.isGameOver(), game.getBalance()));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/gameover")
     public boolean isGameOver(HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
