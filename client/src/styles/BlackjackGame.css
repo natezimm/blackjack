@@ -8,6 +8,7 @@
     font-family: 'Arial', sans-serif;
     text-align: center;
     padding: clamp(12px, 2vh, 24px) clamp(16px, 4vw, 48px) clamp(32px, 6vh, 80px);
+    padding-bottom: clamp(64px, 12vh, 140px);
     min-height: 100vh;
     position: relative;
     display: flex;
