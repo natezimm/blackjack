@@ -113,8 +113,10 @@ const BlackjackGame = () => {
             const finalDealerHand = response.data.dealerHand;
             const finalPlayerHand = response.data.playerHand;
 
-            // Sync player hand just in case
-            setPlayerHand(finalPlayerHand);
+            // Only replace the player's hand if the API sends cards back
+            if (finalPlayerHand && finalPlayerHand.length > 0) {
+                setPlayerHand(finalPlayerHand);
+            }
 
             // 1. Reveal hidden card
             setRevealDealerCard(true);
