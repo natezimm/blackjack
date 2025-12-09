@@ -53,6 +53,8 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: clamp(16px, 2vh, 28px);
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .betting-panel {
@@ -99,6 +101,45 @@ h1 {
     min-height: clamp(460px, 60vh, 560px);
 }
 
+.stats-panel {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px;
+    margin: 0 auto;
+    min-width: 260px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.reset-stats {
+    width: 100%;
+    margin: 6px 0px;
+    padding: 10px;
+    background: transparent;
+    color: #fff;
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.reset-stats:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
 .status-messages {
     min-height: 48px;
 }
@@ -109,11 +150,18 @@ h1 {
     font-weight: 600;
 }
 
-/* Floating Settings Button */
-.settings-fab {
+/* Floating Buttons */
+.fab-cluster {
     position: absolute;
     top: clamp(12px, 2vh, 24px);
     right: clamp(12px, 2vw, 24px);
+    display: flex;
+    gap: 12px;
+    z-index: 150;
+}
+
+.settings-fab {
+    position: relative;
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -127,10 +175,33 @@ h1 {
     justify-content: center;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    z-index: 150;
+}
+
+.stats-fab {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid #4fd1c5;
+    background: rgba(0, 0, 0, 0.6);
+    color: #4fd1c5;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 @media (max-width: 900px) {
+    .stats-fab {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+        border-width: 1.5px;
+    }
+
     .settings-fab {
         width: 42px;
         height: 42px;
@@ -140,6 +211,13 @@ h1 {
 }
 
 @media (max-width: 600px) {
+    .stats-fab {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+        border-width: 1px;
+    }
+
     .settings-fab {
         width: 32px;
         height: 32px;
@@ -153,9 +231,68 @@ h1 {
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.5);
 }
 
+.stats-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.5);
+    border-color: #7fe4da;
+    color: #7fe4da;
+}
+
 .settings-fab:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.resume-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 16px;
+}
+
+.resume-modal {
+    background: #1f2d3d;
+    border: 2px solid gold;
+    color: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.resume-modal h3 {
+    margin-top: 0;
+}
+
+.resume-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    justify-content: flex-end;
+}
+
+.resume-actions button {
+    flex: 1;
+    background: linear-gradient(#ffb347, #ff8c00);
+    border: 2px solid #cc7700;
+    color: white;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+.resume-actions .ghost {
+    background: transparent;
+    border: 2px solid #ffb347;
+    color: #ffb347;
 }
 
 .settings-modal-overlay {
@@ -301,10 +438,14 @@ h1 {
 @media (min-width: 900px) {
     .table-layout {
         flex-direction: row;
-        align-items: flex-start;
+        align-items: stretch;
     }
 
     .betting-panel {
+        margin: 0;
+    }
+
+    .stats-panel {
         margin: 0;
     }
 

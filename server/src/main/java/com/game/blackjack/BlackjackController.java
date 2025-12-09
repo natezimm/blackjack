@@ -19,7 +19,7 @@ public class BlackjackController {
         game.initializeDeck(decks);
         game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
         game.dealInitialCards();
-        return new GameResponse(game.getPlayerHand(), game.getDealerHand());
+        return new GameResponse(game);
     }
 
     @PostMapping("/bet")
@@ -45,7 +45,7 @@ public class BlackjackController {
     public GameResponse hit(HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
         game.hitPlayer();
-        return new GameResponse(game.getPlayerHand(), game.getDealerHand());
+        return new GameResponse(game);
     }
 
     @PostMapping("/stand")
@@ -57,8 +57,7 @@ public class BlackjackController {
         boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
         boolean tie = game.isTie();
         game.resolveBet(playerWins, tie);
-        return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie,
-                game.isGameOver(), game.getBalance()));
+        return ResponseEntity.ok(new GameResponse(game, playerWins, tie));
     }
 
     @PostMapping("/doubledown")
@@ -78,11 +77,32 @@ public class BlackjackController {
             boolean tie = game.isTie();
             game.resolveBet(playerWins, tie);
 
-            return ResponseEntity.ok(new GameResponse(game.getPlayerHand(), game.getDealerHand(), playerWins, tie,
-                    game.isGameOver(), game.getBalance()));
+            return ResponseEntity.ok(new GameResponse(game, playerWins, tie));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/state")
+    public GameResponse getState(HttpSession session) {
+        BlackjackGame game = getOrCreateGame(session);
+        return new GameResponse(game);
+    }
+
+    @PostMapping("/reset")
+    public GameResponse reset(@RequestBody(required = false) Map<String, Object> payload, HttpSession session) {
+        int decks = payload != null && payload.get("decks") instanceof Number
+                ? ((Number) payload.get("decks")).intValue()
+                : 1;
+        boolean dealerHitsOnSoft17 = payload != null && payload.get("dealerHitsOnSoft17") instanceof Boolean
+                ? (Boolean) payload.get("dealerHitsOnSoft17")
+                : false;
+
+        BlackjackGame game = new BlackjackGame();
+        game.initializeDeck(decks);
+        game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
+        session.setAttribute("blackjackGame", game);
+        return new GameResponse(game);
     }
 
     @GetMapping("/gameover")
@@ -107,20 +127,31 @@ public class BlackjackController {
         private boolean tie;
         private boolean gameOver;
         private int balance;
+        private int currentBet;
+        private boolean bettingOpen;
+        private int deckSize;
+        private boolean dealerHitsOnSoft17;
+        private int numberOfDecks;
+        private boolean hasDoubledDown;
 
-        public GameResponse(List<Card> playerHand, List<Card> dealerHand) {
-            this.playerHand = playerHand;
-            this.dealerHand = dealerHand;
+        public GameResponse(BlackjackGame game) {
+            this.playerHand = game.getPlayerHand();
+            this.dealerHand = game.getDealerHand();
+            this.gameOver = game.isGameOver();
+            this.balance = game.getBalance();
+            this.currentBet = game.getCurrentBet();
+            this.bettingOpen = game.isBettingOpen();
+            this.deckSize = game.getDeckSize();
+            this.dealerHitsOnSoft17 = game.isDealerHitsOnSoft17();
+            this.numberOfDecks = game.getNumberOfDecks();
+            this.hasDoubledDown = game.hasDoubledDown();
         }
 
-        public GameResponse(List<Card> playerHand, List<Card> dealerHand, boolean playerWins, boolean tie,
-                boolean gameOver, int balance) {
-            this.playerHand = playerHand;
-            this.dealerHand = dealerHand;
+        public GameResponse(BlackjackGame game, boolean playerWins, boolean tie) {
+            this(game);
             this.playerWins = playerWins;
             this.tie = tie;
-            this.gameOver = gameOver;
-            this.balance = balance;
+            this.gameOver = game.isGameOver();
         }
 
         public List<Card> getPlayerHand() {
@@ -145,6 +176,30 @@ public class BlackjackController {
 
         public int getBalance() {
             return balance;
+        }
+
+        public int getCurrentBet() {
+            return currentBet;
+        }
+
+        public boolean isBettingOpen() {
+            return bettingOpen;
+        }
+
+        public int getDeckSize() {
+            return deckSize;
+        }
+
+        public boolean isDealerHitsOnSoft17() {
+            return dealerHitsOnSoft17;
+        }
+
+        public int getNumberOfDecks() {
+            return numberOfDecks;
+        }
+
+        public boolean isHasDoubledDown() {
+            return hasDoubledDown;
         }
     }
 }

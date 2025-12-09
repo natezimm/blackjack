@@ -14,6 +14,8 @@ public class BlackjackGame {
     private int currentBet;
     private boolean bettingOpen = true;
     private boolean hasDoubledDown = false;
+    private boolean dealerHitsOnSoft17 = false;
+    private int numberOfDecks = 1;
 
     public BlackjackGame() {
         this.playerHand = new ArrayList<>();
@@ -27,6 +29,7 @@ public class BlackjackGame {
 
     public void initializeDeck(int numberOfDecks) {
         deck.clear();
+        this.numberOfDecks = numberOfDecks;
         String[] suits = { "Hearts", "Diamonds", "Clubs", "Spades" };
         String[] values = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" };
 
@@ -70,8 +73,10 @@ public class BlackjackGame {
         } else if (tie) {
             balance += currentBet;
         }
+        gameOver = true;
         currentBet = 0;
         bettingOpen = true;
+        hasDoubledDown = false;
     }
 
     public boolean isTie() {
@@ -156,10 +161,15 @@ public class BlackjackGame {
         return value;
     }
 
-    private boolean dealerHitsOnSoft17 = false;
-
     public void setDealerHitsOnSoft17(boolean dealerHitsOnSoft17) {
         this.dealerHitsOnSoft17 = dealerHitsOnSoft17;
+    }
+    public boolean isDealerHitsOnSoft17() {
+        return dealerHitsOnSoft17;
+    }
+
+    public int getNumberOfDecks() {
+        return numberOfDecks;
     }
 
     public void dealerPlay() {
@@ -222,6 +232,7 @@ public class BlackjackGame {
             gameOver = true;
             playerHand.clear();
             dealerHand.clear();
+            hasDoubledDown = false;
         }
     }
 
