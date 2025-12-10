@@ -8,7 +8,8 @@
     background: transparent;
     border-radius: 50%;
     overflow: visible;
-    transition: box-shadow .2s ease, transform .2s ease;
+    transition: box-shadow .18s ease, transform .18s ease;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
 }
 
 .chip-img img {
@@ -24,6 +25,16 @@
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+.chip-img:not(.disabled):hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+.chip-img:not(.disabled):active {
+    transform: translateY(-1px) scale(0.95);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.35);
 }
 
 @media (max-width: 768px) {
