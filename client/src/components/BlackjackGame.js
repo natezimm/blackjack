@@ -30,6 +30,7 @@ const BlackjackGame = () => {
     const [dealerHand, setDealerHand] = useState([]);
     const [gameOver, setGameOver] = useState(false);
     const [revealDealerCard, setRevealDealerCard] = useState(false);
+    const [cardBackColor, setCardBackColor] = useState('red');
     const [balance, setBalance] = useState(1000);
     const [currentBet, setCurrentBet] = useState(0);
     const [bettingOpen, setBettingOpen] = useState(true);
@@ -95,6 +96,7 @@ const BlackjackGame = () => {
             bettingOpen,
             gameOver,
             message,
+            cardBackColor,
             numberOfDecks,
             dealerHitsOnSoft17,
             deckSize,
@@ -164,6 +166,7 @@ const BlackjackGame = () => {
         setBettingOpen(state.bettingOpen !== undefined ? state.bettingOpen : true);
         setCurrentBet(state.currentBet || 0);
         setNumberOfDecks(state.numberOfDecks || 1);
+        setCardBackColor(state.cardBackColor || 'red');
         setDealerHitsOnSoft17(!!state.dealerHitsOnSoft17);
         setDeckSize(state.deckSize ?? null);
         setRevealDealerCard(state.revealDealerCard !== undefined ? state.revealDealerCard : !!(state.gameOver || state.bettingOpen));
@@ -214,7 +217,7 @@ const BlackjackGame = () => {
     useEffect(() => {
         if (!canPersistState) return;
         persistGameState();
-    }, [playerHand, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, numberOfDecks, dealerHitsOnSoft17, canPersistState]);
+    }, [playerHand, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, numberOfDecks, dealerHitsOnSoft17, cardBackColor, canPersistState]);
 
     const handleResume = () => {
         if (!pendingState) {
@@ -257,6 +260,7 @@ const BlackjackGame = () => {
                 bettingOpen: true,
                 gameOver: false,
                 message: '',
+                cardBackColor: cardBackColor || 'red',
                 numberOfDecks,
                 dealerHitsOnSoft17,
                 deckSize: data.deckSize ?? numberOfDecks * 52,
@@ -574,6 +578,31 @@ const BlackjackGame = () => {
                                 Dealer Hits Soft 17
                             </label>
                         </div>
+                        <div className="settings-group">
+                            <span>Card Back Color:</span>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="card-back-color"
+                                        value="red"
+                                        checked={cardBackColor === 'red'}
+                                        onChange={(e) => setCardBackColor(e.target.value)}
+                                    />
+                                    {' '}Red
+                                </label>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="card-back-color"
+                                        value="blue"
+                                        checked={cardBackColor === 'blue'}
+                                        onChange={(e) => setCardBackColor(e.target.value)}
+                                    />
+                                    {' '}Blue
+                                </label>
+                            </div>
+                        </div>
                         <button className="close-settings" onClick={() => setShowSettings(false)}>Close</button>
                     </div>
                 </div>
@@ -613,7 +642,7 @@ const BlackjackGame = () => {
                 </aside>
 
                 <div className="table-surface">
-                    <DealerHand hand={dealerHand} reveal={revealDealerCard} />
+                    <DealerHand hand={dealerHand} reveal={revealDealerCard} cardBackColor={cardBackColor} />
                     <PlayerHand hand={playerHand} />
 
                     <div className="controls">

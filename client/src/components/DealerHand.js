@@ -2,9 +2,10 @@ import React from 'react';
 import '../styles/Card.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
 
-const DealerHand = ({ hand, reveal }) => {
+const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
 
     const total = reveal ? calculateTotal(hand) : '?';
+    const cardBackSrc = `/card-images/card_back_${cardBackColor}.png`;
 
     return (
         <div className="dealer-hand">
@@ -19,7 +20,7 @@ const DealerHand = ({ hand, reveal }) => {
                             <div className="card-container" key={index}>
                                 <div className={`card-inner ${reveal ? 'flipped' : ''}`}>
                                     <div className="card-back">
-                                        <img src="/card-images/card_back_red.png" alt="Card Back" style={{ width: '100%', height: '100%', borderRadius: '5px' }} />
+                                        <img src={cardBackSrc} alt="Card Back" style={{ width: '100%', height: '100%', borderRadius: '5px' }} />
                                     </div>
                                     <div className="card-front">
                                         <img
