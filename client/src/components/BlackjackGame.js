@@ -496,7 +496,7 @@ const BlackjackGame = () => {
     const deckRemainingLabel = deckSize !== null ? ` • ${deckSize} cards remain` : '';
     const renderStatsContent = () => (
         <>
-            <h3 className="panel-title">Stats</h3>
+            <h3 className="panel-title stats-title">Stats</h3>
             <div className="stat-row">
                 <span>Highest Bankroll</span>
                 <strong>{formatDollar(stats.highestBankroll)}</strong>
@@ -556,10 +556,19 @@ const BlackjackGame = () => {
             {showSettings && (
                 <div className="settings-modal-overlay">
                     <div className="settings-modal-content">
-                        <h3>Game Settings</h3>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Game Settings</h3>
+                        </div>
                         <div className="settings-group">
-                            <label>Decks: </label>
-                            <select value={numberOfDecks} onChange={(e) => setNumberOfDecks(parseInt(e.target.value))} disabled={!bettingOpen}>
+                            <div className="group-label">
+                                <span>Decks in Play</span>
+                            </div>
+                            <select
+                                value={numberOfDecks}
+                                onChange={(e) => setNumberOfDecks(parseInt(e.target.value))}
+                                disabled={!bettingOpen}
+                                className="modern-select"
+                            >
                                 <option value={1}>1</option>
                                 <option value={2}>2</option>
                                 <option value={4}>4</option>
@@ -568,20 +577,25 @@ const BlackjackGame = () => {
                             </select>
                         </div>
                         <div className="settings-group">
-                            <label>
+                            <div className="group-label">
+                                <span>Dealer Hits on Soft 17</span>
+                            </div>
+                            <label className="toggle-label">
                                 <input
                                     type="checkbox"
                                     checked={dealerHitsOnSoft17}
                                     onChange={(e) => setDealerHitsOnSoft17(e.target.checked)}
                                     disabled={!bettingOpen}
                                 />
-                                Dealer Hits Soft 17
+                                <span className="toggle-text">{dealerHitsOnSoft17 ? 'On' : 'Off'}</span>
                             </label>
                         </div>
                         <div className="settings-group">
-                            <span>Card Back Color:</span>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                                <label>
+                            <div className="group-label">
+                                <span>Card Back Color</span>
+                            </div>
+                            <div className="color-options">
+                                <label className={`color-pill ${cardBackColor === 'red' ? 'active' : ''}`}>
                                     <input
                                         type="radio"
                                         name="card-back-color"
@@ -589,9 +603,10 @@ const BlackjackGame = () => {
                                         checked={cardBackColor === 'red'}
                                         onChange={(e) => setCardBackColor(e.target.value)}
                                     />
-                                    {' '}Red
+                                    <span className="swatch swatch-red"></span>
+                                    <span>Red</span>
                                 </label>
-                                <label>
+                                <label className={`color-pill ${cardBackColor === 'blue' ? 'active' : ''}`}>
                                     <input
                                         type="radio"
                                         name="card-back-color"
@@ -599,7 +614,8 @@ const BlackjackGame = () => {
                                         checked={cardBackColor === 'blue'}
                                         onChange={(e) => setCardBackColor(e.target.value)}
                                     />
-                                    {' '}Blue
+                                    <span className="swatch swatch-blue"></span>
+                                    <span>Blue</span>
                                 </label>
                             </div>
                         </div>
