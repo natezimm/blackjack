@@ -32,6 +32,10 @@
     transform-style: preserve-3d;
 }
 
+.card-inner.no-flip-transition {
+    transition: none;
+}
+
 .card-inner.flipped {
     transform: rotateY(180deg);
 }

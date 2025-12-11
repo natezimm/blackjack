@@ -18,7 +18,7 @@ const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
                     if (index === 0) {
                         return (
                             <div className="card-container" key={index}>
-                                <div className={`card-inner ${reveal ? 'flipped' : ''}`}>
+                                <div className={`card-inner ${reveal ? 'flipped' : ''} ${!reveal ? 'no-flip-transition' : ''}`}>
                                     <div className="card-back">
                                         <img src={cardBackSrc} alt="Card Back" style={{ width: '100%', height: '100%', borderRadius: '5px' }} />
                                     </div>
