@@ -16,6 +16,14 @@ const STORAGE_KEYS = {
     gameState: 'blackjackGameState',
 };
 
+const MESSAGES = {
+    win: 'Win! 🥳 You outplayed the house.',
+    tie: 'Push 🤝 Chips stay put.',
+    dealerWin: 'Dealer takes it. 💼 Try again!',
+    bust: 'Bust! 🚨 Dealer scoops the pot.',
+    betTooHigh: "Easy, high roller. That bet's bigger than your stack.",
+};
+
 const defaultStats = {
     highestBankroll: 1000,
     longestWinStreak: 0,
@@ -316,7 +324,7 @@ const BlackjackGame = () => {
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 setGameOver(true);
-                setMessage('Busted! Dealer Wins!');
+                setMessage(MESSAGES.bust);
                 setCurrentBet(0);
                 setBettingOpen(true);
                 updateBalanceAndStats(data.balance ?? balance);
@@ -330,17 +338,17 @@ const BlackjackGame = () => {
                 setRevealDealerCard(true);
 
                 if (data.playerWins) {
-                    setMessage('You Win!');
+                    setMessage(MESSAGES.win);
                     const nextBalance = data.balance ?? balance + currentBet * 2;
                     updateBalanceAndStats(nextBalance);
                     updateStatsWithOutcome('win', currentBet, nextBalance);
                 } else if (data.tie) {
-                    setMessage("It's a Tie!");
+                    setMessage(MESSAGES.tie);
                     const nextBalance = data.balance ?? balance + currentBet;
                     updateBalanceAndStats(nextBalance);
                     updateStatsWithOutcome('tie', 0, nextBalance);
                 } else {
-                    setMessage('Dealer Wins!');
+                    setMessage(MESSAGES.dealerWin);
                     updateBalanceAndStats(data.balance ?? balance);
                     updateStatsWithOutcome('loss', 0, data.balance ?? balance);
                 }
@@ -386,17 +394,17 @@ const BlackjackGame = () => {
             setBettingOpen(true);
 
             if (data.playerWins) {
-                setMessage('You Win!');
+                setMessage(MESSAGES.win);
                 const nextBalance = data.balance ?? balance + roundBet * 2;
                 updateBalanceAndStats(nextBalance);
                 updateStatsWithOutcome('win', roundBet, nextBalance);
             } else if (data.tie) {
-                setMessage("It's a Tie!");
+                setMessage(MESSAGES.tie);
                 const nextBalance = data.balance ?? balance + roundBet;
                 updateBalanceAndStats(nextBalance);
                 updateStatsWithOutcome('tie', 0, nextBalance);
             } else {
-                setMessage('Dealer Wins!');
+                setMessage(MESSAGES.dealerWin);
                 updateBalanceAndStats(data.balance ?? balance);
                 updateStatsWithOutcome('loss', 0, data.balance ?? balance);
             }
@@ -446,15 +454,15 @@ const BlackjackGame = () => {
 
             // Update balance based on result
             if (data.playerWins) {
-                setMessage('You Win!');
+                setMessage(MESSAGES.win);
                 updateBalanceAndStats(data.balance ?? balance + doubledBet * 2);
                 updateStatsWithOutcome('win', doubledBet, data.balance ?? balance + doubledBet * 2);
             } else if (data.tie) {
-                setMessage("It's a Tie!");
+                setMessage(MESSAGES.tie);
                 updateBalanceAndStats(data.balance ?? balance);
                 updateStatsWithOutcome('tie', 0, data.balance ?? balance);
             } else {
-                setMessage('Dealer Wins!');
+                setMessage(MESSAGES.dealerWin);
                 updateBalanceAndStats(data.balance ?? balance);
                 updateStatsWithOutcome('loss', 0, data.balance ?? balance);
             }
@@ -482,7 +490,7 @@ const BlackjackGame = () => {
     const handleBet = async (amount) => {
         if (!bettingOpen) return;
         if (currentBet + amount > balance) {
-            setMessage('Bet exceeds balance');
+            setMessage(MESSAGES.betTooHigh);
             return;
         }
 
@@ -685,8 +693,10 @@ const BlackjackGame = () => {
                     </div>
 
                     <div className="status-messages">
-                        {balance === 0 && bettingOpen && gameOver && <h3 className="game-over">Game Over!</h3>}
-                        {message && <h3 className="game-message">{message}</h3>}
+                        {balance === 0 && bettingOpen && gameOver && (
+                            <div className="message-card game-over">Bankroll empty. Reset to reload the fun.</div>
+                        )}
+                        {message && <div className="message-card game-message">{message}</div>}
                     </div>
                 </div>
 
