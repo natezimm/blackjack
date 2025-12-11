@@ -226,6 +226,21 @@ h1 {
     }
 }
 
+@media (max-width: 450px) {
+    .table-header {
+        padding-top: 48px;
+    }
+
+    h1 {
+        font-size: 2.15rem;
+    }
+
+    .fab-cluster {
+        right: clamp(8px, 3vw, 14px);
+        gap: 8px;
+    }
+}
+
 .settings-fab:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.5);

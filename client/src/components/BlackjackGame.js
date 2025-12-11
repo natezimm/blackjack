@@ -473,6 +473,12 @@ const BlackjackGame = () => {
         }
     };
 
+    const handleDeckCountChange = (event) => {
+        const nextDecks = parseInt(event.target.value, 10);
+        setNumberOfDecks(nextDecks);
+        setDeckSize(nextDecks * 52);
+    };
+
     const handleBet = async (amount) => {
         if (!bettingOpen) return;
         if (currentBet + amount > balance) {
@@ -565,7 +571,7 @@ const BlackjackGame = () => {
                             </div>
                             <select
                                 value={numberOfDecks}
-                                onChange={(e) => setNumberOfDecks(parseInt(e.target.value))}
+                                onChange={handleDeckCountChange}
                                 disabled={!bettingOpen}
                                 className="modern-select"
                             >
