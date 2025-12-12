@@ -80,4 +80,14 @@ describe('blackjackApi', () => {
         await resetGame(6, true);
         expect(mockPost).toHaveBeenCalledWith('/reset', { decks: 6, dealerHitsOnSoft17: true });
     });
+
+    it('uses default parameters for startGame when not provided', async () => {
+        await startGame();
+        expect(mockGet).toHaveBeenCalledWith('/start', { params: { decks: 1, dealerHitsOnSoft17: false } });
+    });
+
+    it('uses default parameters for resetGame when not provided', async () => {
+        await resetGame();
+        expect(mockPost).toHaveBeenCalledWith('/reset', { decks: 1, dealerHitsOnSoft17: false });
+    });
 });
