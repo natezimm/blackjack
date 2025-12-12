@@ -1,12 +1,15 @@
-const reportWebVitals = onPerfEntry => {
-  if (onPerfEntry && onPerfEntry instanceof Function) {
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+const reportWebVitals = (onPerfEntry, webVitals) => {
+  if (onPerfEntry && typeof onPerfEntry === 'function') {
+    try {
+      const { getCLS, getFID, getFCP, getLCP, getTTFB } = webVitals || require('web-vitals');
       getCLS(onPerfEntry);
       getFID(onPerfEntry);
       getFCP(onPerfEntry);
       getLCP(onPerfEntry);
       getTTFB(onPerfEntry);
-    });
+    } catch (e) {
+      // If web-vitals isn't available, silently ignore in non-browser/test envs
+    }
   }
 };
 
