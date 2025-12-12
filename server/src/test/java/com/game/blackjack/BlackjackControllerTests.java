@@ -1,0 +1,336 @@
+package com.game.blackjack;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(BlackjackController.class)
+class BlackjackControllerTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private MockHttpSession session;
+
+    @BeforeEach
+    void setUp() {
+        session = new MockHttpSession();
+    }
+
+    @Test
+    void startGame_returnsConfiguredResponse() throws Exception {
+        mockMvc.perform(get("/api/blackjack/start")
+                        .param("decks", "2")
+                        .param("dealerHitsOnSoft17", "true")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numberOfDecks").value(2))
+                .andExpect(jsonPath("$.dealerHitsOnSoft17").value(true))
+                .andExpect(jsonPath("$.bettingOpen").value(false))
+                .andExpect(jsonPath("$.playerHand", hasSize(2)))
+                .andExpect(jsonPath("$.dealerHand", hasSize(2)));
+    }
+
+    @Test
+    void placeBet_validRequest_returnsBalance() throws Exception {
+        mockMvc.perform(post("/api/blackjack/bet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("amount", 100)))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(1000));
+    }
+
+    @Test
+    void placeBet_missingAmount_returnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/blackjack/bet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+                        .session(session))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bet amount is required"));
+    }
+
+    @Test
+    void placeBet_exceedsBalance_returnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/blackjack/bet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("amount", 2000)))
+                        .session(session))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bet exceeds balance"));
+    }
+
+    @Test
+    void placeBet_afterRoundClosed_forfeitsAndReturnsBalance() throws Exception {
+        prepareGameForPlay(25);
+        int balanceBefore = getSessionGame().getBalance();
+
+        mockMvc.perform(post("/api/blackjack/bet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("amount", 50)))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(balanceBefore));
+
+        assertTrue(getSessionGame().isBettingOpen());
+        assertEquals(50, getSessionGame().getCurrentBet());
+    }
+
+    @Test
+    void hit_addsCardToPlayer() throws Exception {
+        placeBet(50);
+        mockMvc.perform(get("/api/blackjack/start")
+                        .param("decks", "1")
+                        .param("dealerHitsOnSoft17", "false")
+                        .session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/blackjack/hit").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerHand", hasSize(3)));
+    }
+
+    @Test
+    void stand_resolvesGame() throws Exception {
+        prepareGameForPlay(25);
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameOver").value(true))
+                .andExpect(jsonPath("$.currentBet").value(0))
+                .andExpect(jsonPath("$.playerWins").isBoolean())
+                .andExpect(jsonPath("$.tie").isBoolean());
+    }
+
+    @Test
+    void stand_playerBust_reportsLoss() throws Exception {
+        prepareGameForPlay(30);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("K", "Hearts"),
+                new Card("Q", "Diamonds"),
+                new Card("2", "Clubs")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("8", "Diamonds")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(false))
+                .andExpect(jsonPath("$.tie").value(false));
+    }
+
+    @Test
+    void stand_playerWins_whenDealerBusts() throws Exception {
+        prepareGameForPlay(35);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("7", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("K", "Clubs"),
+                new Card("9", "Spades"),
+                new Card("5", "Hearts")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(true));
+    }
+
+    @Test
+    void stand_playerLoses_whenDealerHigher() throws Exception {
+        prepareGameForPlay(45);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("10", "Clubs"),
+                new Card("7", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("10", "Hearts"),
+                new Card("8", "Clubs")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(false));
+    }
+
+    @Test
+    void stand_playerWins_whenPlayerHigher() throws Exception {
+        prepareGameForPlay(50);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("10", "Hearts"),
+                new Card("K", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("9", "Clubs"),
+                new Card("9", "Spades")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(true));
+    }
+
+    @Test
+    void doubleDown_withoutInitialHand_returnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/blackjack/doubledown")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .session(session))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Can only double down on initial two cards"));
+    }
+
+    @Test
+    void doubleDown_afterBetAndStart_resolvesGame() throws Exception {
+        prepareGameForPlay(30);
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameOver").value(true))
+                .andExpect(jsonPath("$.currentBet").value(0));
+    }
+
+    @Test
+    void doubleDown_triggersDealerPlayWhenStillOpen() throws Exception {
+        prepareGameForPlay(40);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("3", "Hearts"),
+                new Card("6", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("10", "Clubs"),
+                new Card("6", "Spades")
+        ));
+        replaceDeck(game, List.of(
+                new Card("5", "Clubs"),
+                new Card("4", "Hearts"),
+                new Card("7", "Diamonds")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk());
+
+        assertTrue(getSessionGame().getDealerHand().size() > 2);
+    }
+
+    @Test
+    void reset_withPayload_appliesSettings() throws Exception {
+        mockMvc.perform(post("/api/blackjack/reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "decks", 3,
+                                "dealerHitsOnSoft17", true)))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numberOfDecks").value(3))
+                .andExpect(jsonPath("$.dealerHitsOnSoft17").value(true))
+                .andExpect(jsonPath("$.bettingOpen").value(true));
+    }
+
+    @Test
+    void reset_withoutPayload_usesDefaults() throws Exception {
+        mockMvc.perform(post("/api/blackjack/reset").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numberOfDecks").value(1))
+                .andExpect(jsonPath("$.dealerHitsOnSoft17").value(false))
+                .andExpect(jsonPath("$.bettingOpen").value(true));
+    }
+
+    @Test
+    void gameover_reflectsGameState() throws Exception {
+        placeBet(40);
+        mockMvc.perform(get("/api/blackjack/start")
+                        .param("decks", "1")
+                        .param("dealerHitsOnSoft17", "false")
+                        .session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/blackjack/gameover").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+
+        mockMvc.perform(post("/api/blackjack/stand").session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/blackjack/gameover").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+    }
+
+    @Test
+    void state_reportsCurrentGameFields() throws Exception {
+        prepareGameForPlay(60);
+
+        mockMvc.perform(get("/api/blackjack/state").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deckSize").value(48))
+                .andExpect(jsonPath("$.bettingOpen").value(false));
+    }
+
+    private BlackjackGame getSessionGame() {
+        return (BlackjackGame) session.getAttribute("blackjackGame");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void replaceDeck(BlackjackGame game, List<Card> cards) throws Exception {
+        Field deckField = BlackjackGame.class.getDeclaredField("deck");
+        deckField.setAccessible(true);
+        List<Card> deck = (List<Card>) deckField.get(game);
+        deck.clear();
+        deck.addAll(cards);
+    }
+
+    private void placeBet(int amount) throws Exception {
+        mockMvc.perform(post("/api/blackjack/bet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("amount", amount)))
+                        .session(session))
+                .andExpect(status().isOk());
+    }
+
+    private void prepareGameForPlay(int amount) throws Exception {
+        placeBet(amount);
+        mockMvc.perform(get("/api/blackjack/start")
+                        .param("decks", "1")
+                        .param("dealerHitsOnSoft17", "false")
+                        .session(session))
+                .andExpect(status().isOk());
+    }
+}
