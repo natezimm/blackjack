@@ -251,6 +251,104 @@ class BlackjackControllerTests {
     }
 
     @Test
+    void doubleDown_insufficientBalance_returnsBadRequest() throws Exception {
+        prepareGameForPlay(1000);
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Insufficient balance to double down"));
+    }
+
+    @Test
+    void doubleDown_bustsPlayer_skipsDealerPlayResponse() throws Exception {
+        prepareGameForPlay(20);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("9", "Clubs"),
+                new Card("8", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("10", "Hearts"),
+                new Card("6", "Spades")
+        ));
+        replaceDeck(game, List.of(new Card("10", "Spades")));
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dealerHand", hasSize(2)))
+                .andExpect(jsonPath("$.gameOver").value(true));
+    }
+
+    @Test
+    void doubleDown_playerWins_whenDealerBusts() throws Exception {
+        prepareGameForPlay(25);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("7", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("9", "Clubs"),
+                new Card("7", "Spades")
+        ));
+        replaceDeck(game, List.of(
+                new Card("2", "Clubs"),
+                new Card("10", "Diamonds")
+        ));
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(true));
+    }
+
+    @Test
+    void doubleDown_playerLoses_whenDealerHigher() throws Exception {
+        prepareGameForPlay(30);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("7", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("10", "Clubs"),
+                new Card("9", "Spades")
+        ));
+        replaceDeck(game, List.of(new Card("2", "Hearts")));
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(false));
+    }
+
+    @Test
+    void doubleDown_playerWins_withHigherTotal() throws Exception {
+        prepareGameForPlay(40);
+        BlackjackGame game = getSessionGame();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("9", "Diamonds")
+        ));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("8", "Clubs"),
+                new Card("9", "Spades")
+        ));
+        replaceDeck(game, List.of(new Card("2", "Clubs")));
+
+        mockMvc.perform(post("/api/blackjack/doubledown").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerWins").value(true))
+                .andExpect(jsonPath("$.tie").value(false));
+    }
+
+    @Test
     void reset_withPayload_appliesSettings() throws Exception {
         mockMvc.perform(post("/api/blackjack/reset")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -271,6 +369,19 @@ class BlackjackControllerTests {
                 .andExpect(jsonPath("$.numberOfDecks").value(1))
                 .andExpect(jsonPath("$.dealerHitsOnSoft17").value(false))
                 .andExpect(jsonPath("$.bettingOpen").value(true));
+    }
+
+    @Test
+    void reset_withInvalidPayload_fallsBackToDefaults() throws Exception {
+        mockMvc.perform(post("/api/blackjack/reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "decks", "many",
+                                "dealerHitsOnSoft17", "yes")))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numberOfDecks").value(1))
+                .andExpect(jsonPath("$.dealerHitsOnSoft17").value(false));
     }
 
     @Test

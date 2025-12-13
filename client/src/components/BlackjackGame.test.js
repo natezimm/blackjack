@@ -1,7 +1,22 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import userEvent from '@testing-library/user-event';
-import BlackjackGame from './BlackjackGame';
+import BlackjackGame, {
+    calculateTotal,
+    createDeckCountChangeHandler,
+    createHydrateStateFromResponse,
+    createUpdateBalanceAndStats,
+    createUpdateStatsWithOutcome,
+    ensureHand,
+    fallbackTo,
+    handleBetLogic,
+    handleDoubleDownError,
+    resumeGame,
+    safePersistGameState,
+    safePersistStats,
+} from './BlackjackGame';
+import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
+import { MESSAGES } from '../constants/messages';
 import { getState, placeBet, startGame, hit, stand, doubleDown, resetGame } from '../api/blackjackApi';
 
 jest.mock('../api/blackjackApi', () => ({
@@ -26,6 +41,7 @@ const defaultApiState = {
 
 describe('BlackjackGame', () => {
     beforeEach(() => {
+        jest.useFakeTimers();
         jest.clearAllMocks();
         localStorage.clear();
         getState.mockResolvedValue({ data: {} });
@@ -36,6 +52,12 @@ describe('BlackjackGame', () => {
     afterEach(() => {
         jest.useRealTimers();
     });
+
+    const advanceTimers = async (ms) => {
+        await act(async () => {
+            jest.advanceTimersByTime(ms);
+        });
+    };
 
     it('shows the resume prompt when a saved hand exists', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
@@ -52,6 +74,34 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
         expect(getState).toHaveBeenCalled();
+    });
+
+    it('calculates totals for face cards', () => {
+        const hand = [
+            { value: 'K', suit: 'Hearts' },
+            { value: 'Q', suit: 'Spades' },
+            { value: 'J', suit: 'Clubs' },
+        ];
+
+        expect(calculateTotal(hand)).toBe(30);
+    });
+
+    it('handles resume when pending state is missing', () => {
+        const setShowResumePrompt = jest.fn();
+        const setCanPersistState = jest.fn();
+        const hydrateStateFromResponse = jest.fn();
+
+        resumeGame({
+            pendingState: null,
+            hydrateStateFromResponse,
+            setShowResumePrompt,
+            setCanPersistState,
+            hasStoredHand: jest.fn(),
+        });
+
+        expect(setShowResumePrompt).toHaveBeenCalledWith(false);
+        expect(setCanPersistState).toHaveBeenCalledWith(true);
+        expect(hydrateStateFromResponse).not.toHaveBeenCalled();
     });
 
     it('places a bet through the API and updates the current bet display', async () => {
@@ -163,9 +213,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(hitButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(1000);
-        });
+        await advanceTimers(1000);
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
@@ -278,6 +326,57 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
 
+    it('handles hit action with player loss', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '9', suit: 'Hearts' }, { value: '8', suit: 'Spades' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
+        });
+
+        hit.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '7', suit: 'Spades' }, { value: '3', suit: 'Clubs' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '9', suit: 'Diamonds' }],
+                gameOver: true,
+                balance: 960,
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        await waitFor(() => {
+            const hitButton = screen.getByText('Hit');
+            expect(hitButton).not.toBeDisabled();
+        });
+
+        const hitButton = screen.getByText('Hit');
+        await act(async () => {
+            await userEvent.click(hitButton);
+        });
+
+        await waitFor(() => expect(hit).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText(/Dealer takes it/i)).toBeInTheDocument());
+    });
+
     it('handles stand action with player win', async () => {
         startGame.mockResolvedValue({
             data: {
@@ -328,9 +427,10 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        // Advance timers to reveal the dealer's cards
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -385,9 +485,12 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+
+        await waitFor(() => expect(screen.getByText(/Push/i)).toBeInTheDocument());
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -441,9 +544,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        await advanceTimers(2000);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -498,9 +599,10 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -553,6 +655,67 @@ describe('BlackjackGame', () => {
         });
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText('Insufficient balance')).toBeInTheDocument());
+    });
+
+    it('handles double down with multiple dealer cards', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
+        });
+
+        doubleDown.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                dealerHand: [
+                    { value: 'K', suit: 'Hearts' },
+                    { value: '5', suit: 'Spades' },
+                    { value: '3', suit: 'Clubs' },
+                    { value: '2', suit: 'Diamonds' },
+                ],
+                playerWins: true,
+                balance: 1040,
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        await waitFor(() => {
+            const doubleDownButton = screen.getByText('Double Down');
+            expect(doubleDownButton).not.toBeDisabled();
+        });
+
+        const doubleDownButton = screen.getByText('Double Down');
+        await act(async () => {
+            await userEvent.click(doubleDownButton);
+        });
+
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+
+        await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
 
     it('handles resume action', async () => {
@@ -592,6 +755,40 @@ describe('BlackjackGame', () => {
                 dealerHand: [],
                 deckSize: 52,
             },
+        });
+
+        localStorage.setItem('blackjackGameState', JSON.stringify({
+            playerHand: [{ value: 'K', suit: 'Spades' }],
+            dealerHand: [{ value: 'Q', suit: 'Hearts' }],
+            currentBet: 25,
+            bettingOpen: false,
+        }));
+        getState.mockResolvedValue({
+            data: {
+                playerHand: [{ value: 'K', suit: 'Spades' }],
+                dealerHand: [{ value: 'Q', suit: 'Hearts' }],
+                currentBet: 25,
+                bettingOpen: false,
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
+
+        const freshStartButton = screen.getByText('Start New');
+        await act(async () => {
+            await userEvent.click(freshStartButton);
+        });
+
+        await waitFor(() => expect(resetGame).toHaveBeenCalled());
+    });
+
+    it('handles fresh start with minimal API response', async () => {
+        resetGame.mockResolvedValue({
+            data: {},
         });
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
@@ -1178,9 +1375,10 @@ describe('BlackjackGame', () => {
         });
 
         // Advance timers for all card reveals
-        act(() => {
-            jest.advanceTimersByTime(3000);
-        });
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
+        await advanceTimers(500);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -1235,9 +1433,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        await advanceTimers(2000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -1291,6 +1487,353 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(getState).toHaveBeenCalled());
     });
 
+    it('handles errors thrown by safePersistStats', () => {
+        const storage = {
+            setItem: jest.fn(() => {
+                throw new Error('Persist stats failed');
+            }),
+        };
+
+        safePersistStats({ highestBankroll: 0 }, storage);
+
+        expect(storage.setItem).toHaveBeenCalledWith('blackjackStats', expect.any(String));
+    });
+
+    it('handles errors thrown by safePersistGameState', () => {
+        const storage = {
+            setItem: jest.fn(() => {
+                throw new Error('Persist game state failed');
+            }),
+        };
+
+        safePersistGameState({ balance: 0 }, storage);
+
+        expect(storage.setItem).toHaveBeenCalledWith('blackjackGameState', expect.any(String));
+    });
+
+    it('createUpdateBalanceAndStats handles fallback highest bankroll', () => {
+        const setBalance = jest.fn();
+        const persistStats = jest.fn();
+        const setStats = jest.fn();
+        setStats.mockImplementation(fn => fn({ highestBankroll: 0 }));
+
+        const updateBalanceAndStats = createUpdateBalanceAndStats({ setBalance, setStats, persistStats });
+
+        updateBalanceAndStats(250);
+
+        expect(setBalance).toHaveBeenCalledWith(250);
+        expect(persistStats).toHaveBeenCalledWith(expect.objectContaining({ highestBankroll: 250 }));
+    });
+
+    it('createUpdateBalanceAndStats ignores invalid balances', () => {
+        const setBalance = jest.fn();
+        const setStats = jest.fn();
+        const persistStats = jest.fn();
+
+        const updateBalanceAndStats = createUpdateBalanceAndStats({ setBalance, setStats, persistStats });
+
+        updateBalanceAndStats(NaN);
+
+        expect(setBalance).not.toHaveBeenCalled();
+        expect(setStats).not.toHaveBeenCalled();
+        expect(persistStats).not.toHaveBeenCalled();
+    });
+
+    it('createUpdateStatsWithOutcome handles missing payout and balance', () => {
+        const setStats = jest.fn();
+        const persistStats = jest.fn();
+        setStats.mockImplementation(fn => fn({
+            highestBankroll: 100,
+            currentWinStreak: 2,
+            sessionHandsWon: 3,
+            longestWinStreak: 2,
+            mostHandsWon: 3,
+            bestPayout: 50,
+        }));
+
+        const updateStatsWithOutcome = createUpdateStatsWithOutcome({ setStats, persistStats });
+
+        updateStatsWithOutcome('win', undefined, undefined);
+
+        expect(persistStats).toHaveBeenCalled();
+    });
+
+    it('createUpdateStatsWithOutcome resets streak on loss', () => {
+        const setStats = jest.fn();
+        const persistStats = jest.fn();
+        setStats.mockImplementation(fn => fn({ currentWinStreak: 4 }));
+
+        const updateStatsWithOutcome = createUpdateStatsWithOutcome({ setStats, persistStats });
+
+        updateStatsWithOutcome('loss', 0, 100);
+
+        expect(persistStats).toHaveBeenCalledWith(expect.objectContaining({ currentWinStreak: 0 }));
+    });
+
+    it('createUpdateStatsWithOutcome resets streak on tie', () => {
+        const setStats = jest.fn();
+        const persistStats = jest.fn();
+        setStats.mockImplementation(fn => fn({ currentWinStreak: 5 }));
+
+        const updateStatsWithOutcome = createUpdateStatsWithOutcome({ setStats, persistStats });
+
+        updateStatsWithOutcome('tie', 0, 80);
+
+        expect(persistStats).toHaveBeenCalledWith(expect.objectContaining({ currentWinStreak: 0 }));
+    });
+
+    it('createHydrateStateFromResponse handles missing state and reveal flag', () => {
+        const updateBalanceAndStats = jest.fn();
+        const setPlayerHand = jest.fn();
+        const setDealerHand = jest.fn();
+        const setGameOver = jest.fn();
+        const setBettingOpen = jest.fn();
+        const setCurrentBet = jest.fn();
+        const setNumberOfDecks = jest.fn();
+        const setCardBackColor = jest.fn();
+        const setDealerHitsOnSoft17 = jest.fn();
+        const setDeckSize = jest.fn();
+        const setRevealDealerCard = jest.fn();
+        const setMessage = jest.fn();
+        const setCanPersistState = jest.fn();
+
+        const hydrateState = createHydrateStateFromResponse({
+            balance: 500,
+            updateBalanceAndStats,
+            setPlayerHand,
+            setDealerHand,
+            setGameOver,
+            setBettingOpen,
+            setCurrentBet,
+            setNumberOfDecks,
+            setCardBackColor,
+            setDealerHitsOnSoft17,
+            setDeckSize,
+            setRevealDealerCard,
+            setMessage,
+            setCanPersistState,
+        });
+
+        hydrateState(null, {});
+
+        expect(updateBalanceAndStats).not.toHaveBeenCalled();
+        expect(setPlayerHand).not.toHaveBeenCalled();
+
+        hydrateState({
+            balance: 800,
+            playerHand: [{ value: '5', suit: 'Hearts' }],
+            dealerHand: [{ value: 'K', suit: 'Hearts' }],
+            gameOver: false,
+            bettingOpen: true,
+            currentBet: 20,
+            numberOfDecks: 1,
+            dealerHitsOnSoft17: true,
+            deckSize: 52,
+            revealDealerCard: true,
+            message: 'hi',
+        }, { message: 'fallback' });
+
+        expect(updateBalanceAndStats).toHaveBeenCalledWith(800);
+        expect(setRevealDealerCard).toHaveBeenCalledWith(true);
+        expect(setMessage).toHaveBeenCalledWith('hi');
+        expect(setCanPersistState).toHaveBeenCalledWith(true);
+    });
+
+    it('ensureHand falls back to an empty array', () => {
+        const cards = [{ value: 'A', suit: 'Hearts' }];
+        expect(ensureHand(cards)).toBe(cards);
+        expect(ensureHand(null)).toEqual([]);
+    });
+
+    it('fallbackTo falls back when value is nullish', () => {
+        expect(fallbackTo(undefined, 10)).toBe(10);
+        expect(fallbackTo(0, 10)).toBe(0);
+    });
+
+    it('createDeckCountChangeHandler updates deck counts', () => {
+        const setNumberOfDecks = jest.fn();
+        const setDeckSize = jest.fn();
+
+        const handler = createDeckCountChangeHandler({ setNumberOfDecks, setDeckSize });
+        handler({ target: { value: '4' } });
+
+        expect(setNumberOfDecks).toHaveBeenCalledWith(4);
+        expect(setDeckSize).toHaveBeenCalledWith(208);
+    });
+
+    it('handleBetLogic respects limits and places bets', async () => {
+        const setMessage = jest.fn();
+        const setCurrentBet = jest.fn();
+        const placeBet = jest.fn().mockResolvedValue();
+
+        await handleBetLogic({
+            bettingOpen: false,
+            currentBet: 10,
+            balance: 100,
+            setMessage,
+            setCurrentBet,
+            placeBet,
+        }, 5);
+
+        expect(placeBet).not.toHaveBeenCalled();
+
+        await handleBetLogic({
+            bettingOpen: true,
+            currentBet: 10,
+            balance: 15,
+            setMessage,
+            setCurrentBet,
+            placeBet,
+        }, 10);
+
+        expect(setMessage).toHaveBeenCalledWith(MESSAGES.betTooHigh);
+
+        await handleBetLogic({
+            bettingOpen: true,
+            currentBet: 5,
+            balance: 50,
+            setMessage,
+            setCurrentBet,
+            placeBet,
+        }, 10);
+
+        expect(placeBet).toHaveBeenCalledWith(15);
+        expect(setCurrentBet).toHaveBeenCalledWith(15);
+    });
+
+    it('handleDoubleDownError surfaces response error and reverts bet', () => {
+        const setMessage = jest.fn();
+        const setCurrentBet = jest.fn();
+        const setBalance = jest.fn();
+
+        handleDoubleDownError({
+            error: { response: { data: { error: 'Too slow!' } } },
+            currentBet: 20,
+            balance: 200,
+            setMessage,
+            setCurrentBet,
+            setBalance,
+        });
+
+        expect(setCurrentBet).toHaveBeenCalledWith(10);
+        expect(setBalance).toHaveBeenCalledWith(210);
+        expect(setMessage).toHaveBeenCalledWith('Too slow!');
+    });
+
+    it('handleDoubleDownError skips messaging when no response is provided', () => {
+        const setMessage = jest.fn();
+        const setCurrentBet = jest.fn();
+        const setBalance = jest.fn();
+
+        handleDoubleDownError({
+            error: new Error('Unexpected'),
+            currentBet: 30,
+            balance: 300,
+            setMessage,
+            setCurrentBet,
+            setBalance,
+        });
+
+        expect(setCurrentBet).toHaveBeenCalledWith(15);
+        expect(setBalance).toHaveBeenCalledWith(315);
+        expect(setMessage).not.toHaveBeenCalled();
+    });
+
+    it('processDoubleDownOutcome honours the tie branch', () => {
+        const updateBalance = jest.fn();
+        const updateStats = jest.fn();
+        const setMessage = jest.fn();
+
+        processDoubleDownOutcome({
+            data: { tie: true, balance: 300 },
+            doubledBet: 15,
+            balance: 280,
+            updateBalanceAndStats: updateBalance,
+            updateStatsWithOutcome: updateStats,
+            setMessage,
+        });
+
+        expect(setMessage).toHaveBeenCalledWith('Push 🤝 Chips stay put.');
+        expect(updateBalance).toHaveBeenCalledWith(300);
+        expect(updateStats).toHaveBeenCalledWith('tie', 0, 300);
+    });
+
+    it('processDoubleDownOutcome honour the dealer win branch', () => {
+        const updateBalance = jest.fn();
+        const updateStats = jest.fn();
+        const setMessage = jest.fn();
+
+        processDoubleDownOutcome({
+            data: { balance: 150 },
+            doubledBet: 15,
+            balance: 200,
+            updateBalanceAndStats: updateBalance,
+            updateStatsWithOutcome: updateStats,
+            setMessage,
+        });
+
+        expect(setMessage).toHaveBeenCalledWith('Dealer takes it. 💼 Try again!');
+        expect(updateBalance).toHaveBeenCalledWith(150);
+        expect(updateStats).toHaveBeenCalledWith('loss', 0, 150);
+    });
+
+    it('processDoubleDownOutcome falls back to provided balance for ties without API value', () => {
+        const updateBalance = jest.fn();
+        const updateStats = jest.fn();
+        const setMessage = jest.fn();
+
+        processDoubleDownOutcome({
+            data: { tie: true },
+            doubledBet: 10,
+            balance: 50,
+            updateBalanceAndStats: updateBalance,
+            updateStatsWithOutcome: updateStats,
+            setMessage,
+        });
+
+        expect(setMessage).toHaveBeenCalledWith('Push 🤝 Chips stay put.');
+        expect(updateBalance).toHaveBeenCalledWith(50);
+        expect(updateStats).toHaveBeenCalledWith('tie', 0, 50);
+    });
+
+    it('processDoubleDownOutcome falls back to provided balance when dealer wins without API value', () => {
+        const updateBalance = jest.fn();
+        const updateStats = jest.fn();
+        const setMessage = jest.fn();
+
+        processDoubleDownOutcome({
+            data: {},
+            doubledBet: 10,
+            balance: 75,
+            updateBalanceAndStats: updateBalance,
+            updateStatsWithOutcome: updateStats,
+            setMessage,
+        });
+
+        expect(setMessage).toHaveBeenCalledWith('Dealer takes it. 💼 Try again!');
+        expect(updateBalance).toHaveBeenCalledWith(75);
+        expect(updateStats).toHaveBeenCalledWith('loss', 0, 75);
+    });
+
+    it('processDoubleDownOutcome honours the player win branch', () => {
+        const updateBalance = jest.fn();
+        const updateStats = jest.fn();
+        const setMessage = jest.fn();
+
+        processDoubleDownOutcome({
+            data: { playerWins: true },
+            doubledBet: 10,
+            balance: 200,
+            updateBalanceAndStats: updateBalance,
+            updateStatsWithOutcome: updateStats,
+            setMessage,
+        });
+
+        expect(setMessage).toHaveBeenCalledWith('Win! 🥳 You outplayed the house.');
+        expect(updateBalance).toHaveBeenCalledWith(220);
+        expect(updateStats).toHaveBeenCalledWith('win', 10, 220);
+    });
+
     it('handles startGame with balance from API', async () => {
         startGame.mockResolvedValue({
             data: {
@@ -1327,6 +1870,28 @@ describe('BlackjackGame', () => {
                 currentBet: 10,
                 deckSize: 52,
             },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+    });
+
+    it('handles startGame fallback when API returns minimal data', async () => {
+        startGame.mockResolvedValue({
+            data: {},
         });
 
         await act(async () => {
@@ -1398,6 +1963,47 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
 
+    it('handles hit fallback with minimal API response', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
+        });
+
+        hit.mockResolvedValue({
+            data: {
+                gameOver: false,
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Hit'));
+        });
+
+        await waitFor(() => expect(hit).toHaveBeenCalled());
+    });
+
     it('handles stand with empty player hand from API', async () => {
         startGame.mockResolvedValue({
             data: {
@@ -1448,9 +2054,49 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
+        await advanceTimers(2000);
+
+        await waitFor(() => expect(stand).toHaveBeenCalled());
+    });
+
+    it('handles stand fallback with minimal API response', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
         });
+
+        stand.mockResolvedValue({
+            data: {},
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        const standButton = screen.getByText('Stand');
+        await act(async () => {
+            await userEvent.click(standButton);
+        });
+
+        await advanceTimers(2000);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -1505,9 +2151,49 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
+        await advanceTimers(2000);
+
+        await waitFor(() => expect(doubleDown).toHaveBeenCalled());
+    });
+
+    it('handles double down fallback with minimal API response', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
         });
+
+        doubleDown.mockResolvedValue({
+            data: {},
+        });
+
+        await act(async () => {
+            render(<BlackjackGame />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('Deal'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        const doubleDownButton = screen.getByText('Double Down');
+        await act(async () => {
+            await userEvent.click(doubleDownButton);
+        });
+
+        await advanceTimers(2000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -1743,9 +2429,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(hitButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(1000);
-        });
+        await advanceTimers(1000);
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
@@ -2065,9 +2749,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        act(() => {
-            jest.advanceTimersByTime(2000);
-        });
+        await advanceTimers(2000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -2145,12 +2827,17 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Change card back color to red (already selected, but we can click it)
+        // Toggle card back colors
+        const blueRadio = screen.getByDisplayValue('blue');
+        await act(async () => {
+            await userEvent.click(blueRadio);
+        });
+        expect(blueRadio.checked).toBe(true);
+
         const redRadio = screen.getByDisplayValue('red');
         await act(async () => {
             await userEvent.click(redRadio);
         });
-
         expect(redRadio.checked).toBe(true);
     });
 

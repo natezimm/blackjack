@@ -10,18 +10,172 @@ import chip25 from '../assets/chips/chip-25.png';
 import chip100 from '../assets/chips/chip-100.png';
 
 import '../styles/BlackjackGame.css';
+import { MESSAGES } from '../constants/messages';
+import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
+
+export const calculateTotal = (hand) => {
+    let total = 0;
+    let aces = 0;
+
+    hand.forEach(card => {
+        if (card.value === 'A') {
+            aces++;
+            total += 11;
+        } else if (['K', 'Q', 'J'].includes(card.value)) {
+            total += 10;
+        } else {
+            total += parseInt(card.value);
+        }
+    });
+
+    while (total > 21 && aces > 0) {
+        total -= 10;
+        aces--;
+    }
+    return total;
+};
 
 const STORAGE_KEYS = {
     stats: 'blackjackStats',
     gameState: 'blackjackGameState',
 };
 
-const MESSAGES = {
-    win: 'Win! 🥳 You outplayed the house.',
-    tie: 'Push 🤝 Chips stay put.',
-    dealerWin: 'Dealer takes it. 💼 Try again!',
-    bust: 'Bust! 🚨 Dealer scoops the pot.',
-    betTooHigh: "Easy, high roller. That bet's bigger than your stack.",
+export const safePersistStats = (statsToSave, storage = localStorage) => {
+    try {
+        storage.setItem(STORAGE_KEYS.stats, JSON.stringify(statsToSave));
+    } catch (error) {
+        console.error('Unable to persist stats', error);
+    }
+};
+
+export const safePersistGameState = (snapshot, storage = localStorage) => {
+    try {
+        storage.setItem(STORAGE_KEYS.gameState, JSON.stringify(snapshot));
+    } catch (error) {
+        console.error('Unable to persist game state', error);
+    }
+};
+
+export const createUpdateBalanceAndStats = ({ setBalance, setStats, persistStats }) => (newBalance) => {
+    if (typeof newBalance !== 'number' || Number.isNaN(newBalance)) {
+        return;
+    }
+
+    setBalance(newBalance);
+    setStats(prev => {
+        const next = {
+            ...prev,
+            highestBankroll: Math.max(prev.highestBankroll || 0, newBalance),
+        };
+        persistStats(next);
+        return next;
+    });
+};
+
+export const createUpdateStatsWithOutcome = ({ setStats, persistStats }) => (outcome, payout, updatedBalance) => {
+    const payoutValue = typeof payout === 'number' ? payout : 0;
+    setStats(prev => {
+        const next = { ...prev };
+        if (typeof updatedBalance === 'number') {
+            next.highestBankroll = Math.max(next.highestBankroll || 0, updatedBalance);
+        }
+
+        if (outcome === 'win') {
+            next.currentWinStreak += 1;
+            next.sessionHandsWon += 1;
+            next.longestWinStreak = Math.max(next.longestWinStreak, next.currentWinStreak);
+            next.mostHandsWon = Math.max(next.mostHandsWon, next.sessionHandsWon);
+            next.bestPayout = Math.max(next.bestPayout, payoutValue);
+        }
+        if (outcome === 'loss' || outcome === 'tie') {
+            next.currentWinStreak = 0;
+        }
+
+        persistStats(next);
+        return next;
+    });
+};
+
+export const createHydrateStateFromResponse = ({
+    balance,
+    updateBalanceAndStats,
+    setPlayerHand,
+    setDealerHand,
+    setGameOver,
+    setBettingOpen,
+    setCurrentBet,
+    setNumberOfDecks,
+    setCardBackColor,
+    setDealerHitsOnSoft17,
+    setDeckSize,
+    setRevealDealerCard,
+    setMessage,
+    setCanPersistState,
+}) => (state, fallback) => {
+    if (!state) return;
+    const resolvedBalance = typeof state.balance === 'number' ? state.balance : balance;
+    updateBalanceAndStats(resolvedBalance);
+    setPlayerHand(ensureHand(state.playerHand));
+    setDealerHand(ensureHand(state.dealerHand));
+    setGameOver(!!state.gameOver);
+    setBettingOpen(state.bettingOpen !== undefined ? state.bettingOpen : true);
+    setCurrentBet(state.currentBet || 0);
+    setNumberOfDecks(state.numberOfDecks || 1);
+    setCardBackColor(state.cardBackColor || 'red');
+    setDealerHitsOnSoft17(!!state.dealerHitsOnSoft17);
+    setDeckSize(fallbackTo(state.deckSize, null));
+    setRevealDealerCard(state.revealDealerCard !== undefined ? state.revealDealerCard : !!(state.gameOver || state.bettingOpen));
+    setMessage(state.message ?? fallback?.message ?? '');
+    setCanPersistState(true);
+};
+
+export const ensureHand = (hand) => hand || [];
+
+export const fallbackTo = (value, fallback) => value ?? fallback;
+
+export const createDeckCountChangeHandler = ({ setNumberOfDecks, setDeckSize }) => (event) => {
+    const nextDecks = parseInt(event.target.value, 10);
+    setNumberOfDecks(nextDecks);
+    setDeckSize(nextDecks * 52);
+};
+
+export const handleBetLogic = async ({
+    bettingOpen,
+    currentBet,
+    balance,
+    setMessage,
+    setCurrentBet,
+    placeBet,
+}, amount) => {
+    if (!bettingOpen) return;
+    if (currentBet + amount > balance) {
+        setMessage(MESSAGES.betTooHigh);
+        return;
+    }
+
+    try {
+        const newBet = currentBet + amount;
+        await placeBet(newBet);
+        setCurrentBet(newBet);
+    } catch (error) {
+        console.error('Error placing bet:', error);
+    }
+};
+
+export const handleDoubleDownError = ({
+    error,
+    currentBet,
+    balance,
+    setMessage,
+    setCurrentBet,
+    setBalance,
+}) => {
+    setCurrentBet(currentBet / 2);
+    setBalance(balance + currentBet / 2);
+    const errorMessage = error?.response?.data?.error;
+    if (errorMessage) {
+        setMessage(errorMessage);
+    }
 };
 
 const defaultStats = {
@@ -54,28 +208,6 @@ const BlackjackGame = () => {
     const [deckSize, setDeckSize] = useState(null);
     const [showStatsModal, setShowStatsModal] = useState(false);
 
-    const calculateTotal = (hand) => {
-        let total = 0;
-        let aces = 0;
-
-        hand.forEach(card => {
-            if (card.value === 'A') {
-                aces++;
-                total += 11;
-            } else if (['K', 'Q', 'J'].includes(card.value)) {
-                total += 10;
-            } else {
-                total += parseInt(card.value);
-            }
-        });
-
-        while (total > 21 && aces > 0) {
-            total -= 10;
-            aces--;
-        }
-        return total;
-    };
-
     const loadFromStorage = (key, fallback) => {
         try {
             const raw = localStorage.getItem(key);
@@ -87,11 +219,7 @@ const BlackjackGame = () => {
     };
 
     const persistStats = (statsToSave) => {
-        try {
-            localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(statsToSave));
-        } catch (error) {
-            console.error('Unable to persist stats', error);
-        }
+        safePersistStats(statsToSave);
     };
 
     const persistGameState = (customState) => {
@@ -110,12 +238,27 @@ const BlackjackGame = () => {
             deckSize,
         };
 
-        try {
-            localStorage.setItem(STORAGE_KEYS.gameState, JSON.stringify(snapshot));
-        } catch (error) {
-            console.error('Unable to persist game state', error);
-        }
+        safePersistGameState(snapshot);
     };
+
+    const updateBalanceAndStats = createUpdateBalanceAndStats({ setBalance, setStats, persistStats });
+    const updateStatsWithOutcome = createUpdateStatsWithOutcome({ setStats, persistStats });
+    const hydrateStateFromResponse = createHydrateStateFromResponse({
+        balance,
+        updateBalanceAndStats,
+        setPlayerHand,
+        setDealerHand,
+        setGameOver,
+        setBettingOpen,
+        setCurrentBet,
+        setNumberOfDecks,
+        setCardBackColor,
+        setDealerHitsOnSoft17,
+        setDeckSize,
+        setRevealDealerCard,
+        setMessage,
+        setCanPersistState,
+    });
 
     const hasStoredHand = (state) => {
         if (!state) return false;
@@ -123,63 +266,6 @@ const BlackjackGame = () => {
             (state.dealerHand && state.dealerHand.length > 0) ||
             state.currentBet > 0 ||
             state.bettingOpen === false;
-    };
-
-    const updateBalanceAndStats = (newBalance) => {
-        if (typeof newBalance !== 'number' || Number.isNaN(newBalance)) {
-            return;
-        }
-
-        setBalance(newBalance);
-        setStats(prev => {
-            const next = {
-                ...prev,
-                highestBankroll: Math.max(prev.highestBankroll || 0, newBalance),
-            };
-            persistStats(next);
-            return next;
-        });
-    };
-
-    const updateStatsWithOutcome = (outcome, payout, updatedBalance) => {
-        const payoutValue = typeof payout === 'number' ? payout : 0;
-        setStats(prev => {
-            const next = { ...prev };
-            if (typeof updatedBalance === 'number') {
-                next.highestBankroll = Math.max(next.highestBankroll || 0, updatedBalance);
-            }
-
-            if (outcome === 'win') {
-                next.currentWinStreak += 1;
-                next.sessionHandsWon += 1;
-                next.longestWinStreak = Math.max(next.longestWinStreak, next.currentWinStreak);
-                next.mostHandsWon = Math.max(next.mostHandsWon, next.sessionHandsWon);
-                next.bestPayout = Math.max(next.bestPayout, payoutValue);
-            } else if (outcome === 'loss' || outcome === 'tie') {
-                next.currentWinStreak = 0;
-            }
-
-            persistStats(next);
-            return next;
-        });
-    };
-
-    const hydrateStateFromResponse = (state, fallback) => {
-        if (!state) return;
-        const resolvedBalance = typeof state.balance === 'number' ? state.balance : balance;
-        updateBalanceAndStats(resolvedBalance);
-        setPlayerHand(state.playerHand || []);
-        setDealerHand(state.dealerHand || []);
-        setGameOver(!!state.gameOver);
-        setBettingOpen(state.bettingOpen !== undefined ? state.bettingOpen : true);
-        setCurrentBet(state.currentBet || 0);
-        setNumberOfDecks(state.numberOfDecks || 1);
-        setCardBackColor(state.cardBackColor || 'red');
-        setDealerHitsOnSoft17(!!state.dealerHitsOnSoft17);
-        setDeckSize(state.deckSize ?? null);
-        setRevealDealerCard(state.revealDealerCard !== undefined ? state.revealDealerCard : !!(state.gameOver || state.bettingOpen));
-        setMessage(state.message ?? fallback?.message ?? '');
-        setCanPersistState(true);
     };
 
     const fetchExistingState = async (storedGameState) => {
@@ -228,15 +314,13 @@ const BlackjackGame = () => {
     }, [playerHand, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, numberOfDecks, dealerHitsOnSoft17, cardBackColor, canPersistState]);
 
     const handleResume = () => {
-        if (!pendingState) {
-            setShowResumePrompt(false);
-            setCanPersistState(true);
-            return;
-        }
-
-        const stateToUse = hasStoredHand(pendingState.server) ? pendingState.server : pendingState.local;
-        hydrateStateFromResponse(stateToUse, pendingState.local);
-        setShowResumePrompt(false);
+        resumeGame({
+            pendingState,
+            hydrateStateFromResponse,
+            setShowResumePrompt,
+            setCanPersistState,
+            hasStoredHand,
+        });
     };
 
     const handleFreshStart = async () => {
@@ -244,14 +328,14 @@ const BlackjackGame = () => {
             const response = await resetGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
             updateBalanceAndStats(1000);
-            setPlayerHand(data.playerHand || []);
-            setDealerHand(data.dealerHand || []);
+            setPlayerHand(ensureHand(data.playerHand));
+            setDealerHand(ensureHand(data.dealerHand));
             setGameOver(false);
             setRevealDealerCard(false);
             setCurrentBet(0);
             setBettingOpen(true);
             setMessage('');
-            setDeckSize(data.deckSize ?? numberOfDecks * 52);
+            setDeckSize(fallbackTo(data.deckSize, numberOfDecks * 52));
             setStats(prev => {
                 const next = { ...prev, currentWinStreak: 0, sessionHandsWon: 0, mostHandsWon: 0 };
                 persistStats(next);
@@ -268,10 +352,10 @@ const BlackjackGame = () => {
                 bettingOpen: true,
                 gameOver: false,
                 message: '',
-                cardBackColor: cardBackColor || 'red',
+                cardBackColor,
                 numberOfDecks,
                 dealerHitsOnSoft17,
-                deckSize: data.deckSize ?? numberOfDecks * 52,
+                deckSize: fallbackTo(data.deckSize, numberOfDecks * 52),
             });
         } catch (error) {
             console.error('Error resetting game:', error);
@@ -288,14 +372,14 @@ const BlackjackGame = () => {
         try {
             const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
-            setPlayerHand(data.playerHand || []);
-            setDealerHand(data.dealerHand || []);
-            setDeckSize(data.deckSize ?? deckSize);
+            setPlayerHand(ensureHand(data.playerHand));
+            setDealerHand(ensureHand(data.dealerHand));
+            setDeckSize(fallbackTo(data.deckSize, deckSize));
             setGameOver(false);
             setRevealDealerCard(false);
             setMessage('');
             setBettingOpen(false);
-            setCurrentBet(data.currentBet ?? currentBet);
+            setCurrentBet(fallbackTo(data.currentBet, currentBet));
             if (typeof data.balance === 'number') {
                 updateBalanceAndStats(data.balance);
             } else {
@@ -310,15 +394,15 @@ const BlackjackGame = () => {
         try {
             const response = await hit();
             const data = response.data;
-            const newPlayerHand = data.playerHand || [];
+            const newPlayerHand = ensureHand(data.playerHand);
             setPlayerHand(newPlayerHand);
-            setDealerHand(data.dealerHand || []);
-            setDeckSize(data.deckSize ?? deckSize);
+            setDealerHand(ensureHand(data.dealerHand));
+            setDeckSize(fallbackTo(data.deckSize, deckSize));
 
             const playerTotal = calculateTotal(newPlayerHand);
-            const busted = playerTotal > 21 || data.gameOver;
+            const playerBusted = playerTotal > 21;
 
-            if (busted) {
+            if (playerBusted) {
                 setIsAnimating(true);
                 setRevealDealerCard(true);
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -327,8 +411,9 @@ const BlackjackGame = () => {
                 setMessage(MESSAGES.bust);
                 setCurrentBet(0);
                 setBettingOpen(true);
-                updateBalanceAndStats(data.balance ?? balance);
-                updateStatsWithOutcome('loss', 0, data.balance ?? balance);
+                const resolvedBalance = fallbackTo(data.balance, balance);
+                updateBalanceAndStats(resolvedBalance);
+                updateStatsWithOutcome('loss', 0, resolvedBalance);
                 setIsAnimating(false);
                 return;
             }
@@ -339,18 +424,19 @@ const BlackjackGame = () => {
 
                 if (data.playerWins) {
                     setMessage(MESSAGES.win);
-                    const nextBalance = data.balance ?? balance + currentBet * 2;
+                    const nextBalance = fallbackTo(data.balance, balance + currentBet * 2);
                     updateBalanceAndStats(nextBalance);
                     updateStatsWithOutcome('win', currentBet, nextBalance);
                 } else if (data.tie) {
                     setMessage(MESSAGES.tie);
-                    const nextBalance = data.balance ?? balance + currentBet;
+                    const nextBalance = fallbackTo(data.balance, balance + currentBet);
                     updateBalanceAndStats(nextBalance);
                     updateStatsWithOutcome('tie', 0, nextBalance);
                 } else {
                     setMessage(MESSAGES.dealerWin);
-                    updateBalanceAndStats(data.balance ?? balance);
-                    updateStatsWithOutcome('loss', 0, data.balance ?? balance);
+                    const resolvedBalance = fallbackTo(data.balance, balance);
+                    updateBalanceAndStats(resolvedBalance);
+                    updateStatsWithOutcome('loss', 0, resolvedBalance);
                 }
 
                 setCurrentBet(0);
@@ -366,10 +452,10 @@ const BlackjackGame = () => {
             setIsAnimating(true);
             const response = await stand();
             const data = response.data;
-            const finalDealerHand = data.dealerHand || [];
-            const finalPlayerHand = data.playerHand || [];
+            const finalDealerHand = ensureHand(data.dealerHand);
+            const finalPlayerHand = ensureHand(data.playerHand);
             const roundBet = currentBet;
-            setDeckSize(data.deckSize ?? deckSize);
+            setDeckSize(fallbackTo(data.deckSize, deckSize));
 
             // Only replace the player's hand if the API sends cards back
             if (finalPlayerHand && finalPlayerHand.length > 0) {
@@ -393,21 +479,22 @@ const BlackjackGame = () => {
             setGameOver(true);
             setBettingOpen(true);
 
-            if (data.playerWins) {
-                setMessage(MESSAGES.win);
-                const nextBalance = data.balance ?? balance + roundBet * 2;
-                updateBalanceAndStats(nextBalance);
-                updateStatsWithOutcome('win', roundBet, nextBalance);
-            } else if (data.tie) {
-                setMessage(MESSAGES.tie);
-                const nextBalance = data.balance ?? balance + roundBet;
-                updateBalanceAndStats(nextBalance);
-                updateStatsWithOutcome('tie', 0, nextBalance);
-            } else {
-                setMessage(MESSAGES.dealerWin);
-                updateBalanceAndStats(data.balance ?? balance);
-                updateStatsWithOutcome('loss', 0, data.balance ?? balance);
-            }
+                if (data.playerWins) {
+                    setMessage(MESSAGES.win);
+                    const nextBalance = fallbackTo(data.balance, balance + roundBet * 2);
+                    updateBalanceAndStats(nextBalance);
+                    updateStatsWithOutcome('win', roundBet, nextBalance);
+                } else if (data.tie) {
+                    setMessage(MESSAGES.tie);
+                    const nextBalance = fallbackTo(data.balance, balance + roundBet);
+                    updateBalanceAndStats(nextBalance);
+                    updateStatsWithOutcome('tie', 0, nextBalance);
+                } else {
+                    setMessage(MESSAGES.dealerWin);
+                    const resolvedBalance = fallbackTo(data.balance, balance);
+                    updateBalanceAndStats(resolvedBalance);
+                    updateStatsWithOutcome('loss', 0, resolvedBalance);
+                }
 
             setCurrentBet(0);
         } catch (error) {
@@ -424,9 +511,9 @@ const BlackjackGame = () => {
 
             const response = await doubleDown();
             const data = response.data;
-            const finalDealerHand = data.dealerHand || [];
-            const finalPlayerHand = data.playerHand || [];
-            setDeckSize(data.deckSize ?? deckSize);
+            const finalDealerHand = ensureHand(data.dealerHand);
+            const finalPlayerHand = ensureHand(data.playerHand);
+            setDeckSize(fallbackTo(data.deckSize, deckSize));
 
             // Update player hand with the one additional card
             if (finalPlayerHand && finalPlayerHand.length > 0) {
@@ -452,55 +539,44 @@ const BlackjackGame = () => {
             setGameOver(true);
             setBettingOpen(true);
 
-            // Update balance based on result
-            if (data.playerWins) {
-                setMessage(MESSAGES.win);
-                updateBalanceAndStats(data.balance ?? balance + doubledBet * 2);
-                updateStatsWithOutcome('win', doubledBet, data.balance ?? balance + doubledBet * 2);
-            } else if (data.tie) {
-                setMessage(MESSAGES.tie);
-                updateBalanceAndStats(data.balance ?? balance);
-                updateStatsWithOutcome('tie', 0, data.balance ?? balance);
-            } else {
-                setMessage(MESSAGES.dealerWin);
-                updateBalanceAndStats(data.balance ?? balance);
-                updateStatsWithOutcome('loss', 0, data.balance ?? balance);
-            }
+            processDoubleDownOutcome({
+                data,
+                doubledBet,
+                balance,
+                updateBalanceAndStats,
+                updateStatsWithOutcome,
+                setMessage,
+            });
 
             setCurrentBet(0);
         } catch (error) {
             console.error('Error doubling down:', error);
-            // Revert the bet changes if there was an error
-            setCurrentBet(currentBet / 2);
-            setBalance(balance + currentBet / 2);
-            if (error.response && error.response.data && error.response.data.error) {
-                setMessage(error.response.data.error);
-            }
+            handleDoubleDownError({
+                error,
+                currentBet,
+                balance,
+                setMessage,
+                setCurrentBet,
+                setBalance,
+            });
         } finally {
             setIsAnimating(false);
         }
     };
-
-    const handleDeckCountChange = (event) => {
-        const nextDecks = parseInt(event.target.value, 10);
-        setNumberOfDecks(nextDecks);
-        setDeckSize(nextDecks * 52);
-    };
+    const handleDeckCountChange = createDeckCountChangeHandler({
+        setNumberOfDecks,
+        setDeckSize,
+    });
 
     const handleBet = async (amount) => {
-        if (!bettingOpen) return;
-        if (currentBet + amount > balance) {
-            setMessage(MESSAGES.betTooHigh);
-            return;
-        }
-
-        try {
-            const newBet = currentBet + amount;
-            await placeBet(newBet);
-            setCurrentBet(newBet);
-        } catch (error) {
-            console.error('Error placing bet:', error);
-        }
+        await handleBetLogic({
+            bettingOpen,
+            currentBet,
+            balance,
+            setMessage,
+            setCurrentBet,
+            placeBet,
+        }, amount);
     };
 
     const formatDollar = (value) => `$${(value || 0).toLocaleString()}`;
@@ -703,6 +779,24 @@ const BlackjackGame = () => {
             </div>
         </div>
     );
+};
+
+export const resumeGame = ({
+    pendingState,
+    hydrateStateFromResponse,
+    setShowResumePrompt,
+    setCanPersistState,
+    hasStoredHand,
+}) => {
+    if (!pendingState) {
+        setShowResumePrompt(false);
+        setCanPersistState(true);
+        return;
+    }
+
+    const stateToUse = hasStoredHand(pendingState.server) ? pendingState.server : pendingState.local;
+    hydrateStateFromResponse(stateToUse, pendingState.local);
+    setShowResumePrompt(false);
 };
 
 export default BlackjackGame;

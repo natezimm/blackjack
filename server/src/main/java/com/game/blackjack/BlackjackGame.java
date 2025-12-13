@@ -187,22 +187,33 @@ public class BlackjackGame {
         int aceCount = 0;
 
         for (Card card : hand) {
-            if ("J".equals(card.getValue()) || "Q".equals(card.getValue()) || "K".equals(card.getValue())) {
+            String cardValue = card.getValue();
+            if ("J".equals(cardValue)) {
                 value += 10;
-            } else if ("A".equals(card.getValue())) {
+            } else if ("Q".equals(cardValue)) {
+                value += 10;
+            } else if ("K".equals(cardValue)) {
+                value += 10;
+            } else if ("A".equals(cardValue)) {
                 aceCount++;
                 value += 11;
             } else {
-                value += Integer.parseInt(card.getValue());
+                value += Integer.parseInt(cardValue);
             }
         }
 
-        while (value > 21 && aceCount > 0) {
+        while (value > 21) {
+            if (aceCount <= 0) {
+                break;
+            }
             value -= 10;
             aceCount--;
         }
 
-        return value == 17 && aceCount > 0;
+        if (value != 17) {
+            return false;
+        }
+        return aceCount > 0;
     }
 
     public int getBalance() {

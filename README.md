@@ -1,65 +1,63 @@
 # Blackjack Game
 
-Full-stack blackjack game built with React and Spring Boot, featuring dealer logic, real-time gameplay, and a responsive interface. Players can hit, stand, and play against an automated dealer following standard blackjack rules.
+Full-stack Blackjack experience pairing a React 18 front-end with a Spring Boot 2.6.6 backend running on Java 11. The game threads RESTful APIs through Axios so the UI stays in sync with an always-session stateful dealer and wallet.
 
-## Features
-- **Gameplay**: Play Blackjack against the dealer.
-- **Game flow**: Start the game, hit, stand, double down, and check the winner.
-- **Configurable Settings**:
-  - **Number of Decks**: Choose between 1, 2, 4, 6, or 8 decks for gameplay.
-  - **Dealer Soft 17 Rule**: Toggle whether the dealer hits or stands on soft 17.
-  
-## Project Structure
-- `client/`: Contains the **React** frontend for the Blackjack game.
-- `server/`: Contains the **Spring Boot** backend for handling game logic.
+## Highlights
+- **Live balance and betting**: Players start with \$1,000, place bets each round, can forfeit a round, and the backend keeps the current bet, balance, deck size, and double-down flag in the session.
+- **Configurable dealer behavior**: You can choose whether the dealer hits on soft 17 and select 1 / 2 / 4 / 6 / 8 decks before a new deal.
+- **Standard Blackjack moves**: Hit, stand, and double down are all supported, with automatic dealer play and round resolution logic managed server-side.
+
+## Technology Stack
+- **Frontend**: React 18 with `react-scripts`, `axios`, and the usual testing helpers (`@testing-library/*`).
+- **Backend**: Spring Boot 2.6.6 (`org.springframework.boot:spring-boot-starter-web`) orchestrated with Gradle 7.6.6 via the wrapper and built-in JaCoCo reports.
+- **Containerization**: `server/Dockerfile` builds the Spring Boot JAR in a Gradle image and runs it on OpenJDK 11.
+
+## Project Layout
+- `server/`: Spring Boot service exposing `/api/blackjack/*` endpoints, game state objects, and card/deck logic plus Gradle configuration, tests, and Dockerfile.
+- `client/`: React SPA that renders the blackjack table, exposes betting controls, and hits the backend API through Axios helpers.
 
 ## Prerequisites
-- **Java 17** or later (for Spring Boot backend).
-- **Node.js** and **npm** (for React frontend).
-- **Gradle** (for building and running the backend).
+- Java 11+ (for the backend and Docker image).
+- Node.js + npm (for the frontend).
+- Gradle is provided via the wrapper (`./gradlew`).
 
-## Setup Instructions
+## Running Locally
 
-### Backend (Spring Boot)
-1. Navigate to the `server/` directory:
-   ```bash
-   cd server
-2. Build and run the backend using Gradle:
-   ```bash
-   ./gradlew bootRun
-3. The backend will run on http://localhost:8080.
-  
-### Frontend (React)
-1. Navigate to the client/ directory:
-   ```bash
-   cd client
-2. Install the required dependencies:
-   ```bash
-   npm install
-3. Start the frontend development server:
-   ```bash
-   npm start
-5. The React app will be available at http://localhost:3000.
+### Backend
+1. `cd server`
+2. `./gradlew bootRun`
+3. The service listens on `http://localhost:8080`; set `ALLOWED_ORIGINS` in the environment if you need to whitelist a different frontend origin.
 
-How It Works
+### Frontend
+1. `cd client`
+2. `npm install`
+3. `npm start`
+4. The React app starts on `http://localhost:3000` and proxies API calls to the backend (configured via `.env` or the default development proxy).
 
-1. React frontend communicates with the Spring Boot backend via RESTful API calls.
-2. Backend handles the game logic, including card distribution, player actions (hit, stand), and determining the winner.
-3. Frontend displays the current state of the game (hands, score, buttons) and sends player actions to the backend.
+## API Reference
+- `GET /api/blackjack/start?decks=<1|2|4|6|8>&dealerHitsOnSoft17=<true|false>` – initialize a round (`decks` defaults to 1, `dealerHitsOnSoft17` defaults to false).
+- `POST /api/blackjack/bet` – body `{ "amount": <int> }`, places the bet before dealing; betting is rejected once cards are dealt.
+- `POST /api/blackjack/hit` – draws a card for the player and updates the session state.
+- `POST /api/blackjack/stand` – resolves the round by letting the dealer play, then determines win/tie/loss and adjusts the balance.
+- `POST /api/blackjack/doubledown` – doubles the bet, deals exactly one card, then forces a stand/dealer resolution.
+- `GET /api/blackjack/state` – returns the current hands, balance, bet, deck size, whether betting is open, and soft 17 setting.
+- `POST /api/blackjack/reset` – optional body `{ "decks": <int>, "dealerHitsOnSoft17": <bool> }`, clears the session, and starts fresh with the requested configuration.
+- `GET /api/blackjack/gameover` – indicates if the current round has been marked as finished.
 
-API Endpoints
+The controller stores `BlackjackGame` in the HTTP session so each client keeps its own ongoing hand, balance, and configuration.
 
-• POST /api/start: Starts a new game and returns the initial game state (player’s and dealer’s hands).\
-• POST /api/hit: Sends a “hit” action for the player (draws a card).\
-• POST /api/stand: Sends a “stand” action for the player (ends their turn, dealer plays).\
-• POST /api/doubledown: Doubles the bet, deals exactly one card, and automatically stands.\
+## Gameplay Features
+- Players can place custom bets, forfeit a round, or double down (with balance enforced per round).
+- Dealer hits logic respects the soft 17 toggle and keeps drawing until the rules are satisfied.
+- Both player and dealer hands, along with the deck, persist until a new round/reset so the UI can reflect remaining cards and betting status.
 
-Directory Structure
+## Testing
+- Run backend tests with `./gradlew test` and inspect the HTML report at `server/build/reports/tests/test/index.html` (54 tests passing as of the latest run).
+- Run frontend tests with `npm test` and capture coverage via `npm run test:coverage`.
 
-• server/: Contains the Spring Boot backend code, including game logic and API endpoints.\
-• src/main/java/com/game/blackjack/: Java code for the game and backend logic.\
-• src/main/resources/static/: Static resources like HTML, CSS, and JavaScript (if needed).\
-• client/: Contains the React frontend.\
-• src/components/: React components for the user interface.\
-• src/api/: API call functions to interact with the backend.\
-• src/App.js: Main component for rendering the game UI.\
+## Docker
+- `docker build -t blackjack-server server`
+- `docker run -p 8080:8080 -e ALLOWED_ORIGINS=http://localhost:3000 blackjack-server`
+
+## Additional Resources
+- `server/HELP.md` contains helpful Gradle/Spring guides if you need extra reference material or want to extend the backend.
