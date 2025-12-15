@@ -18,7 +18,7 @@ public class BlackjackApplication {
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/api/**")
                     .allowedOrigins(
                         "http://localhost:3000",

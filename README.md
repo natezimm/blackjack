@@ -3,7 +3,7 @@
 
 # Blackjack Game
 
-Full-stack Blackjack experience pairing a React 18 front-end with a Spring Boot 2.6.6 backend running on Java 11. The game threads RESTful APIs through Axios so the UI stays in sync with an always-session stateful dealer and wallet.
+Full-stack Blackjack experience pairing a React 18 front-end with a modernized Spring Boot 3 backend running on Java 21 (LTS). The game threads RESTful APIs through Axios so the UI stays in sync with an always-session stateful dealer and wallet.
 
 ## Highlights
 - **Live balance and betting**: Players start with \$1,000, place bets each round, can forfeit a round, and the backend keeps the current bet, balance, deck size, and double-down flag in the session.
@@ -12,15 +12,14 @@ Full-stack Blackjack experience pairing a React 18 front-end with a Spring Boot 
 
 ## Technology Stack
 - **Frontend**: React 18 with `react-scripts`, `axios`, and the usual testing helpers (`@testing-library/*`).
-- **Backend**: Spring Boot 2.6.6 (`org.springframework.boot:spring-boot-starter-web`) orchestrated with Gradle 7.6.6 via the wrapper and built-in JaCoCo reports.
-- **Containerization**: `server/Dockerfile` builds the Spring Boot JAR in a Gradle image and runs it on OpenJDK 11.
+- **Backend**: Spring Boot 3.x (`org.springframework.boot:spring-boot-starter-web`) orchestrated with Gradle via the wrapper and built-in JaCoCo reports with enforced coverage.
 
 ## Project Layout
 - `server/`: Spring Boot service exposing `/api/blackjack/*` endpoints, game state objects, and card/deck logic plus Gradle configuration, tests, and Dockerfile.
 - `client/`: React SPA that renders the blackjack table, exposes betting controls, and hits the backend API through Axios helpers.
 
 ## Prerequisites
-- Java 11+ (for the backend and Docker image).
+- Java 21+ (for the backend and Docker image).
 - Node.js + npm (for the frontend).
 - Gradle is provided via the wrapper (`./gradlew`).
 
@@ -67,10 +66,6 @@ The controller stores `BlackjackGame` in the HTTP session so each client keeps i
   - Statements ≥ 85%
   - Functions ≥ 85%
   - Branches ≥ 80%
-
-## Docker
-- `docker build -t blackjack-server server`
-- `docker run -p 8080:8080 -e ALLOWED_ORIGINS=http://localhost:3000 blackjack-server`
 
 ## Additional Resources
 - `server/HELP.md` contains helpful Gradle/Spring guides if you need extra reference material or want to extend the backend.
