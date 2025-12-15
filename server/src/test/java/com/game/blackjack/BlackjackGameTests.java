@@ -40,8 +40,7 @@ class BlackjackGameTests {
         game.getPlayerHand().addAll(Arrays.asList(
                 new Card("K", "Hearts"),
                 new Card("Q", "Diamonds"),
-                new Card("2", "Clubs")
-        ));
+                new Card("2", "Clubs")));
         game.hitPlayer();
         assertTrue(game.isGameOver());
         assertEquals(0, game.getCurrentBet());
@@ -57,13 +56,11 @@ class BlackjackGameTests {
         game.getPlayerHand().clear();
         game.getPlayerHand().addAll(Arrays.asList(
                 new Card("7", "Hearts"),
-                new Card("7", "Diamonds")
-        ));
+                new Card("7", "Diamonds")));
         game.getDealerHand().clear();
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Clubs"),
-                new Card("6", "Spades")
-        ));
+                new Card("6", "Spades")));
         replaceDeck(game, List.of(new Card("5", "Clubs")));
         game.doubleDown();
         assertTrue(game.hasDoubledDown());
@@ -134,8 +131,7 @@ class BlackjackGameTests {
                 new Card("A", "Hearts"),
                 new Card("K", "Spades"),
                 new Card("5", "Diamonds"),
-                new Card("A", "Clubs")
-        );
+                new Card("A", "Clubs"));
         assertEquals(17, game.calculateHandValue(hand));
     }
 
@@ -145,18 +141,15 @@ class BlackjackGameTests {
         replaceDeck(game, Arrays.asList(
                 new Card("5", "Clubs"),
                 new Card("7", "Hearts"),
-                new Card("9", "Spades")
-        ));
+                new Card("9", "Spades")));
         game.getDealerHand().clear();
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("A", "Hearts"),
-                new Card("6", "Diamonds")
-        ));
+                new Card("6", "Diamonds")));
         game.getPlayerHand().clear();
         game.getPlayerHand().addAll(Arrays.asList(
                 new Card("9", "Clubs"),
-                new Card("8", "Diamonds")
-        ));
+                new Card("8", "Diamonds")));
         game.setDealerHitsOnSoft17(true);
         int dealerValueBefore = game.calculateHandValue(game.getDealerHand());
         int deckSizeBefore = game.getDeckSize();
@@ -172,8 +165,7 @@ class BlackjackGameTests {
         game.getDealerHand().clear();
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Hearts"),
-                new Card("7", "Diamonds")
-        ));
+                new Card("7", "Diamonds")));
         game.setDealerHitsOnSoft17(false);
         game.dealerPlay();
         assertEquals(2, game.getDealerHand().size());
@@ -187,12 +179,10 @@ class BlackjackGameTests {
         game.getDealerHand().clear();
         game.getPlayerHand().addAll(Arrays.asList(
                 new Card("10", "Hearts"),
-                new Card("7", "Clubs")
-        ));
+                new Card("7", "Clubs")));
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("9", "Spades"),
-                new Card("8", "Diamonds")
-        ));
+                new Card("8", "Diamonds")));
         assertTrue(game.isTie());
     }
 
@@ -218,6 +208,10 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(50);
         game.dealInitialCards();
+        game.getPlayerHand().clear();
+        game.getPlayerHand().addAll(Arrays.asList(
+                new Card("6", "Hearts"),
+                new Card("5", "Diamonds")));
         replaceDeck(game, List.of(new Card("5", "Clubs")));
         game.doubleDown();
 
@@ -279,8 +273,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         List<Card> hand = Arrays.asList(
                 new Card("A", "Hearts"),
-                new Card("6", "Diamonds")
-        );
+                new Card("6", "Diamonds"));
 
         assertTrue(invokeIsSoft17(game, hand));
     }
@@ -290,8 +283,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         List<Card> hand = Arrays.asList(
                 new Card("10", "Hearts"),
-                new Card("7", "Clubs")
-        );
+                new Card("7", "Clubs"));
 
         assertFalse(invokeIsSoft17(game, hand));
     }
@@ -302,8 +294,7 @@ class BlackjackGameTests {
         List<Card> hand = Arrays.asList(
                 new Card("A", "Hearts"),
                 new Card("K", "Diamonds"),
-                new Card("A", "Clubs")
-        );
+                new Card("A", "Clubs"));
 
         assertFalse(invokeIsSoft17(game, hand));
     }
@@ -313,8 +304,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         List<Card> hand = Arrays.asList(
                 new Card("J", "Clubs"),
-                new Card("6", "Diamonds")
-        );
+                new Card("6", "Diamonds"));
 
         assertFalse(invokeIsSoft17(game, hand.subList(0, 2)));
     }
@@ -324,8 +314,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         List<Card> hand = Arrays.asList(
                 new Card("Q", "Spades"),
-                new Card("6", "Diamonds")
-        );
+                new Card("6", "Diamonds"));
 
         assertFalse(invokeIsSoft17(game, hand.subList(0, 2)));
     }
@@ -336,8 +325,7 @@ class BlackjackGameTests {
         List<Card> hand = Arrays.asList(
                 new Card("10", "Hearts"),
                 new Card("9", "Diamonds"),
-                new Card("6", "Clubs")
-        );
+                new Card("6", "Clubs"));
 
         assertFalse(invokeIsSoft17(game, hand));
     }
@@ -359,8 +347,7 @@ class BlackjackGameTests {
         game.getPlayerHand().clear();
         game.getPlayerHand().addAll(Arrays.asList(
                 new Card("9", "Clubs"),
-                new Card("8", "Diamonds")
-        ));
+                new Card("8", "Diamonds")));
         replaceDeck(game, List.of(new Card("10", "Hearts")));
 
         game.doubleDown();
