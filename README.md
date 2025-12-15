@@ -20,7 +20,7 @@ Full-stack Blackjack experience pairing a React 18 front-end with a modernized S
 
 ## Prerequisites
 - Java 21+ (for the backend and Docker image).
-- Node.js + npm (for the frontend).
+- Node.js 22.x + npm (for the frontend).
 - Gradle is provided via the wrapper (`./gradlew`).
 
 ## Running Locally
