@@ -1,11 +1,11 @@
-name: CI & Deploy to Lightsail
+name: Deploy to Lightsail
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  ci-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
