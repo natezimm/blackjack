@@ -4,8 +4,9 @@
 # Log files
 *.log
 
-# Package files
+# Package files (ignore built artifacts, keep Gradle wrapper)
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 
