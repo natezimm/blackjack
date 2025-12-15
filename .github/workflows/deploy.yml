@@ -1,19 +1,50 @@
-name: Deploy to Lightsail
+name: CI & Deploy to Lightsail
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  deploy:
+  ci-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       # 1. Checkout code
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Setup SSH into Lightsail
+      # 2. Setup Node.js (Frontend)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # 3. Install frontend dependencies
+      - name: Install frontend dependencies
+        working-directory: client
+        run: npm ci
+
+      # 4. Run frontend tests with coverage
+      - name: Run frontend tests with coverage
+        working-directory: client
+        run: npm run test:coverage
+
+      # 5. Setup Java (Backend)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # 6. Run backend tests with coverage
+      - name: Run backend tests with coverage
+        working-directory: server
+        run: ./gradlew test jacocoTestCoverageVerification
+
+      # 7. Setup SSH into Lightsail
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
@@ -22,7 +53,6 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           ssh-keyscan ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
 
-          # Create SSH config entry called "lightsail"
           cat <<EOF > ~/.ssh/config
           Host lightsail
             HostName ${{ secrets.LIGHTSAIL_HOST }}
@@ -31,7 +61,7 @@ jobs:
             StrictHostKeyChecking=no
           EOF
 
-      # 3. Trigger the appropriate deploy script on Lightsail
+      # 8. Deploy to Lightsail
       - name: Run remote deploy script
         run: |
           ssh lightsail "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"

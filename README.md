@@ -1,3 +1,6 @@
+[![CI](https://github.com/natezimm/blackjack/actions/workflows/deploy.yml/badge.svg)](https://github.com/natezimm/blackjack/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/badge/coverage-checked-brightgreen)](#testing--quality)
+
 # Blackjack Game
 
 Full-stack Blackjack experience pairing a React 18 front-end with a Spring Boot 2.6.6 backend running on Java 11. The game threads RESTful APIs through Axios so the UI stays in sync with an always-session stateful dealer and wallet.
@@ -54,6 +57,16 @@ The controller stores `BlackjackGame` in the HTTP session so each client keeps i
 ## Testing
 - Run backend tests with `./gradlew test` and inspect the HTML report at `server/build/reports/tests/test/index.html` (54 tests passing as of the latest run).
 - Run frontend tests with `npm test` and capture coverage via `npm run test:coverage`.
+
+## Testing & Quality
+
+- CI runs frontend (React) and backend (Spring Boot) test suites before deployment
+- Code coverage is checked and enforced automatically
+- Coverage thresholds:
+  - Lines ≥ 90%
+  - Statements ≥ 85%
+  - Functions ≥ 85%
+  - Branches ≥ 80%
 
 ## Docker
 - `docker build -t blackjack-server server`
