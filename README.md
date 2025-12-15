@@ -15,11 +15,11 @@ Full-stack Blackjack experience pairing a React 18 front-end with a modernized S
 - **Backend**: Spring Boot 3.x (`org.springframework.boot:spring-boot-starter-web`) orchestrated with Gradle via the wrapper and built-in JaCoCo reports with enforced coverage.
 
 ## Project Layout
-- `server/`: Spring Boot service exposing `/api/blackjack/*` endpoints, game state objects, and card/deck logic plus Gradle configuration, tests, and Dockerfile.
+- `server/`: Spring Boot service exposing `/api/blackjack/*` endpoints, game state objects, and card/deck logic plus Gradle configuration, and tests.
 - `client/`: React SPA that renders the blackjack table, exposes betting controls, and hits the backend API through Axios helpers.
 
 ## Prerequisites
-- Java 21+ (for the backend and Docker image).
+- Java 21+ (for the backend).
 - Node.js 22.x + npm (for the frontend).
 - Gradle is provided via the wrapper (`./gradlew`).
 
