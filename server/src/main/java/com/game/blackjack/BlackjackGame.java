@@ -103,15 +103,12 @@ public class BlackjackGame {
         if (gameOver) {
             throw new IllegalStateException("Cannot double down after game is over");
         }
-
-        if (hasDoubledDown) {
-            throw new IllegalStateException("Already doubled down");
-        }
-
         if (playerHand.size() != 2) {
             throw new IllegalStateException("Can only double down on initial two cards");
         }
-
+        if (hasDoubledDown) {
+            throw new IllegalStateException("Already doubled down");
+        }
         if (currentBet > balance) {
             throw new IllegalArgumentException("Insufficient balance to double down");
         }
@@ -125,7 +122,7 @@ public class BlackjackGame {
         Card newCard = deck.remove(0);
         playerHand.add(newCard);
 
-        // Check if player busted / game over
+        // Check if player busted
         checkGameOver();
     }
     
