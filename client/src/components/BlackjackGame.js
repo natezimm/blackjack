@@ -176,7 +176,7 @@ const defaultStats = {
     sessionHandsWon: 0,
 };
 
-const BlackjackGame = () => {
+const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const [playerHands, setPlayerHands] = useState([]);
     const [dealerHand, setDealerHand] = useState([]);
     const [gameOver, setGameOver] = useState(false);
@@ -299,6 +299,13 @@ const BlackjackGame = () => {
     const [outcomeVisible, setOutcomeVisible] = useState(false);
 
     useEffect(() => {
+        if (initialSkipAnimations) {
+            setDisplayedDealerHand(dealerHand);
+            setOutcomeVisible(revealDealerCard);
+            setIsAnimating(false);
+            return;
+        }
+
         if (!revealDealerCard) {
             setDisplayedDealerHand(dealerHand);
             setOutcomeVisible(false);

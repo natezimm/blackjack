@@ -419,4 +419,35 @@ class BlackjackControllerTests {
                                 .session(session))
                                 .andExpect(status().isOk());
         }
+
+        @Test
+        void split_validRequest_splitsHand() throws Exception {
+                prepareGameForPlay(50);
+                BlackjackGame game = getSessionGame();
+                game.getPlayerHands().get(0).getCards().clear();
+                game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                                new Card("8", "Hearts"),
+                                new Card("8", "Diamonds")));
+
+                mockMvc.perform(post("/api/blackjack/split").session(session))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.playerHands", hasSize(2)))
+                                .andExpect(jsonPath("$.playerHands[0].cards", hasSize(2)))
+                                .andExpect(jsonPath("$.playerHands[1].cards", hasSize(2)));
+        }
+
+        @Test
+        void split_invalidRequest_returnsBadRequest() throws Exception {
+                prepareGameForPlay(50);
+                // Default hand is not a pair usually, but let's force a non-pair to be safe
+                BlackjackGame game = getSessionGame();
+                game.getPlayerHands().get(0).getCards().clear();
+                game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                                new Card("10", "Hearts"),
+                                new Card("5", "Diamonds")));
+
+                mockMvc.perform(post("/api/blackjack/split").session(session))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").exists());
+        }
 }

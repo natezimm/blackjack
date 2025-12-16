@@ -341,6 +341,100 @@ class BlackjackGameTests {
         assertEquals(2, game.getDealerHand().size());
     }
 
+    @Test
+    void split_successfullySplitsHand() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+        game.dealInitialCards();
+
+        // Setup a pair
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("8", "Clubs"),
+                new Card("8", "Diamonds")));
+
+        int balanceBefore = game.getBalance();
+
+        game.split();
+
+        assertEquals(2, game.getPlayerHands().size());
+        assertEquals(2, game.getPlayerHands().get(0).getCards().size());
+        assertEquals(2, game.getPlayerHands().get(1).getCards().size());
+        assertEquals(balanceBefore - 100, game.getBalance());
+        assertEquals(200, game.getCurrentBet());
+        assertTrue(game.getPlayerHands().get(0).isTurn());
+        assertFalse(game.getPlayerHands().get(1).isTurn());
+    }
+
+    @Test
+    void split_throwsWhenHandSizeNotTwo() {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(50);
+        game.dealInitialCards();
+        game.getPlayerHands().get(0).addCard(new Card("2", "Hearts"));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, game::split);
+        assertEquals("Can only split with two cards", exception.getMessage());
+    }
+
+    @Test
+    void split_throwsWhenCardsNotPair() {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(50);
+        game.dealInitialCards();
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("10", "Hearts"),
+                new Card("9", "Clubs")));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, game::split);
+        assertEquals("Can only split pairs", exception.getMessage());
+    }
+
+    @Test
+    void split_throwsWhenInsufficientBalance() {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(1000); // balance is 1000, so betting 1000 leaves 0
+        game.dealInitialCards();
+
+        // Setup pair
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("8", "Hearts"),
+                new Card("8", "Clubs")));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, game::split);
+        assertEquals("Insufficient balance to split", exception.getMessage());
+    }
+
+    @Test
+    void stand_advancesToNextHandAfterSplit() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(50);
+        game.dealInitialCards();
+
+        // Setup pair
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("8", "Clubs"),
+                new Card("8", "Diamonds")));
+
+        game.split();
+
+        // Stand on first hand
+        game.stand();
+
+        assertFalse(game.getPlayerHands().get(0).isTurn());
+        assertTrue(game.getPlayerHands().get(1).isTurn());
+        assertFalse(game.isGameOver());
+
+        // Stand on second hand
+        game.stand();
+
+        assertFalse(game.getPlayerHands().get(1).isTurn());
+        assertTrue(game.isGameOver());
+    }
+
     private void setPrivateField(Object target, String name, Object value) throws Exception {
         Field field = BlackjackGame.class.getDeclaredField(name);
         field.setAccessible(true);

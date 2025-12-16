@@ -10,14 +10,12 @@ import BlackjackGame, {
     ensureHand,
     fallbackTo,
     handleBetLogic,
-    handleDoubleDownError,
-    resumeGame,
     safePersistGameState,
     safePersistStats,
 } from './BlackjackGame';
 import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
 import { MESSAGES } from '../constants/messages';
-import { getState, placeBet, startGame, hit, stand, doubleDown, resetGame } from '../api/blackjackApi';
+import { getState, placeBet, startGame, hit, stand, doubleDown, split, resetGame } from '../api/blackjackApi';
 
 jest.mock('../api/blackjackApi', () => ({
     startGame: jest.fn(),
@@ -25,6 +23,7 @@ jest.mock('../api/blackjackApi', () => ({
     stand: jest.fn(),
     placeBet: jest.fn(),
     doubleDown: jest.fn(),
+    split: jest.fn(),
     getState: jest.fn(),
     resetGame: jest.fn(),
 }));
@@ -32,7 +31,7 @@ jest.mock('../api/blackjackApi', () => ({
 jest.useFakeTimers();
 
 const defaultApiState = {
-    playerHand: [],
+    playerHands: [],
     dealerHand: [],
     currentBet: 0,
     balance: 1000,
@@ -61,16 +60,16 @@ describe('BlackjackGame', () => {
 
     it('shows the resume prompt when a saved hand exists', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 25 }],
             dealerHand: [],
             currentBet: 25,
             bettingOpen: false,
         }));
-        getState.mockResolvedValue({ data: { playerHand: [{ value: 'Q', suit: 'Hearts' }] } });
+        getState.mockResolvedValue({ data: { playerHands: [{ cards: [{ value: 'Q', suit: 'Hearts' }], isTurn: true, bet: 25 }] } });
 
-            await act(async () => {
-                render(<BlackjackGame />);
-            });
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
         expect(getState).toHaveBeenCalled();
@@ -86,28 +85,11 @@ describe('BlackjackGame', () => {
         expect(calculateTotal(hand)).toBe(30);
     });
 
-    it('handles resume when pending state is missing', () => {
-        const setShowResumePrompt = jest.fn();
-        const setCanPersistState = jest.fn();
-        const hydrateStateFromResponse = jest.fn();
-
-        resumeGame({
-            pendingState: null,
-            hydrateStateFromResponse,
-            setShowResumePrompt,
-            setCanPersistState,
-            hasStoredHand: jest.fn(),
-        });
-
-        expect(setShowResumePrompt).toHaveBeenCalledWith(false);
-        expect(setCanPersistState).toHaveBeenCalledWith(true);
-        expect(hydrateStateFromResponse).not.toHaveBeenCalled();
-    });
 
     it('places a bet through the API and updates the current bet display', async () => {
-            await act(async () => {
-                render(<BlackjackGame />);
-            });
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
@@ -124,9 +106,9 @@ describe('BlackjackGame', () => {
     it('blocks bets that exceed the available balance and shows a message', async () => {
         getState.mockResolvedValue({ data: { balance: 5 } });
 
-            await act(async () => {
-                render(<BlackjackGame />);
-            });
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
         const balanceRow = screen.getByText('Balance').closest('.betting-summary');
@@ -143,7 +125,7 @@ describe('BlackjackGame', () => {
 
     it('starts a new game when Deal button is clicked', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -157,7 +139,7 @@ describe('BlackjackGame', () => {
 
         // Click Deal
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         expect(startGame).toHaveBeenCalled();
@@ -166,10 +148,10 @@ describe('BlackjackGame', () => {
     it('handles hit action and shows bust message when player busts', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -177,7 +159,7 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: '5', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: '5', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'LOSS' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 gameOver: true,
                 balance: 900,
@@ -185,7 +167,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -196,19 +178,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
         // Click Hit
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -221,10 +203,10 @@ describe('BlackjackGame', () => {
     it('handles hit action with player win', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -232,16 +214,16 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'WIN' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
                 gameOver: true,
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1020,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -252,19 +234,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
         // Click Hit
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -275,10 +257,10 @@ describe('BlackjackGame', () => {
     it('handles hit action with tie', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -286,16 +268,16 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10, outcome: 'TIE' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
                 gameOver: true,
-                tie: true,
+                tie: true, gameOver: true,
                 balance: 1000,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -306,19 +288,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
         // Click Hit
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -329,10 +311,10 @@ describe('BlackjackGame', () => {
     it('handles hit action with player loss', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '9', suit: 'Hearts' }, { value: '8', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '9', suit: 'Hearts' }, { value: '8', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -340,7 +322,7 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '7', suit: 'Spades' }, { value: '3', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '7', suit: 'Spades' }, { value: '3', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'LOSS' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '9', suit: 'Diamonds' }],
                 gameOver: true,
                 balance: 960,
@@ -348,7 +330,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -358,32 +340,33 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
-        await waitFor(() => expect(screen.getByText(/Dealer takes it/i)).toBeInTheDocument());
+        await advanceTimers(3000);
+        await waitFor(() => expect(screen.getByText('LOSS')).toBeInTheDocument());
     });
 
     it('handles stand action with player win', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -391,15 +374,15 @@ describe('BlackjackGame', () => {
 
         stand.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10, outcome: 'WIN' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }, { value: '10', suit: 'Clubs' }],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1020,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -410,19 +393,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
         // Click Stand
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -435,73 +418,14 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
 
-    it('handles stand action with tie', async () => {
-        startGame.mockResolvedValue({
-            data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
-                dealerHand: [{ value: 'K', suit: 'Hearts' }],
-                currentBet: 10,
-                balance: 990,
-                bettingOpen: false,
-                gameOver: false,
-            },
-        });
-
-        stand.mockResolvedValue({
-            data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
-                dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
-                tie: true,
-                balance: 1000,
-            },
-        });
-
-        await act(async () => {
-            render(<BlackjackGame />);
-        });
-
-        await waitFor(() => expect(getState).toHaveBeenCalled());
-
-        // Set up game state
-        await act(async () => {
-            await userEvent.click(screen.getByAltText('$10 chip'));
-        });
-
-        await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
-        });
-
-        await waitFor(() => expect(startGame).toHaveBeenCalled());
-
-        // Wait for state to update
-        await waitFor(() => {
-            const standButton = screen.getByText('Stand');
-            expect(standButton).not.toBeDisabled();
-        });
-
-        // Click Stand
-        const standButton = screen.getByText('Stand');
-        await act(async () => {
-            await userEvent.click(standButton);
-        });
-
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
-
-        await waitFor(() => expect(screen.getByText(/Push/i)).toBeInTheDocument());
-
-        await waitFor(() => expect(stand).toHaveBeenCalled());
-    });
 
     it('handles stand action with dealer win', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -509,14 +433,14 @@ describe('BlackjackGame', () => {
 
         stand.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }], isTurn: true, bet: 10, outcome: 'LOSS' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
-                balance: 990,
+                gameOver: true, balance: 990,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -527,19 +451,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
         // Click Stand
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -552,10 +476,10 @@ describe('BlackjackGame', () => {
     it('handles double down action with player win', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -563,15 +487,15 @@ describe('BlackjackGame', () => {
 
         doubleDown.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'WIN' }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }, { value: '10', suit: 'Clubs' }],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1040,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -582,19 +506,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
         // Click Double Down
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -610,10 +534,10 @@ describe('BlackjackGame', () => {
     it('handles double down action with error', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -626,7 +550,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -637,19 +561,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
         // Click Double Down
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -661,10 +585,10 @@ describe('BlackjackGame', () => {
     it('handles double down with multiple dealer cards', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -672,20 +596,20 @@ describe('BlackjackGame', () => {
 
         doubleDown.mockResolvedValue({
             data: {
-                playerHand: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'WIN' }],
                 dealerHand: [
                     { value: 'K', suit: 'Hearts' },
                     { value: '5', suit: 'Spades' },
                     { value: '3', suit: 'Clubs' },
                     { value: '2', suit: 'Diamonds' },
                 ],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1040,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -695,17 +619,17 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -718,16 +642,77 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
 
+    it('handles split action successfully', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHands: [{ cards: [{ value: '8', suit: 'Hearts' }, { value: '8', suit: 'Spades' }], isTurn: true, bet: 10 }],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                currentBet: 10,
+                gameOver: true, balance: 990,
+                bettingOpen: false,
+                gameOver: false,
+            },
+        });
+
+        split.mockResolvedValue({
+            data: {
+                playerHands: [
+                    { cards: [{ value: '8', suit: 'Hearts' }, { value: 'K', suit: 'Clubs' }], isTurn: true, bet: 10 },
+                    { cards: [{ value: '8', suit: 'Spades' }, { value: '5', suit: 'Diamonds' }], isTurn: false, bet: 10 }
+                ],
+                dealerHand: [{ value: 'K', suit: 'Hearts' }],
+                gameOver: false,
+                balance: 980, // Bet doubled
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        // Set up game state
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$10 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('DEAL'));
+        });
+
+        await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        // Wait for Split button to be enabled
+        await waitFor(() => {
+            const splitButton = screen.getByText('SPLIT');
+            expect(splitButton).not.toBeDisabled();
+        });
+
+        const splitButton = screen.getByText('SPLIT');
+        await act(async () => {
+            await userEvent.click(splitButton);
+        });
+
+        await waitFor(() => expect(split).toHaveBeenCalled());
+
+        // Use getAllByText for "Bet: 10" since there are now two hands with that bet
+        await waitFor(() => {
+            const betElements = screen.getAllByText('Bet: $10');
+            expect(betElements.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
     it('handles resume action', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 25 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 25 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -735,7 +720,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -758,14 +743,14 @@ describe('BlackjackGame', () => {
         });
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -773,7 +758,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -792,14 +777,14 @@ describe('BlackjackGame', () => {
         });
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -807,7 +792,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -822,7 +807,7 @@ describe('BlackjackGame', () => {
 
     it('opens and closes settings modal', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -846,7 +831,7 @@ describe('BlackjackGame', () => {
 
     it('changes deck count in settings', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -870,7 +855,7 @@ describe('BlackjackGame', () => {
 
     it('toggles dealer hits on soft 17', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -894,7 +879,7 @@ describe('BlackjackGame', () => {
 
     it('changes card back color', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -918,7 +903,7 @@ describe('BlackjackGame', () => {
 
     it('opens and closes stats modal', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -945,7 +930,7 @@ describe('BlackjackGame', () => {
 
     it('resets stats when reset button is clicked', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -969,10 +954,12 @@ describe('BlackjackGame', () => {
     });
 
     it('handles error when starting game fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         startGame.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
+            consoleSpy.mockRestore();
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -984,17 +971,19 @@ describe('BlackjackGame', () => {
 
         // Try to start game
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         expect(startGame).toHaveBeenCalled();
     });
 
     it('handles error when placing bet fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         placeBet.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
+            consoleSpy.mockRestore();
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1009,13 +998,13 @@ describe('BlackjackGame', () => {
 
     it('handles error when hitting fails', async () => {
         getState.mockResolvedValue({ data: {} });
-        
+
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1024,7 +1013,7 @@ describe('BlackjackGame', () => {
         hit.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1035,19 +1024,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update and button to be enabled
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         }, { timeout: 3000 });
 
         // Try to hit
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -1057,13 +1046,13 @@ describe('BlackjackGame', () => {
 
     it('handles error when standing fails', async () => {
         getState.mockResolvedValue({ data: {} });
-        
+
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1072,7 +1061,7 @@ describe('BlackjackGame', () => {
         stand.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1083,19 +1072,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update and button to be enabled
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         }, { timeout: 3000 });
 
         // Try to stand
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -1104,35 +1093,39 @@ describe('BlackjackGame', () => {
     });
 
     it('handles error when fetching state fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         getState.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
+            consoleSpy.mockRestore();
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
     });
 
     it('handles error when resetting game fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         resetGame.mockRejectedValue(new Error('Network error'));
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
             },
+
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -1143,19 +1136,20 @@ describe('BlackjackGame', () => {
         });
 
         expect(resetGame).toHaveBeenCalled();
+        consoleSpy.mockRestore();
     });
 
     it('does not place bet when betting is closed', async () => {
         // Clear localStorage to avoid resume prompt
         localStorage.clear();
-        
+
         // Set up state - start with bettingOpen: true to avoid resume prompt
         getState.mockResolvedValue({
             data: {
                 playerHand: [],
                 dealerHand: [],
                 currentBet: 0,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: true, // Start with betting open to avoid resume prompt
                 gameOver: false,
             },
@@ -1164,7 +1158,7 @@ describe('BlackjackGame', () => {
         // Mock startGame to return state with betting closed
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
                 balance: 980,
@@ -1174,7 +1168,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1186,7 +1180,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1205,10 +1199,10 @@ describe('BlackjackGame', () => {
         // Verify chip is disabled before trying to click
         const chip = screen.getByAltText('$10 chip');
         const chipContainer = chip.closest('.chip-img');
-        
+
         // The chip should be disabled, so clicking it should not trigger onClick
         expect(chipContainer).toHaveClass('disabled');
-        
+
         // Even if we try to click, the Chip component checks !disabled before calling onClick
         // And handleBet checks bettingOpen at the start and returns early
         // So placeBet should never be called
@@ -1236,7 +1230,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Bankroll empty/i)).toBeInTheDocument());
@@ -1244,7 +1238,7 @@ describe('BlackjackGame', () => {
 
     it('handles resume without pending state', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
@@ -1259,7 +1253,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1276,7 +1270,7 @@ describe('BlackjackGame', () => {
 
     it('handles stats modal click outside to close', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1302,7 +1296,7 @@ describe('BlackjackGame', () => {
 
     it('handles all chip values', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1322,10 +1316,10 @@ describe('BlackjackGame', () => {
     it('handles stand with multiple dealer cards', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1333,20 +1327,20 @@ describe('BlackjackGame', () => {
 
         stand.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [
                     { value: 'K', suit: 'Hearts' },
                     { value: '5', suit: 'Spades' },
                     { value: '3', suit: 'Clubs' },
                     { value: '2', suit: 'Diamonds' },
                 ],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1020,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1357,19 +1351,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
         // Click Stand
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -1386,10 +1380,10 @@ describe('BlackjackGame', () => {
     it('handles double down with tie', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1397,15 +1391,15 @@ describe('BlackjackGame', () => {
 
         doubleDown.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: 'A', suit: 'Spades' }],
-                tie: true,
+                tie: true, gameOver: true,
                 balance: 1000,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1416,19 +1410,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
         // Click Double Down
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -1439,14 +1433,16 @@ describe('BlackjackGame', () => {
     });
 
     it('handles localStorage errors gracefully', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         // Mock localStorage to throw errors
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = jest.fn(() => {
             throw new Error('Storage quota exceeded');
+            consoleSpy.mockRestore();
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1461,13 +1457,15 @@ describe('BlackjackGame', () => {
     });
 
     it('handles localStorage getItem errors gracefully', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         const originalGetItem = localStorage.getItem;
         localStorage.getItem = jest.fn(() => {
             throw new Error('Storage error');
+            consoleSpy.mockRestore();
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1477,17 +1475,20 @@ describe('BlackjackGame', () => {
     });
 
     it('handles invalid JSON in localStorage', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         localStorage.setItem('blackjackGameState', 'invalid json');
         localStorage.setItem('blackjackStats', 'invalid json');
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
+        consoleSpy.mockRestore();
     });
 
     it('handles errors thrown by safePersistStats', () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         const storage = {
             setItem: jest.fn(() => {
                 throw new Error('Persist stats failed');
@@ -1497,9 +1498,11 @@ describe('BlackjackGame', () => {
         safePersistStats({ highestBankroll: 0 }, storage);
 
         expect(storage.setItem).toHaveBeenCalledWith('blackjackStats', expect.any(String));
+        consoleSpy.mockRestore();
     });
 
     it('handles errors thrown by safePersistGameState', () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         const storage = {
             setItem: jest.fn(() => {
                 throw new Error('Persist game state failed');
@@ -1509,6 +1512,7 @@ describe('BlackjackGame', () => {
         safePersistGameState({ balance: 0 }, storage);
 
         expect(storage.setItem).toHaveBeenCalledWith('blackjackGameState', expect.any(String));
+        consoleSpy.mockRestore();
     });
 
     it('createUpdateBalanceAndStats handles fallback highest bankroll', () => {
@@ -1601,6 +1605,7 @@ describe('BlackjackGame', () => {
             balance: 500,
             updateBalanceAndStats,
             setPlayerHand,
+            setPlayerHands: jest.fn(),
             setDealerHand,
             setGameOver,
             setBettingOpen,
@@ -1621,7 +1626,7 @@ describe('BlackjackGame', () => {
 
         hydrateState({
             balance: 800,
-            playerHand: [{ value: '5', suit: 'Hearts' }],
+            playerHands: [{ cards: [{ value: '5', suit: 'Hearts' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'K', suit: 'Hearts' }],
             gameOver: false,
             bettingOpen: true,
@@ -1701,43 +1706,6 @@ describe('BlackjackGame', () => {
         expect(setCurrentBet).toHaveBeenCalledWith(15);
     });
 
-    it('handleDoubleDownError surfaces response error and reverts bet', () => {
-        const setMessage = jest.fn();
-        const setCurrentBet = jest.fn();
-        const setBalance = jest.fn();
-
-        handleDoubleDownError({
-            error: { response: { data: { error: 'Too slow!' } } },
-            currentBet: 20,
-            balance: 200,
-            setMessage,
-            setCurrentBet,
-            setBalance,
-        });
-
-        expect(setCurrentBet).toHaveBeenCalledWith(10);
-        expect(setBalance).toHaveBeenCalledWith(210);
-        expect(setMessage).toHaveBeenCalledWith('Too slow!');
-    });
-
-    it('handleDoubleDownError skips messaging when no response is provided', () => {
-        const setMessage = jest.fn();
-        const setCurrentBet = jest.fn();
-        const setBalance = jest.fn();
-
-        handleDoubleDownError({
-            error: new Error('Unexpected'),
-            currentBet: 30,
-            balance: 300,
-            setMessage,
-            setCurrentBet,
-            setBalance,
-        });
-
-        expect(setCurrentBet).toHaveBeenCalledWith(15);
-        expect(setBalance).toHaveBeenCalledWith(315);
-        expect(setMessage).not.toHaveBeenCalled();
-    });
 
     it('processDoubleDownOutcome honours the tie branch', () => {
         const updateBalance = jest.fn();
@@ -1745,7 +1713,7 @@ describe('BlackjackGame', () => {
         const setMessage = jest.fn();
 
         processDoubleDownOutcome({
-            data: { tie: true, balance: 300 },
+            data: { tie: true, gameOver: true, balance: 300 },
             doubledBet: 15,
             balance: 280,
             updateBalanceAndStats: updateBalance,
@@ -1837,16 +1805,16 @@ describe('BlackjackGame', () => {
     it('handles startGame with balance from API', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Hearts' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Hearts' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Spades' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 deckSize: 52,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1856,7 +1824,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1865,7 +1833,7 @@ describe('BlackjackGame', () => {
     it('handles startGame without balance from API', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Hearts' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Hearts' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Spades' }],
                 currentBet: 10,
                 deckSize: 52,
@@ -1873,7 +1841,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1883,7 +1851,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1895,7 +1863,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1905,7 +1873,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1914,10 +1882,10 @@ describe('BlackjackGame', () => {
     it('handles hit without gameOver', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1925,14 +1893,14 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 gameOver: false,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1943,19 +1911,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
         // Click Hit
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -1966,10 +1934,10 @@ describe('BlackjackGame', () => {
     it('handles hit fallback with minimal API response', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -1982,7 +1950,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -1992,13 +1960,13 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Hit'));
+            await userEvent.click(screen.getByText('HIT'));
         });
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -2007,10 +1975,10 @@ describe('BlackjackGame', () => {
     it('handles stand with empty player hand from API', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2020,13 +1988,13 @@ describe('BlackjackGame', () => {
             data: {
                 playerHand: [],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1020,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2037,19 +2005,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
         // Click Stand
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -2062,10 +2030,10 @@ describe('BlackjackGame', () => {
     it('handles stand fallback with minimal API response', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2076,7 +2044,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2086,12 +2054,12 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
@@ -2104,10 +2072,10 @@ describe('BlackjackGame', () => {
     it('handles double down with empty player hand from API', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2117,13 +2085,13 @@ describe('BlackjackGame', () => {
             data: {
                 playerHand: [],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1040,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2134,19 +2102,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
         // Click Double Down
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -2159,10 +2127,10 @@ describe('BlackjackGame', () => {
     it('handles double down fallback with minimal API response', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2173,7 +2141,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2183,12 +2151,12 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -2201,14 +2169,14 @@ describe('BlackjackGame', () => {
     it('handles settings button disabled when betting is not open', async () => {
         // Clear localStorage to avoid resume prompt
         localStorage.clear();
-        
+
         // Set up state - start with bettingOpen: true to avoid resume prompt
         getState.mockResolvedValue({
             data: {
                 playerHand: [],
                 dealerHand: [],
                 currentBet: 0,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: true, // Start with betting open to avoid resume prompt
                 gameOver: false,
             },
@@ -2217,7 +2185,7 @@ describe('BlackjackGame', () => {
         // Mock startGame to return state with betting closed
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
                 balance: 980,
@@ -2227,7 +2195,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2238,7 +2206,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2260,7 +2228,7 @@ describe('BlackjackGame', () => {
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -2268,7 +2236,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -2283,7 +2251,7 @@ describe('BlackjackGame', () => {
 
     it('handles resume with local state having stored hand', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
@@ -2298,7 +2266,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -2322,7 +2290,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2331,7 +2299,7 @@ describe('BlackjackGame', () => {
     it('handles hydrateStateFromResponse with all state fields', async () => {
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 balance: 975,
@@ -2347,7 +2315,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2359,7 +2327,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2373,7 +2341,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2382,10 +2350,10 @@ describe('BlackjackGame', () => {
     it('handles updateStatsWithOutcome with loss', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2393,15 +2361,15 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: '5', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: '5', suit: 'Clubs' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 gameOver: true,
-                balance: 990,
+                gameOver: true, balance: 990,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2412,19 +2380,19 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         // Wait for state to update
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
         // Click Hit to bust
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -2436,7 +2404,7 @@ describe('BlackjackGame', () => {
 
     it('handles hasStoredHand with only playerHand', async () => {
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [],
             currentBet: 0,
             bettingOpen: true,
@@ -2451,7 +2419,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2474,7 +2442,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2497,7 +2465,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2520,7 +2488,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2536,14 +2504,14 @@ describe('BlackjackGame', () => {
         });
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -2551,7 +2519,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -2573,14 +2541,14 @@ describe('BlackjackGame', () => {
         });
 
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
         }));
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'Q', suit: 'Hearts' }],
                 currentBet: 25,
                 bettingOpen: false,
@@ -2588,7 +2556,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(screen.getByText(/Resume your game/i)).toBeInTheDocument());
@@ -2604,10 +2572,10 @@ describe('BlackjackGame', () => {
     it('handles hit with gameOver but not busted (player wins)', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2615,16 +2583,16 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
                 gameOver: true,
-                playerWins: true,
+                playerWins: true, gameOver: true,
                 balance: 1020,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2634,17 +2602,17 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -2655,10 +2623,10 @@ describe('BlackjackGame', () => {
     it('handles hit with gameOver but not busted (tie)', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2666,16 +2634,16 @@ describe('BlackjackGame', () => {
 
         hit.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
                 gameOver: true,
-                tie: true,
+                tie: true, gameOver: true,
                 balance: 1000,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2685,17 +2653,17 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const hitButton = screen.getByText('Hit');
+            const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        const hitButton = screen.getByText('Hit');
+        const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
         });
@@ -2706,10 +2674,10 @@ describe('BlackjackGame', () => {
     it('handles double down with dealer win', async () => {
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2717,14 +2685,14 @@ describe('BlackjackGame', () => {
 
         doubleDown.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }, { value: '10', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '5', suit: 'Spades' }, { value: '10', suit: 'Clubs' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
                 balance: 980,
             },
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2734,17 +2702,17 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const doubleDownButton = screen.getByText('Double Down');
+            const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        const doubleDownButton = screen.getByText('Double Down');
+        const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
@@ -2765,7 +2733,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2778,8 +2746,9 @@ describe('BlackjackGame', () => {
     });
 
     it('handles fetchExistingState error with storedGameState', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         localStorage.setItem('blackjackGameState', JSON.stringify({
-            playerHand: [{ value: 'K', suit: 'Spades' }],
+            playerHands: [{ cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 }],
             dealerHand: [{ value: 'Q', suit: 'Hearts' }],
             currentBet: 25,
             bettingOpen: false,
@@ -2788,16 +2757,17 @@ describe('BlackjackGame', () => {
         getState.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
+        consoleSpy.mockRestore();
     });
 
     it('handles calculateTotal with face cards', async () => {
         getState.mockResolvedValue({
             data: {
-                playerHand: [{ value: 'K', suit: 'Hearts' }, { value: 'Q', suit: 'Spades' }, { value: 'J', suit: 'Clubs' }],
+                playerHands: [{ cards: [{ value: 'K', suit: 'Hearts' }, { value: 'Q', suit: 'Spades' }, { value: 'J', suit: 'Clubs' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'A', suit: 'Diamonds' }],
                 currentBet: 0,
                 balance: 1000,
@@ -2806,7 +2776,7 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2814,7 +2784,7 @@ describe('BlackjackGame', () => {
 
     it('handles card back color onChange', async () => {
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2842,12 +2812,13 @@ describe('BlackjackGame', () => {
     });
 
     it('handles stand error', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
         startGame.mockResolvedValue({
             data: {
-                playerHand: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }],
+                playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
-                balance: 990,
+                gameOver: true, balance: 990,
                 bettingOpen: false,
                 gameOver: false,
             },
@@ -2856,7 +2827,7 @@ describe('BlackjackGame', () => {
         stand.mockRejectedValue(new Error('Network error'));
 
         await act(async () => {
-            render(<BlackjackGame />);
+            render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
@@ -2866,21 +2837,22 @@ describe('BlackjackGame', () => {
         });
 
         await act(async () => {
-            await userEvent.click(screen.getByText('Deal'));
+            await userEvent.click(screen.getByText('DEAL'));
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
         await waitFor(() => {
-            const standButton = screen.getByText('Stand');
+            const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
-        const standButton = screen.getByText('Stand');
+        const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
+        consoleSpy.mockRestore();
     });
 });

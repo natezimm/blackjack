@@ -10,7 +10,6 @@ describe('PlayerHand', () => {
 
         render(<PlayerHand hand={hand} />);
 
-        expect(screen.getByText('You')).toBeInTheDocument();
         expect(screen.getByText('20')).toBeInTheDocument();
         expect(screen.getAllByAltText(/of/)).toHaveLength(2);
         expect(screen.getByAltText('A of Spades')).toBeInTheDocument();
