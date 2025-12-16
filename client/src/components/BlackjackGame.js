@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { startGame, hit, stand, placeBet, doubleDown, getState, resetGame } from '../api/blackjackApi';
+import { startGame, hit, stand, placeBet, doubleDown, split, getState, resetGame } from '../api/blackjackApi';
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
@@ -11,7 +11,6 @@ import chip100 from '../assets/chips/chip-100.png';
 
 import '../styles/BlackjackGame.css';
 import { MESSAGES } from '../constants/messages';
-import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
 
 export const calculateTotal = (hand) => {
     let total = 0;
@@ -99,7 +98,7 @@ export const createUpdateStatsWithOutcome = ({ setStats, persistStats }) => (out
 export const createHydrateStateFromResponse = ({
     balance,
     updateBalanceAndStats,
-    setPlayerHand,
+    setPlayerHands,
     setDealerHand,
     setGameOver,
     setBettingOpen,
@@ -115,7 +114,13 @@ export const createHydrateStateFromResponse = ({
     if (!state) return;
     const resolvedBalance = typeof state.balance === 'number' ? state.balance : balance;
     updateBalanceAndStats(resolvedBalance);
-    setPlayerHand(ensureHand(state.playerHand));
+
+    let hands = [];
+    if (state.playerHands) {
+        hands = state.playerHands;
+    }
+    setPlayerHands(hands);
+
     setDealerHand(ensureHand(state.dealerHand));
     setGameOver(!!state.gameOver);
     setBettingOpen(state.bettingOpen !== undefined ? state.bettingOpen : true);
@@ -162,22 +167,6 @@ export const handleBetLogic = async ({
     }
 };
 
-export const handleDoubleDownError = ({
-    error,
-    currentBet,
-    balance,
-    setMessage,
-    setCurrentBet,
-    setBalance,
-}) => {
-    setCurrentBet(currentBet / 2);
-    setBalance(balance + currentBet / 2);
-    const errorMessage = error?.response?.data?.error;
-    if (errorMessage) {
-        setMessage(errorMessage);
-    }
-};
-
 const defaultStats = {
     highestBankroll: 1000,
     longestWinStreak: 0,
@@ -188,7 +177,7 @@ const defaultStats = {
 };
 
 const BlackjackGame = () => {
-    const [playerHand, setPlayerHand] = useState([]);
+    const [playerHands, setPlayerHands] = useState([]);
     const [dealerHand, setDealerHand] = useState([]);
     const [gameOver, setGameOver] = useState(false);
     const [revealDealerCard, setRevealDealerCard] = useState(false);
@@ -201,6 +190,7 @@ const BlackjackGame = () => {
     const [dealerHitsOnSoft17, setDealerHitsOnSoft17] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [displayedDealerHand, setDisplayedDealerHand] = useState([]);
     const [stats, setStats] = useState(defaultStats);
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [pendingState, setPendingState] = useState(null);
@@ -222,9 +212,9 @@ const BlackjackGame = () => {
         safePersistStats(statsToSave);
     };
 
-    const persistGameState = (customState) => {
-        const snapshot = customState || {
-            playerHand,
+    const persistGameState = React.useCallback(() => {
+        const snapshot = {
+            playerHands,
             dealerHand,
             revealDealerCard,
             balance,
@@ -237,16 +227,14 @@ const BlackjackGame = () => {
             dealerHitsOnSoft17,
             deckSize,
         };
-
         safePersistGameState(snapshot);
-    };
+    }, [playerHands, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, cardBackColor, numberOfDecks, dealerHitsOnSoft17, deckSize]);
 
     const updateBalanceAndStats = createUpdateBalanceAndStats({ setBalance, setStats, persistStats });
-    const updateStatsWithOutcome = createUpdateStatsWithOutcome({ setStats, persistStats });
     const hydrateStateFromResponse = createHydrateStateFromResponse({
         balance,
         updateBalanceAndStats,
-        setPlayerHand,
+        setPlayerHands,
         setDealerHand,
         setGameOver,
         setBettingOpen,
@@ -262,7 +250,7 @@ const BlackjackGame = () => {
 
     const hasStoredHand = (state) => {
         if (!state) return false;
-        return (state.playerHand && state.playerHand.length > 0) ||
+        return (state.playerHands && state.playerHands.length > 0) ||
             (state.dealerHand && state.dealerHand.length > 0) ||
             state.currentBet > 0 ||
             state.bettingOpen === false;
@@ -305,22 +293,48 @@ const BlackjackGame = () => {
 
         const storedGameState = loadFromStorage(STORAGE_KEYS.gameState, null);
         fetchExistingState(storedGameState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const [outcomeVisible, setOutcomeVisible] = useState(false);
+
+    useEffect(() => {
+        if (!revealDealerCard) {
+            setDisplayedDealerHand(dealerHand);
+            setOutcomeVisible(false);
+            return;
+        }
+
+        if (displayedDealerHand.length < dealerHand.length) {
+            setIsAnimating(true);
+            const timer = setTimeout(() => {
+                setDisplayedDealerHand(dealerHand.slice(0, displayedDealerHand.length + 1));
+            }, 750);
+            return () => clearTimeout(timer);
+        } else {
+            setIsAnimating(false);
+            const outcomeTimer = setTimeout(() => {
+                setOutcomeVisible(true);
+            }, 500);
+            return () => clearTimeout(outcomeTimer);
+        }
+    }, [dealerHand, revealDealerCard, displayedDealerHand.length]);
 
     useEffect(() => {
         if (!canPersistState) return;
         persistGameState();
-    }, [playerHand, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, numberOfDecks, dealerHitsOnSoft17, cardBackColor, canPersistState]);
+    }, [persistGameState, canPersistState]);
 
     const handleResume = () => {
-        resumeGame({
-            pendingState,
-            hydrateStateFromResponse,
-            setShowResumePrompt,
-            setCanPersistState,
-            hasStoredHand,
-        });
+        if (!pendingState) {
+            setShowResumePrompt(false);
+            setCanPersistState(true);
+            return;
+        }
+
+        const stateToUse = hasStoredHand(pendingState.server) ? pendingState.server : pendingState.local;
+        hydrateStateFromResponse(stateToUse, pendingState.local);
+        setShowResumePrompt(false);
     };
 
     const handleFreshStart = async () => {
@@ -328,7 +342,7 @@ const BlackjackGame = () => {
             const response = await resetGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
             updateBalanceAndStats(1000);
-            setPlayerHand(ensureHand(data.playerHand));
+            setPlayerHands(data.playerHands || []);
             setDealerHand(ensureHand(data.dealerHand));
             setGameOver(false);
             setRevealDealerCard(false);
@@ -343,20 +357,6 @@ const BlackjackGame = () => {
             });
             setShowResumePrompt(false);
             setCanPersistState(true);
-            persistGameState({
-                playerHand: [],
-                dealerHand: [],
-                revealDealerCard: false,
-                balance: 1000,
-                currentBet: 0,
-                bettingOpen: true,
-                gameOver: false,
-                message: '',
-                cardBackColor,
-                numberOfDecks,
-                dealerHitsOnSoft17,
-                deckSize: fallbackTo(data.deckSize, numberOfDecks * 52),
-            });
         } catch (error) {
             console.error('Error resetting game:', error);
         }
@@ -372,7 +372,7 @@ const BlackjackGame = () => {
         try {
             const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
-            setPlayerHand(ensureHand(data.playerHand));
+            setPlayerHands(data.playerHands || []);
             setDealerHand(ensureHand(data.dealerHand));
             setDeckSize(fallbackTo(data.deckSize, deckSize));
             setGameOver(false);
@@ -390,58 +390,24 @@ const BlackjackGame = () => {
         }
     };
 
+    const updateGameState = (data) => {
+        setPlayerHands(data.playerHands || []);
+        setDealerHand(ensureHand(data.dealerHand));
+        setDeckSize(fallbackTo(data.deckSize, deckSize));
+        if (data.balance) updateBalanceAndStats(data.balance);
+        setGameOver(data.gameOver);
+        setBettingOpen(data.bettingOpen);
+
+        if (data.gameOver) {
+            setRevealDealerCard(true);
+            setCurrentBet(0);
+        }
+    };
+
     const handleHit = async () => {
         try {
             const response = await hit();
-            const data = response.data;
-            const newPlayerHand = ensureHand(data.playerHand);
-            setPlayerHand(newPlayerHand);
-            setDealerHand(ensureHand(data.dealerHand));
-            setDeckSize(fallbackTo(data.deckSize, deckSize));
-
-            const playerTotal = calculateTotal(newPlayerHand);
-            const playerBusted = playerTotal > 21;
-
-            if (playerBusted) {
-                setIsAnimating(true);
-                setRevealDealerCard(true);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                setGameOver(true);
-                setMessage(MESSAGES.bust);
-                setCurrentBet(0);
-                setBettingOpen(true);
-                const resolvedBalance = fallbackTo(data.balance, balance);
-                updateBalanceAndStats(resolvedBalance);
-                updateStatsWithOutcome('loss', 0, resolvedBalance);
-                setIsAnimating(false);
-                return;
-            }
-
-            if (data.gameOver) {
-                setGameOver(true);
-                setRevealDealerCard(true);
-
-                if (data.playerWins) {
-                    setMessage(MESSAGES.win);
-                    const nextBalance = fallbackTo(data.balance, balance + currentBet * 2);
-                    updateBalanceAndStats(nextBalance);
-                    updateStatsWithOutcome('win', currentBet, nextBalance);
-                } else if (data.tie) {
-                    setMessage(MESSAGES.tie);
-                    const nextBalance = fallbackTo(data.balance, balance + currentBet);
-                    updateBalanceAndStats(nextBalance);
-                    updateStatsWithOutcome('tie', 0, nextBalance);
-                } else {
-                    setMessage(MESSAGES.dealerWin);
-                    const resolvedBalance = fallbackTo(data.balance, balance);
-                    updateBalanceAndStats(resolvedBalance);
-                    updateStatsWithOutcome('loss', 0, resolvedBalance);
-                }
-
-                setCurrentBet(0);
-                setBettingOpen(true);
-            }
+            updateGameState(response.data);
         } catch (error) {
             console.error('Error hitting:', error);
         }
@@ -449,120 +415,37 @@ const BlackjackGame = () => {
 
     const handleStand = async () => {
         try {
-            setIsAnimating(true);
             const response = await stand();
-            const data = response.data;
-            const finalDealerHand = ensureHand(data.dealerHand);
-            const finalPlayerHand = ensureHand(data.playerHand);
-            const roundBet = currentBet;
-            setDeckSize(fallbackTo(data.deckSize, deckSize));
-
-            // Only replace the player's hand if the API sends cards back
-            if (finalPlayerHand && finalPlayerHand.length > 0) {
-                setPlayerHand(finalPlayerHand);
-            }
-
-            // 1. Reveal hidden card
-            setRevealDealerCard(true);
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // 2. Deal remaining cards one by one
-            let currentDisplayedHand = finalDealerHand.slice(0, 2);
-            setDealerHand(currentDisplayedHand);
-
-            for (let i = 2; i < finalDealerHand.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                currentDisplayedHand = [...currentDisplayedHand, finalDealerHand[i]];
-                setDealerHand(currentDisplayedHand);
-            }
-
-            setGameOver(true);
-            setBettingOpen(true);
-
-                if (data.playerWins) {
-                    setMessage(MESSAGES.win);
-                    const nextBalance = fallbackTo(data.balance, balance + roundBet * 2);
-                    updateBalanceAndStats(nextBalance);
-                    updateStatsWithOutcome('win', roundBet, nextBalance);
-                } else if (data.tie) {
-                    setMessage(MESSAGES.tie);
-                    const nextBalance = fallbackTo(data.balance, balance + roundBet);
-                    updateBalanceAndStats(nextBalance);
-                    updateStatsWithOutcome('tie', 0, nextBalance);
-                } else {
-                    setMessage(MESSAGES.dealerWin);
-                    const resolvedBalance = fallbackTo(data.balance, balance);
-                    updateBalanceAndStats(resolvedBalance);
-                    updateStatsWithOutcome('loss', 0, resolvedBalance);
-                }
-
-            setCurrentBet(0);
+            updateGameState(response.data);
         } catch (error) {
             console.error('Error standing:', error);
-        } finally {
-            setIsAnimating(false);
         }
     };
 
     const handleDoubleDown = async () => {
         try {
-            setIsAnimating(true);
-            const doubledBet = currentBet * 2;
-
             const response = await doubleDown();
-            const data = response.data;
-            const finalDealerHand = ensureHand(data.dealerHand);
-            const finalPlayerHand = ensureHand(data.playerHand);
-            setDeckSize(fallbackTo(data.deckSize, deckSize));
-
-            // Update player hand with the one additional card
-            if (finalPlayerHand && finalPlayerHand.length > 0) {
-                setPlayerHand(finalPlayerHand);
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // 1. Reveal hidden card
-            setRevealDealerCard(true);
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // 2. Deal remaining cards one by one
-            let currentDisplayedHand = finalDealerHand.slice(0, 2);
-            setDealerHand(currentDisplayedHand);
-
-            for (let i = 2; i < finalDealerHand.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                currentDisplayedHand = [...currentDisplayedHand, finalDealerHand[i]];
-                setDealerHand(currentDisplayedHand);
-            }
-
-            setGameOver(true);
-            setBettingOpen(true);
-
-            processDoubleDownOutcome({
-                data,
-                doubledBet,
-                balance,
-                updateBalanceAndStats,
-                updateStatsWithOutcome,
-                setMessage,
-            });
-
-            setCurrentBet(0);
+            updateGameState(response.data);
         } catch (error) {
             console.error('Error doubling down:', error);
-            handleDoubleDownError({
-                error,
-                currentBet,
-                balance,
-                setMessage,
-                setCurrentBet,
-                setBalance,
-            });
-        } finally {
-            setIsAnimating(false);
+            if (error.response && error.response.data && error.response.data.error) {
+                setMessage(error.response.data.error);
+            }
         }
     };
+
+    const handleSplit = async () => {
+        try {
+            const response = await split();
+            updateGameState(response.data);
+        } catch (error) {
+            console.error('Error splitting:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                setMessage(error.response.data.error);
+            }
+        }
+    };
+
     const handleDeckCountChange = createDeckCountChangeHandler({
         setNumberOfDecks,
         setDeckSize,
@@ -606,6 +489,11 @@ const BlackjackGame = () => {
             <button className="reset-stats" onClick={resetStats}>Reset Stats</button>
         </>
     );
+
+    const activeHandIndex = playerHands.findIndex(h => h.isTurn);
+    const activeHand = activeHandIndex >= 0 ? playerHands[activeHandIndex] : null;
+
+    const canSplit = !gameOver && activeHand && activeHand.cards.length === 2 && calculateTotal([activeHand.cards[0]]) === calculateTotal([activeHand.cards[1]]) && balance >= activeHand.bet;
 
     return (
         <div className="blackjack-game">
@@ -748,24 +636,78 @@ const BlackjackGame = () => {
                 </aside>
 
                 <div className="table-surface">
-                    <DealerHand hand={dealerHand} reveal={revealDealerCard} cardBackColor={cardBackColor} />
-                    <PlayerHand hand={playerHand} />
+                    <DealerHand hand={displayedDealerHand} reveal={revealDealerCard} cardBackColor={cardBackColor} />
 
-                    <div className="controls">
-                        <button onClick={handleStart} disabled={currentBet === 0 || isAnimating || !bettingOpen}>Deal</button>
-                        <button onClick={handleHit} disabled={gameOver || playerHand.length === 0 || isAnimating}>Hit</button>
-                        <button
-                            onClick={handleDoubleDown}
-                            disabled={
-                                gameOver ||
-                                playerHand.length !== 2 ||
-                                currentBet > balance ||
-                                isAnimating
-                            }
-                        >
-                            Double Down
-                        </button>
-                        <button onClick={handleStand} disabled={gameOver || playerHand.length === 0 || isAnimating}>Stand</button>
+                    <div className="player-hands-container">
+                        {playerHands.map((hand, index) => (
+                            <PlayerHand
+                                key={index}
+                                hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
+                                isActive={hand.isTurn}
+                                showBet={playerHands.length > 1} // Show bet if multiple hands
+                            />
+                        ))}
+                    </div>
+
+                    <div className="action-bar-container">
+                        {bettingOpen ? (
+                            <div className="betting-controls">
+                                <button
+                                    className="action-btn deal-btn"
+                                    onClick={handleStart}
+                                    disabled={currentBet === 0 || isAnimating}
+                                >
+                                    DEAL
+                                </button>
+                            </div>
+                        ) : (
+                            !gameOver && (
+                                <div className="play-controls">
+                                    <div className="primary-actions">
+                                        <button
+                                            className="action-btn hit-btn"
+                                            onClick={handleHit}
+                                            disabled={!activeHand || isAnimating}
+                                        >
+                                            HIT
+                                        </button>
+                                        <button
+                                            className="action-btn stand-btn"
+                                            onClick={handleStand}
+                                            disabled={!activeHand || isAnimating}
+                                        >
+                                            STAND
+                                        </button>
+                                    </div>
+
+                                    <div className="secondary-actions">
+                                        {canSplit && (
+                                            <button
+                                                className="action-btn secondary-btn"
+                                                onClick={handleSplit}
+                                                disabled={isAnimating}
+                                            >
+                                                SPLIT
+                                            </button>
+                                        )}
+
+                                        {activeHand && activeHand.cards.length === 2 && (
+                                            <button
+                                                className="action-btn secondary-btn"
+                                                onClick={handleDoubleDown}
+                                                disabled={
+                                                    balance < activeHand.bet ||
+                                                    isAnimating
+                                                }
+                                            >
+                                                DOUBLE
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        )}
+                        {/* Game Over State handled by status messages or auto-reset to betting */}
                     </div>
 
                     <div className="status-messages">
@@ -779,24 +721,6 @@ const BlackjackGame = () => {
             </div>
         </div>
     );
-};
-
-export const resumeGame = ({
-    pendingState,
-    hydrateStateFromResponse,
-    setShowResumePrompt,
-    setCanPersistState,
-    hasStoredHand,
-}) => {
-    if (!pendingState) {
-        setShowResumePrompt(false);
-        setCanPersistState(true);
-        return;
-    }
-
-    const stateToUse = hasStoredHand(pendingState.server) ? pendingState.server : pendingState.local;
-    hydrateStateFromResponse(stateToUse, pendingState.local);
-    setShowResumePrompt(false);
 };
 
 export default BlackjackGame;

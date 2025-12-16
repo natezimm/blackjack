@@ -2,8 +2,10 @@
 @import './Card.css';
 
 /* PlayerHand-specific styles */
+
 .player-hand {
     margin: 20px 0;
+    position: relative;
 }
 
 .hand-header {
@@ -42,4 +44,58 @@
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+/* Outcome Badge Styles */
+.outcome-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    z-index: 10;
+    padding: 12px 24px;
+    border: 3px solid currentColor;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+}
+
+.badge-win,
+.badge-blackjack {
+    color: #4fd1c5;
+    text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+    border-color: #4fd1c5;
+}
+
+.badge-loss,
+.badge-bust {
+    color: #ff6b6b;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    border-color: #ff6b6b;
+}
+
+.badge-tie,
+.badge-push {
+    color: #f6d365;
+    text-shadow: 0 0 10px rgba(246, 211, 101, 0.5);
+    border-color: #f6d365;
+}
+
+@keyframes stampIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(2) rotate(-15deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotate(-15deg);
+    }
 }

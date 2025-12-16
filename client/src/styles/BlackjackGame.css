@@ -611,65 +611,143 @@ h1 {
     }
 }
 
-.controls button {
-    background: linear-gradient(#ffb347, #ff8c00);
-    border: 2px solid #cc7700;
-    color: white;
-    padding: 12px 24px;
-    margin: 6px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    border-radius: 6px;
-    font-weight: bold;
-    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
-    transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
+/* Contextual Action Bar */
+.action-bar-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+    min-height: 80px;
+    /* Prevent layout jump */
 }
 
-.controls {
+.betting-controls {
+    display: flex;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.play-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    animation: slideUp 0.3s ease;
+}
+
+.primary-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.secondary-actions {
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+}
+
+.action-btn {
+    border: none;
+    color: white;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    padding: 10px 16px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.35);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+    letter-spacing: 0.5px;
 }
 
-.controls button:disabled {
-    background: #777 !important;
-    border: 2px solid #555 !important;
-    opacity: 0.6;
+.action-btn:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
+    filter: grayscale(100%);
 }
 
-.controls button:hover:enabled {
+.action-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.deal-btn {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: #1a202c;
+    padding: 16px 48px;
+    font-size: 1.5rem;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.deal-btn:hover:not(:disabled) {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+.hit-btn {
+    background: linear-gradient(135deg, #4fd1c5 0%, #38a169 100%);
+    padding: 14px 32px;
+    font-size: 1.2rem;
+    min-width: 120px;
+}
+
+.stand-btn {
+    background: linear-gradient(135deg, #fc8181 0%, #e53e3e 100%);
+    padding: 14px 32px;
+    font-size: 1.2rem;
+    min-width: 120px;
+}
+
+.secondary-btn {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    min-width: 90px;
+}
+
+.secondary-btn:hover:not(:disabled) {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Responsive adjustments for controls */
 @media (max-width: 768px) {
-    .controls {
-        position: static;
-        border-radius: 24px;
-        max-width: 520px;
-        margin: 0 auto;
-    }
-
-    .controls button {
-        padding: 10px 20px;
-        font-size: 1rem;
+    .play-controls {
+        width: 100%;
     }
 }
 
 @media (max-width: 480px) {
-    .controls button {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-        margin: 4px;
+    .primary-actions {
+        gap: 10px;
+    }
+
+    .hit-btn,
+    .stand-btn {
+        padding: 12px 24px;
+        min-width: 100px;
     }
 }
 
@@ -716,4 +794,54 @@ h1 {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+.player-hands-container {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.player-hand {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 16px;
+    padding: 16px;
+    /* Ensure it has a subtle background to distinguish hands */
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.active-hand {
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+    border: 1px solid rgba(255, 215, 0, 0.6);
+    background: rgba(255, 215, 0, 0.05);
+    transform: translateY(-4px);
+}
+
+.hand-outcome {
+    margin-top: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.outcome-win {
+    border: 2px solid #4fd1c5;
+    box-shadow: 0 0 20px rgba(79, 209, 197, 0.2);
+}
+
+.outcome-loss {
+    border: 2px solid #ff6b6b;
+    opacity: 0.8;
+}
+
+.outcome-tie {
+    border: 2px solid #f6d365;
 }

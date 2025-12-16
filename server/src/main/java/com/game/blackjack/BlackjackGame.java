@@ -6,24 +6,24 @@ import java.util.List;
 
 public class BlackjackGame {
 
-    private List<Card> playerHand;
+    private List<Hand> playerHands;
+    private int currentHandIndex;
     private List<Card> dealerHand;
     private List<Card> deck;
     private boolean gameOver;
     private int balance;
-    private int currentBet;
+    private int initialBet;
     private boolean bettingOpen = true;
-    private boolean hasDoubledDown = false;
     private boolean dealerHitsOnSoft17 = false;
     private int numberOfDecks = 1;
 
     public BlackjackGame() {
-        this.playerHand = new ArrayList<>();
+        this.playerHands = new ArrayList<>();
         this.dealerHand = new ArrayList<>();
         this.deck = new ArrayList<>();
         this.gameOver = false;
         this.balance = 1000; // Initial balance
-        this.currentBet = 0;
+        this.initialBet = 0;
         initializeDeck(1);
     }
 
@@ -44,16 +44,24 @@ public class BlackjackGame {
     }
 
     public void dealInitialCards() {
-        playerHand.clear();
+        playerHands.clear();
         dealerHand.clear();
-        playerHand.add(deck.remove(0));
+
+        // Create initial hand
+        Hand initialHand = new Hand(initialBet);
+        playerHands.add(initialHand);
+        currentHandIndex = 0;
+        initialHand.setTurn(true);
+
+        // Deal cards
+        initialHand.addCard(deck.remove(0));
         dealerHand.add(deck.remove(0));
-        playerHand.add(deck.remove(0));
+        initialHand.addCard(deck.remove(0));
         dealerHand.add(deck.remove(0));
+
         gameOver = false;
-        balance -= currentBet;
+        balance -= initialBet;
         bettingOpen = false;
-        hasDoubledDown = false;
     }
 
     public void placeBet(int bet) {
@@ -61,80 +69,185 @@ public class BlackjackGame {
             throw new IllegalStateException("Cannot bet after cards are dealt");
         }
         if (bet <= balance) {
-            currentBet = bet;
+            initialBet = bet;
         } else {
             throw new IllegalArgumentException("Bet exceeds balance");
         }
     }
 
-    public void resolveBet(boolean playerWins, boolean tie) {
-        if (playerWins) {
-            balance += currentBet * 2;
-        } else if (tie) {
-            balance += currentBet;
+    public void resolveAllHands() {
+        int dealerValue = calculateHandValue(dealerHand);
+
+        for (Hand hand : playerHands) {
+            int playerValue = calculateHandValue(hand.getCards());
+            int bet = hand.getBet();
+
+            // Logic for each hand
+            if (hand.isBusted() || playerValue > 21) {
+                hand.setOutcome("LOSS");
+            } else {
+                if (dealerValue > 21) {
+                    // Dealer busts, player wins
+                    balance += bet * 2;
+                    hand.setOutcome("WIN");
+                } else if (playerValue > dealerValue) {
+                    // Player wins
+                    balance += bet * 2;
+                    hand.setOutcome("WIN");
+                } else if (playerValue == dealerValue) {
+                    // Push
+                    balance += bet;
+                    hand.setOutcome("TIE");
+                } else {
+                    hand.setOutcome("LOSS");
+                }
+            }
         }
+
         gameOver = true;
-        currentBet = 0;
+        initialBet = 0;
         bettingOpen = true;
-        hasDoubledDown = false;
     }
 
     public boolean isTie() {
-        return calculateHandValue(playerHand) == calculateHandValue(dealerHand);
+        if (playerHands.isEmpty())
+            return false;
+        return calculateHandValue(playerHands.get(0).getCards()) == calculateHandValue(dealerHand);
     }
 
-    public List<Card> getPlayerHand() {
-        return playerHand;
+    public List<Hand> getPlayerHands() {
+        return playerHands;
     }
 
     public List<Card> getDealerHand() {
         return dealerHand;
     }
 
+    public Hand getCurrentHand() {
+        if (playerHands.isEmpty() || currentHandIndex >= playerHands.size())
+            return null;
+        return playerHands.get(currentHandIndex);
+    }
+
     public void hitPlayer() {
         if (!gameOver) {
+            Hand currentHand = getCurrentHand();
+            if (currentHand == null)
+                return;
+
             Card newCard = deck.remove(0);
-            playerHand.add(newCard);
-            checkGameOver();
+            currentHand.addCard(newCard);
+
+            if (calculateHandValue(currentHand.getCards()) > 21) {
+                currentHand.setBusted(true);
+                stand();
+            }
         }
     }
 
     public void doubleDown() {
-        if (gameOver) {
-            throw new IllegalStateException("Cannot double down after game is over");
+        Hand currentHand = getCurrentHand();
+        if (gameOver || currentHand == null) {
+            throw new IllegalStateException("Cannot double down");
         }
-        if (playerHand.size() != 2) {
+        if (currentHand.getCards().size() != 2) {
             throw new IllegalStateException("Can only double down on initial two cards");
         }
-        if (hasDoubledDown) {
+        if (currentHand.hasDoubledDown()) {
             throw new IllegalStateException("Already doubled down");
         }
-        if (currentBet > balance) {
+        if (currentHand.getBet() > balance) {
             throw new IllegalArgumentException("Insufficient balance to double down");
         }
 
-        // Double the bet and deduct from balance
-        balance -= currentBet;
-        currentBet *= 2;
-        hasDoubledDown = true;
+        // Double the bet
+        int bet = currentHand.getBet();
+        balance -= bet;
+        currentHand.setBet(bet * 2);
+        currentHand.setDoubledDown(true);
 
         // Deal exactly one card
         Card newCard = deck.remove(0);
-        playerHand.add(newCard);
+        currentHand.addCard(newCard);
 
-        // Check if player busted
-        checkGameOver();
+        // Check bust/stand
+        if (calculateHandValue(currentHand.getCards()) > 21) {
+            currentHand.setBusted(true);
+        }
+        stand(); // Auto-stand after double down
     }
-    
-    private void checkGameOver() {
-        int playerValue = calculateHandValue(playerHand);
-        int dealerValue = calculateHandValue(dealerHand);
 
-        if (playerValue > 21) {
-            gameOver = true;
-            resolveBet(false, false);
-        } else if (dealerValue > 21) {
-            gameOver = true;
+    public void split() {
+        Hand currentHand = getCurrentHand();
+        if (gameOver || currentHand == null) {
+            throw new IllegalStateException("Cannot split");
+        }
+        if (currentHand.getCards().size() != 2) {
+            throw new IllegalStateException("Can only split with two cards");
+        }
+
+        Card card1 = currentHand.getCards().get(0);
+        Card card2 = currentHand.getCards().get(1);
+
+        // Check values (taking 10, J, Q, K as 10)
+        int v1 = getCardValueForSplit(card1);
+        int v2 = getCardValueForSplit(card2);
+
+        if (v1 != v2) {
+            throw new IllegalStateException("Can only split pairs");
+        }
+
+        if (currentHand.getBet() > balance) {
+            throw new IllegalArgumentException("Insufficient balance to split");
+        }
+
+        // Process split
+        balance -= currentHand.getBet(); // Place bet for new hand
+
+        // Remove second card from current hand
+        currentHand.getCards().remove(1);
+
+        // Create new hand with that card
+        Hand newHand = new Hand(currentHand.getBet());
+        newHand.addCard(card2);
+
+        // Insert new hand after current hand
+        playerHands.add(currentHandIndex + 1, newHand);
+
+        // Deal one card to current hand
+        currentHand.addCard(deck.remove(0));
+
+        // Deal one card to new hand
+        newHand.addCard(deck.remove(0));
+
+        // Current hand continues playing (isTurn remains true)
+    }
+
+    private int getCardValueForSplit(Card card) {
+        String val = card.getValue();
+        if ("J".equals(val) || "Q".equals(val) || "K".equals(val))
+            return 10;
+        if ("A".equals(val))
+            return 11;
+        return Integer.parseInt(val);
+    }
+
+    public void stand() {
+        Hand currentHand = getCurrentHand();
+        if (currentHand != null) {
+            currentHand.setStanding(true);
+            currentHand.setTurn(false);
+        }
+
+        // Move to next hand
+        currentHandIndex++;
+
+        if (currentHandIndex < playerHands.size()) {
+            // Play next hand
+            playerHands.get(currentHandIndex).setTurn(true);
+        } else {
+            // All hands done, dealer plays
+            dealerPlay();
         }
     }
 
@@ -164,6 +277,7 @@ public class BlackjackGame {
     public void setDealerHitsOnSoft17(boolean dealerHitsOnSoft17) {
         this.dealerHitsOnSoft17 = dealerHitsOnSoft17;
     }
+
     public boolean isDealerHitsOnSoft17() {
         return dealerHitsOnSoft17;
     }
@@ -173,13 +287,22 @@ public class BlackjackGame {
     }
 
     public void dealerPlay() {
-        // Dealer hits until their hand is at least 17
-        // If dealerHitsOnSoft17 is true, dealer also hits on soft 17
-        while (calculateHandValue(dealerHand) < 17 || (dealerHitsOnSoft17 && isSoft17(dealerHand))) {
-            dealerHand.add(deck.remove(0));
+        // Check if all hands are busted - if so, dealer doesn't need to play
+        boolean allBusted = true;
+        for (Hand h : playerHands) {
+            if (!h.isBusted()) {
+                allBusted = false;
+                break;
+            }
         }
 
-        checkGameOver();
+        if (!allBusted) {
+            while (calculateHandValue(dealerHand) < 17 || (dealerHitsOnSoft17 && isSoft17(dealerHand))) {
+                dealerHand.add(deck.remove(0));
+            }
+        }
+
+        resolveAllHands();
     }
 
     private boolean isSoft17(List<Card> hand) {
@@ -221,7 +344,12 @@ public class BlackjackGame {
     }
 
     public int getCurrentBet() {
-        return currentBet;
+        if (playerHands.isEmpty())
+            return initialBet;
+        int total = 0;
+        for (Hand h : playerHands)
+            total += h.getBet();
+        return total;
     }
 
     public boolean isGameOver() {
@@ -237,17 +365,20 @@ public class BlackjackGame {
     }
 
     public void forfeitRound() {
-        if (!bettingOpen && currentBet > 0) {
-            currentBet = 0;
+        if (!bettingOpen && initialBet > 0) {
             bettingOpen = true;
             gameOver = true;
-            playerHand.clear();
+            playerHands.clear();
             dealerHand.clear();
-            hasDoubledDown = false;
+            initialBet = 0;
         }
     }
 
     public boolean hasDoubledDown() {
-        return hasDoubledDown;
+        for (Hand h : playerHands) {
+            if (h.hasDoubledDown())
+                return true;
+        }
+        return false;
     }
 }

@@ -49,15 +49,10 @@ public class BlackjackController {
     }
 
     @PostMapping("/stand")
-    public ResponseEntity<?> stand(HttpSession session) {
+    public GameResponse stand(HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
-        game.dealerPlay();
-        int playerValue = game.calculateHandValue(game.getPlayerHand());
-        int dealerValue = game.calculateHandValue(game.getDealerHand());
-        boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
-        boolean tie = game.isTie();
-        game.resolveBet(playerWins, tie);
-        return ResponseEntity.ok(new GameResponse(game, playerWins, tie));
+        game.stand();
+        return new GameResponse(game);
     }
 
     @PostMapping("/doubledown")
@@ -65,19 +60,18 @@ public class BlackjackController {
         try {
             BlackjackGame game = getOrCreateGame(session);
             game.doubleDown();
+            return ResponseEntity.ok(new GameResponse(game));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
 
-            // After doubling down, player must stand, so dealer plays
-            if (!game.isGameOver()) {
-                game.dealerPlay();
-            }
-
-            int playerValue = game.calculateHandValue(game.getPlayerHand());
-            int dealerValue = game.calculateHandValue(game.getDealerHand());
-            boolean playerWins = (playerValue <= 21 && (dealerValue > 21 || playerValue > dealerValue));
-            boolean tie = game.isTie();
-            game.resolveBet(playerWins, tie);
-
-            return ResponseEntity.ok(new GameResponse(game, playerWins, tie));
+    @PostMapping("/split")
+    public ResponseEntity<?> split(HttpSession session) {
+        try {
+            BlackjackGame game = getOrCreateGame(session);
+            game.split();
+            return ResponseEntity.ok(new GameResponse(game));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
@@ -121,21 +115,28 @@ public class BlackjackController {
     }
 
     public static class GameResponse {
-        private List<Card> playerHand;
+        private List<Hand> playerHands;
         private List<Card> dealerHand;
-        private boolean playerWins;
-        private boolean tie;
+        // playerWins / tie removed as they are per-hand outcomes now managed within
+        // Hand object
+        // keeping implicit structure or could add "overallResult" if needed, but
+        // Hand.outcome is source of truth.
+        // For partial compatibility check if we want to keep them?
+        // No, let's break clean given we control frontend.
         private boolean gameOver;
         private int balance;
-        private int currentBet;
+        private int currentBet; // Total current bet?
         private boolean bettingOpen;
         private int deckSize;
         private boolean dealerHitsOnSoft17;
         private int numberOfDecks;
-        private boolean hasDoubledDown;
+        private boolean hasDoubledDown; // Global flag?
+
+        // Helper legacy getters for frontend if needed?
+        // We will update frontend to look at playerHands.
 
         public GameResponse(BlackjackGame game) {
-            this.playerHand = game.getPlayerHand();
+            this.playerHands = game.getPlayerHands();
             this.dealerHand = game.getDealerHand();
             this.gameOver = game.isGameOver();
             this.balance = game.getBalance();
@@ -147,27 +148,12 @@ public class BlackjackController {
             this.hasDoubledDown = game.hasDoubledDown();
         }
 
-        public GameResponse(BlackjackGame game, boolean playerWins, boolean tie) {
-            this(game);
-            this.playerWins = playerWins;
-            this.tie = tie;
-            this.gameOver = game.isGameOver();
-        }
-
-        public List<Card> getPlayerHand() {
-            return playerHand;
+        public List<Hand> getPlayerHands() {
+            return playerHands;
         }
 
         public List<Card> getDealerHand() {
             return dealerHand;
-        }
-
-        public boolean isPlayerWins() {
-            return playerWins;
-        }
-
-        public boolean isTie() {
-            return tie;
         }
 
         public boolean isGameOver() {
@@ -201,5 +187,8 @@ public class BlackjackController {
         public boolean isHasDoubledDown() {
             return hasDoubledDown;
         }
+
+        // Legacy compatibility for simple frontend checks (optional)
+        // Leaving out to force migration.
     }
 }

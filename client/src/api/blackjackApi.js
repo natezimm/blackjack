@@ -27,6 +27,10 @@ export const doubleDown = async () => {
     return apiClient.post('/doubledown');
 };
 
+export const split = async () => {
+    return apiClient.post('/split');
+};
+
 export const getState = async () => {
     return apiClient.get('/state');
 };

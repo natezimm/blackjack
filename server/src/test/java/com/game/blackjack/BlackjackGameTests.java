@@ -24,7 +24,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
         game.dealInitialCards();
-        assertEquals(2, game.getPlayerHand().size());
+        assertEquals(2, game.getPlayerHands().get(0).getCards().size());
         assertEquals(2, game.getDealerHand().size());
         assertFalse(game.isBettingOpen());
         assertEquals(900, game.getBalance());
@@ -36,15 +36,90 @@ class BlackjackGameTests {
     void hitPlayer_bustsPlayerWhenValueExceeds21() {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(10);
-        game.getPlayerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
+        game.getPlayerHands().add(new Hand(10));
+        game.getPlayerHands().get(0).setTurn(true);
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("K", "Hearts"),
                 new Card("Q", "Diamonds"),
                 new Card("2", "Clubs")));
         game.hitPlayer();
         assertTrue(game.isGameOver());
+        assertEquals(10, game.getCurrentBet());
+        assertTrue(game.isBettingOpen());
+    }
+
+    @Test
+    void forfeitRound_resetsGame() {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(50);
+        game.dealInitialCards();
+        game.forfeitRound();
+        assertTrue(game.isGameOver());
         assertEquals(0, game.getCurrentBet());
         assertTrue(game.isBettingOpen());
+        assertTrue(game.getPlayerHands().isEmpty());
+        assertTrue(game.getDealerHand().isEmpty());
+        assertFalse(game.hasDoubledDown());
+    }
+
+    @Test
+    void dealerPlay_hitsOnSoft17() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        replaceDeck(game, Arrays.asList(
+                new Card("5", "Clubs"),
+                new Card("7", "Hearts"),
+                new Card("9", "Spades")));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("A", "Hearts"),
+                new Card("6", "Diamonds")));
+        game.getPlayerHands().add(new Hand(10));
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("9", "Clubs"),
+                new Card("8", "Diamonds")));
+        game.setDealerHitsOnSoft17(true);
+        int dealerValueBefore = game.calculateHandValue(game.getDealerHand());
+        int deckSizeBefore = game.getDeckSize();
+        game.dealerPlay();
+        assertNotEquals(dealerValueBefore, game.calculateHandValue(game.getDealerHand()));
+        assertTrue(game.getDeckSize() < deckSizeBefore);
+    }
+
+    @Test
+    void isTie_detectsEqualHands() {
+        BlackjackGame game = new BlackjackGame();
+        game.getPlayerHands().add(new Hand(10));
+        game.getDealerHand().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                new Card("10", "Hearts"),
+                new Card("7", "Clubs")));
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("9", "Spades"),
+                new Card("8", "Diamonds")));
+        assertTrue(game.isTie());
+    }
+
+    @Test
+    void forfeitRound_noopsWhenCurrentBetZeroButClosed() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(10);
+        game.dealInitialCards();
+        setPrivateField(game, "initialBet", 0);
+        setPrivateField(game, "bettingOpen", false);
+
+        game.forfeitRound();
+
+        assertFalse(game.isGameOver());
+        assertEquals(10, game.getCurrentBet());
+        assertFalse(game.isBettingOpen());
+    }
+
+    @Test
+    void doubleDown_throwsWhenGameAlreadyOver() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        setPrivateField(game, "gameOver", true);
+        IllegalStateException exception = assertThrows(IllegalStateException.class, game::doubleDown);
+        assertEquals("Cannot double down", exception.getMessage());
     }
 
     @Test
@@ -52,20 +127,21 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
         game.dealInitialCards();
-        int balanceBefore = game.getBalance();
-        game.getPlayerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
+
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("7", "Hearts"),
                 new Card("7", "Diamonds")));
         game.getDealerHand().clear();
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Clubs"),
-                new Card("6", "Spades")));
+                new Card("7", "Spades")));
         replaceDeck(game, List.of(new Card("5", "Clubs")));
         game.doubleDown();
         assertTrue(game.hasDoubledDown());
         assertEquals(200, game.getCurrentBet());
-        assertEquals(balanceBefore - 100, game.getBalance());
+        assertTrue(game.isGameOver());
+        assertEquals(1200, game.getBalance());
     }
 
     @Test
@@ -82,46 +158,9 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(50);
         game.dealInitialCards();
-        game.getPlayerHand().add(new Card("2", "Clubs"));
+        game.getPlayerHands().get(0).getCards().add(new Card("2", "Clubs"));
         IllegalStateException exception = assertThrows(IllegalStateException.class, game::doubleDown);
         assertEquals("Can only double down on initial two cards", exception.getMessage());
-    }
-
-    @Test
-    void resolveBet_awardsWinningsForPlayerVictory() {
-        BlackjackGame game = new BlackjackGame();
-        game.placeBet(100);
-        game.dealInitialCards();
-        game.resolveBet(true, false);
-        assertEquals(1100, game.getBalance());
-        assertTrue(game.isGameOver());
-        assertEquals(0, game.getCurrentBet());
-        assertTrue(game.isBettingOpen());
-    }
-
-    @Test
-    void resolveBet_handlesTie() {
-        BlackjackGame game = new BlackjackGame();
-        game.placeBet(100);
-        game.resolveBet(false, true);
-        assertEquals(1100, game.getBalance());
-        assertTrue(game.isGameOver());
-        assertEquals(0, game.getCurrentBet());
-        assertTrue(game.isBettingOpen());
-    }
-
-    @Test
-    void forfeitRound_resetsGame() {
-        BlackjackGame game = new BlackjackGame();
-        game.placeBet(50);
-        game.dealInitialCards();
-        game.forfeitRound();
-        assertTrue(game.isGameOver());
-        assertEquals(0, game.getCurrentBet());
-        assertTrue(game.isBettingOpen());
-        assertTrue(game.getPlayerHand().isEmpty());
-        assertTrue(game.getDealerHand().isEmpty());
-        assertFalse(game.hasDoubledDown());
     }
 
     @Test
@@ -133,29 +172,6 @@ class BlackjackGameTests {
                 new Card("5", "Diamonds"),
                 new Card("A", "Clubs"));
         assertEquals(17, game.calculateHandValue(hand));
-    }
-
-    @Test
-    void dealerPlay_hitsOnSoft17() throws Exception {
-        BlackjackGame game = new BlackjackGame();
-        replaceDeck(game, Arrays.asList(
-                new Card("5", "Clubs"),
-                new Card("7", "Hearts"),
-                new Card("9", "Spades")));
-        game.getDealerHand().clear();
-        game.getDealerHand().addAll(Arrays.asList(
-                new Card("A", "Hearts"),
-                new Card("6", "Diamonds")));
-        game.getPlayerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
-                new Card("9", "Clubs"),
-                new Card("8", "Diamonds")));
-        game.setDealerHitsOnSoft17(true);
-        int dealerValueBefore = game.calculateHandValue(game.getDealerHand());
-        int deckSizeBefore = game.getDeckSize();
-        game.dealerPlay();
-        assertNotEquals(dealerValueBefore, game.calculateHandValue(game.getDealerHand()));
-        assertTrue(game.getDeckSize() < deckSizeBefore);
     }
 
     @Test
@@ -173,20 +189,6 @@ class BlackjackGameTests {
     }
 
     @Test
-    void isTie_detectsEqualHands() {
-        BlackjackGame game = new BlackjackGame();
-        game.getPlayerHand().clear();
-        game.getDealerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
-                new Card("10", "Hearts"),
-                new Card("7", "Clubs")));
-        game.getDealerHand().addAll(Arrays.asList(
-                new Card("9", "Spades"),
-                new Card("8", "Diamonds")));
-        assertTrue(game.isTie());
-    }
-
-    @Test
     void setDealerHitsOnSoft17_updatesState() {
         BlackjackGame game = new BlackjackGame();
         game.setDealerHitsOnSoft17(true);
@@ -196,29 +198,26 @@ class BlackjackGameTests {
     }
 
     @Test
-    void doubleDown_throwsWhenGameAlreadyOver() throws Exception {
-        BlackjackGame game = new BlackjackGame();
-        setPrivateField(game, "gameOver", true);
-        IllegalStateException exception = assertThrows(IllegalStateException.class, game::doubleDown);
-        assertEquals("Cannot double down after game is over", exception.getMessage());
-    }
-
-    @Test
     void doubleDown_throwsWhenAlreadyDoubledDown() throws Exception {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(50);
         game.dealInitialCards();
-        game.getPlayerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("6", "Hearts"),
                 new Card("5", "Diamonds")));
+        game.getDealerHand().clear();
+        game.getDealerHand().addAll(Arrays.asList(
+                new Card("10", "Clubs"),
+                new Card("7", "Spades")));
         replaceDeck(game, List.of(new Card("5", "Clubs")));
         game.doubleDown();
 
-        if (game.getPlayerHand().size() > 2) {
-            game.getPlayerHand().subList(2, game.getPlayerHand().size()).clear();
+        if (game.getPlayerHands().get(0).getCards().size() > 2) {
+            game.getPlayerHands().get(0).getCards().subList(2, game.getPlayerHands().get(0).getCards().size()).clear();
         }
         setPrivateField(game, "gameOver", false);
+        setPrivateField(game, "currentHandIndex", 0);
         IllegalStateException exception = assertThrows(IllegalStateException.class, game::doubleDown);
         assertEquals("Already doubled down", exception.getMessage());
     }
@@ -251,21 +250,6 @@ class BlackjackGameTests {
         assertTrue(game.isBettingOpen());
         assertEquals(0, game.getCurrentBet());
         assertFalse(game.isGameOver());
-    }
-
-    @Test
-    void forfeitRound_noopsWhenCurrentBetZeroButClosed() throws Exception {
-        BlackjackGame game = new BlackjackGame();
-        game.placeBet(10);
-        game.dealInitialCards();
-        setPrivateField(game, "currentBet", 0);
-        setPrivateField(game, "bettingOpen", false);
-
-        game.forfeitRound();
-
-        assertFalse(game.isGameOver());
-        assertEquals(0, game.getCurrentBet());
-        assertFalse(game.isBettingOpen());
     }
 
     @Test
@@ -334,9 +318,10 @@ class BlackjackGameTests {
     void hitPlayer_noopsWhenGameOver() throws Exception {
         BlackjackGame game = new BlackjackGame();
         setPrivateField(game, "gameOver", true);
-        int sizeBefore = game.getPlayerHand().size();
+        game.getPlayerHands().add(new Hand(10));
+        int sizeBefore = game.getPlayerHands().get(0).getCards().size();
         game.hitPlayer();
-        assertEquals(sizeBefore, game.getPlayerHand().size());
+        assertEquals(sizeBefore, game.getPlayerHands().get(0).getCards().size());
     }
 
     @Test
@@ -344,8 +329,8 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(20);
         game.dealInitialCards();
-        game.getPlayerHand().clear();
-        game.getPlayerHand().addAll(Arrays.asList(
+        game.getPlayerHands().get(0).getCards().clear();
+        game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("9", "Clubs"),
                 new Card("8", "Diamonds")));
         replaceDeck(game, List.of(new Card("10", "Hearts")));
