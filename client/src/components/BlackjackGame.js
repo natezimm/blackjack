@@ -325,7 +325,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             }, 500);
             return () => clearTimeout(outcomeTimer);
         }
-    }, [dealerHand, revealDealerCard, displayedDealerHand.length]);
+    }, [dealerHand, revealDealerCard, displayedDealerHand.length, initialSkipAnimations]);
 
     useEffect(() => {
         if (!canPersistState) return;
