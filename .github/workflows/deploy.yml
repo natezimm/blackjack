@@ -68,3 +68,22 @@ jobs:
       - name: Deploy to Lightsail
         run: |
           ssh lightsail "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
+
+      - name: Health check (frontend + backend)
+        run: |
+          echo "⏳ Waiting for services to start..."
+          sleep 10
+
+          echo "🔍 Checking frontend..."
+          curl -f https://${{ secrets.APP_DOMAIN }} || {
+            echo "❌ Frontend health check failed"
+            exit 1
+          }
+
+          echo "🔍 Checking backend..."
+          curl -f https://${{ secrets.APP_DOMAIN }}/api/health || {
+            echo "❌ Backend health check failed"
+            exit 1
+          }
+
+          echo "✅ Deploy health check passed"
