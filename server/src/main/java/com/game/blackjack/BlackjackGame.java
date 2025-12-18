@@ -13,6 +13,11 @@ public class BlackjackGame {
     private boolean gameOver;
     private int balance;
     private int initialBet;
+    private int insuranceBet;
+    private boolean insuranceOffered;
+    private boolean insuranceResolved;
+    private String insuranceOutcome;
+    private boolean playerActed;
     private boolean bettingOpen = true;
     private boolean dealerHitsOnSoft17 = false;
     private int numberOfDecks = 1;
@@ -24,6 +29,11 @@ public class BlackjackGame {
         this.gameOver = false;
         this.balance = 1000; // Initial balance
         this.initialBet = 0;
+        this.insuranceBet = 0;
+        this.insuranceOffered = false;
+        this.insuranceResolved = true;
+        this.insuranceOutcome = null;
+        this.playerActed = false;
         initializeDeck(1);
     }
 
@@ -47,6 +57,12 @@ public class BlackjackGame {
         playerHands.clear();
         dealerHand.clear();
 
+        insuranceBet = 0;
+        insuranceOutcome = null;
+        insuranceOffered = false;
+        insuranceResolved = true;
+        playerActed = false;
+
         // Create initial hand
         Hand initialHand = new Hand(initialBet);
         playerHands.add(initialHand);
@@ -58,6 +74,9 @@ public class BlackjackGame {
         dealerHand.add(deck.remove(0));
         initialHand.addCard(deck.remove(0));
         dealerHand.add(deck.remove(0));
+
+        insuranceOffered = dealerUpcardIsAce();
+        insuranceResolved = !insuranceOffered;
 
         gameOver = false;
         balance -= initialBet;
@@ -135,6 +154,7 @@ public class BlackjackGame {
             if (currentHand == null)
                 return;
 
+            playerActed = true;
             Card newCard = deck.remove(0);
             currentHand.addCard(newCard);
 
@@ -159,6 +179,8 @@ public class BlackjackGame {
         if (currentHand.getBet() > balance) {
             throw new IllegalArgumentException("Insufficient balance to double down");
         }
+
+        playerActed = true;
 
         // Double the bet
         int bet = currentHand.getBet();
@@ -201,6 +223,8 @@ public class BlackjackGame {
             throw new IllegalArgumentException("Insufficient balance to split");
         }
 
+        playerActed = true;
+
         // Process split
         balance -= currentHand.getBet(); // Place bet for new hand
 
@@ -233,6 +257,7 @@ public class BlackjackGame {
     }
 
     public void stand() {
+        playerActed = true;
         Hand currentHand = getCurrentHand();
         if (currentHand != null) {
             currentHand.setStanding(true);
@@ -371,6 +396,11 @@ public class BlackjackGame {
             playerHands.clear();
             dealerHand.clear();
             initialBet = 0;
+            insuranceBet = 0;
+            insuranceOffered = false;
+            insuranceResolved = true;
+            insuranceOutcome = null;
+            playerActed = false;
         }
     }
 
@@ -380,5 +410,84 @@ public class BlackjackGame {
                 return true;
         }
         return false;
+    }
+
+    public boolean isInsuranceOffered() {
+        return insuranceOffered;
+    }
+
+    public boolean isInsuranceResolved() {
+        return insuranceResolved;
+    }
+
+    public int getInsuranceBet() {
+        return insuranceBet;
+    }
+
+    public String getInsuranceOutcome() {
+        return insuranceOutcome;
+    }
+
+    public int getMaxInsuranceBet() {
+        if (initialBet <= 0) {
+            return 0;
+        }
+        return initialBet / 2;
+    }
+
+    public void resolveInsurance(int amount) {
+        if (bettingOpen || gameOver) {
+            throw new IllegalStateException("No active round for insurance");
+        }
+        if (!insuranceOffered || !dealerUpcardIsAce()) {
+            throw new IllegalStateException("Insurance is only available when dealer shows an Ace");
+        }
+        if (insuranceResolved) {
+            throw new IllegalStateException("Insurance already resolved");
+        }
+        if (playerActed) {
+            throw new IllegalStateException("Insurance must be resolved before playing");
+        }
+
+        if (amount < 0) {
+            throw new IllegalArgumentException("Insurance bet must be non-negative");
+        }
+
+        int maxInsurance = getMaxInsuranceBet();
+        if (amount > maxInsurance) {
+            throw new IllegalArgumentException("Insurance bet cannot exceed half of your bet");
+        }
+        if (amount > balance) {
+            throw new IllegalArgumentException("Insufficient balance for insurance");
+        }
+
+        insuranceBet = amount;
+        insuranceResolved = true;
+        if (amount > 0) {
+            balance -= amount;
+        }
+
+        if (isDealerBlackjack()) {
+            if (amount > 0) {
+                balance += amount * 3; // Pays 2:1, plus original insurance bet back
+                insuranceOutcome = "WIN";
+            } else {
+                insuranceOutcome = "DECLINED";
+            }
+            resolveAllHands();
+        } else {
+            insuranceOutcome = amount > 0 ? "LOSS" : "DECLINED";
+        }
+    }
+
+    private boolean dealerUpcardIsAce() {
+        if (dealerHand.size() < 2) {
+            return false;
+        }
+        return "A".equals(dealerHand.get(1).getValue());
+    }
+
+    private boolean isDealerBlackjack() {
+        return dealerHand.size() == 2 && calculateHandValue(dealerHand) == 21;
     }
 }

@@ -796,6 +796,77 @@ h1 {
     }
 }
 
+.insurance-bar {
+    width: 100%;
+    max-width: 720px;
+    margin: 12px 0 6px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.insurance-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.insurance-label {
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #f6d365;
+}
+
+.insurance-hint,
+.insurance-summary {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.insurance-bar-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.insurance-input {
+    width: 120px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 900;
+    text-align: center;
+    outline: none;
+}
+
+.insurance-input:focus {
+    border-color: rgba(246, 211, 101, 0.75);
+    box-shadow: 0 0 0 3px rgba(246, 211, 101, 0.18);
+}
+
+.insurance-win {
+    border-color: rgba(79, 209, 197, 0.55);
+    background: rgba(79, 209, 197, 0.08);
+}
+
+.insurance-loss {
+    border-color: rgba(255, 107, 107, 0.55);
+    background: rgba(255, 107, 107, 0.08);
+}
+
 .player-hands-container {
     display: flex;
     justify-content: center;

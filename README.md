@@ -42,6 +42,7 @@ Full-stack Blackjack experience pairing a React 18 front-end with a modernized S
 - `POST /api/blackjack/hit` – draws a card for the player and updates the session state.
 - `POST /api/blackjack/stand` – resolves the round by letting the dealer play, then determines win/tie/loss and adjusts the balance.
 - `POST /api/blackjack/doubledown` – doubles the bet, deals exactly one card, then forces a stand/dealer resolution.
+- `POST /api/blackjack/insurance` – body `{ "amount": <int> }`, places/declines insurance (max half the main bet) when the dealer shows an Ace.
 - `GET /api/blackjack/state` – returns the current hands, balance, bet, deck size, whether betting is open, and soft 17 setting.
 - `POST /api/blackjack/reset` – optional body `{ "decks": <int>, "dealerHitsOnSoft17": <bool> }`, clears the session, and starts fresh with the requested configuration.
 - `GET /api/blackjack/gameover` – indicates if the current round has been marked as finished.

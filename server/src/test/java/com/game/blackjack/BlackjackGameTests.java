@@ -435,6 +435,108 @@ class BlackjackGameTests {
         assertTrue(game.isGameOver());
     }
 
+    @Test
+    void resolveInsurance_paysTwoToOneAndEndsRoundWhenDealerHasBlackjack() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+
+        replaceDeck(game, Arrays.asList(
+                new Card("9", "Hearts"), // player
+                new Card("10", "Clubs"), // dealer hole
+                new Card("7", "Spades"), // player
+                new Card("A", "Diamonds") // dealer upcard
+        ));
+
+        game.dealInitialCards();
+        assertTrue(game.isInsuranceOffered());
+        assertFalse(game.isInsuranceResolved());
+        assertEquals(900, game.getBalance());
+
+        game.resolveInsurance(50);
+
+        assertEquals("WIN", game.getInsuranceOutcome());
+        assertTrue(game.isGameOver());
+        assertTrue(game.isBettingOpen());
+        assertEquals(1000, game.getBalance());
+        assertEquals("LOSS", game.getPlayerHands().get(0).getOutcome());
+    }
+
+    @Test
+    void resolveInsurance_losesBetAndContinuesWhenDealerHasNoBlackjack() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+
+        replaceDeck(game, Arrays.asList(
+                new Card("9", "Hearts"), // player
+                new Card("9", "Clubs"), // dealer hole
+                new Card("7", "Spades"), // player
+                new Card("A", "Diamonds") // dealer upcard
+        ));
+
+        game.dealInitialCards();
+        assertTrue(game.isInsuranceOffered());
+        assertFalse(game.isInsuranceResolved());
+        assertEquals(900, game.getBalance());
+
+        game.resolveInsurance(50);
+
+        assertEquals("LOSS", game.getInsuranceOutcome());
+        assertFalse(game.isGameOver());
+        assertFalse(game.isBettingOpen());
+        assertEquals(850, game.getBalance());
+    }
+
+    @Test
+    void resolveInsurance_throwsWhenInsuranceExceedsHalfBet() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+        replaceDeck(game, Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("9", "Clubs"),
+                new Card("7", "Spades"),
+                new Card("A", "Diamonds")
+        ));
+        game.dealInitialCards();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> game.resolveInsurance(51));
+        assertEquals("Insurance bet cannot exceed half of your bet", exception.getMessage());
+    }
+
+    @Test
+    void resolveInsurance_throwsWhenNotOffered() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+        replaceDeck(game, Arrays.asList(
+                new Card("9", "Hearts"),
+                new Card("9", "Clubs"),
+                new Card("7", "Spades"),
+                new Card("K", "Diamonds")
+        ));
+        game.dealInitialCards();
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> game.resolveInsurance(0));
+        assertEquals("Insurance is only available when dealer shows an Ace", exception.getMessage());
+    }
+
+    @Test
+    void resolveInsurance_throwsWhenPlayerAlreadyActed() throws Exception {
+        BlackjackGame game = new BlackjackGame();
+        game.placeBet(100);
+        replaceDeck(game, Arrays.asList(
+                new Card("2", "Hearts"), // player
+                new Card("9", "Clubs"), // dealer hole
+                new Card("3", "Spades"), // player
+                new Card("A", "Diamonds"), // dealer upcard
+                new Card("5", "Clubs") // hit card
+        ));
+        game.dealInitialCards();
+
+        game.hitPlayer();
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> game.resolveInsurance(50));
+        assertEquals("Insurance must be resolved before playing", exception.getMessage());
+    }
+
     private void setPrivateField(Object target, String name, Object value) throws Exception {
         Field field = BlackjackGame.class.getDeclaredField(name);
         field.setAccessible(true);

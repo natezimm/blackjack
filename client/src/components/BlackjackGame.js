@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { startGame, hit, stand, placeBet, doubleDown, split, getState, resetGame } from '../api/blackjackApi';
+import { startGame, hit, stand, placeBet, doubleDown, split, resolveInsurance, getState, resetGame } from '../api/blackjackApi';
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
@@ -109,6 +109,10 @@ export const createHydrateStateFromResponse = ({
     setDeckSize,
     setRevealDealerCard,
     setMessage,
+    setInsuranceBet,
+    setInsuranceOffered,
+    setInsuranceResolved,
+    setInsuranceOutcome,
     setCanPersistState,
 }) => (state, fallback) => {
     if (!state) return;
@@ -131,6 +135,10 @@ export const createHydrateStateFromResponse = ({
     setDeckSize(fallbackTo(state.deckSize, null));
     setRevealDealerCard(state.revealDealerCard !== undefined ? state.revealDealerCard : !!(state.gameOver || state.bettingOpen));
     setMessage(state.message ?? fallback?.message ?? '');
+    if (setInsuranceBet) setInsuranceBet(fallbackTo(state.insuranceBet, 0));
+    if (setInsuranceOffered) setInsuranceOffered(!!state.insuranceOffered);
+    if (setInsuranceResolved) setInsuranceResolved(state.insuranceResolved !== undefined ? !!state.insuranceResolved : true);
+    if (setInsuranceOutcome) setInsuranceOutcome(state.insuranceOutcome ?? null);
     setCanPersistState(true);
 };
 
@@ -197,6 +205,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const [canPersistState, setCanPersistState] = useState(false);
     const [deckSize, setDeckSize] = useState(null);
     const [showStatsModal, setShowStatsModal] = useState(false);
+    const [insuranceBet, setInsuranceBet] = useState(0);
+    const [insuranceOffered, setInsuranceOffered] = useState(false);
+    const [insuranceResolved, setInsuranceResolved] = useState(true);
+    const [insuranceOutcome, setInsuranceOutcome] = useState(null);
+    const [insuranceAmount, setInsuranceAmount] = useState(0);
 
     const loadFromStorage = (key, fallback) => {
         try {
@@ -226,9 +239,13 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             numberOfDecks,
             dealerHitsOnSoft17,
             deckSize,
+            insuranceBet,
+            insuranceOffered,
+            insuranceResolved,
+            insuranceOutcome,
         };
         safePersistGameState(snapshot);
-    }, [playerHands, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, cardBackColor, numberOfDecks, dealerHitsOnSoft17, deckSize]);
+    }, [playerHands, dealerHand, revealDealerCard, balance, currentBet, bettingOpen, gameOver, message, cardBackColor, numberOfDecks, dealerHitsOnSoft17, deckSize, insuranceBet, insuranceOffered, insuranceResolved, insuranceOutcome]);
 
     const updateBalanceAndStats = createUpdateBalanceAndStats({ setBalance, setStats, persistStats });
     const hydrateStateFromResponse = createHydrateStateFromResponse({
@@ -245,6 +262,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         setDeckSize,
         setRevealDealerCard,
         setMessage,
+        setInsuranceBet,
+        setInsuranceOffered,
+        setInsuranceResolved,
+        setInsuranceOutcome,
         setCanPersistState,
     });
 
@@ -357,6 +378,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             setBettingOpen(true);
             setMessage('');
             setDeckSize(fallbackTo(data.deckSize, numberOfDecks * 52));
+            setInsuranceBet(fallbackTo(data.insuranceBet, 0));
+            setInsuranceOffered(!!data.insuranceOffered);
+            setInsuranceResolved(data.insuranceResolved !== undefined ? !!data.insuranceResolved : true);
+            setInsuranceOutcome(data.insuranceOutcome ?? null);
+            setInsuranceAmount(0);
             setStats(prev => {
                 const next = { ...prev, currentWinStreak: 0, sessionHandsWon: 0, mostHandsWon: 0 };
                 persistStats(next);
@@ -387,6 +413,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             setMessage('');
             setBettingOpen(false);
             setCurrentBet(fallbackTo(data.currentBet, currentBet));
+            setInsuranceBet(fallbackTo(data.insuranceBet, 0));
+            setInsuranceOffered(!!data.insuranceOffered);
+            setInsuranceResolved(data.insuranceResolved !== undefined ? !!data.insuranceResolved : true);
+            setInsuranceOutcome(data.insuranceOutcome ?? null);
+            setInsuranceAmount(0);
             if (typeof data.balance === 'number') {
                 updateBalanceAndStats(data.balance);
             } else {
@@ -401,9 +432,13 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         setPlayerHands(data.playerHands || []);
         setDealerHand(ensureHand(data.dealerHand));
         setDeckSize(fallbackTo(data.deckSize, deckSize));
-        if (data.balance) updateBalanceAndStats(data.balance);
+        if (typeof data.balance === 'number') updateBalanceAndStats(data.balance);
         setGameOver(data.gameOver);
         setBettingOpen(data.bettingOpen);
+        setInsuranceBet(fallbackTo(data.insuranceBet, 0));
+        setInsuranceOffered(!!data.insuranceOffered);
+        setInsuranceResolved(data.insuranceResolved !== undefined ? !!data.insuranceResolved : true);
+        setInsuranceOutcome(data.insuranceOutcome ?? null);
 
         if (data.gameOver) {
             setRevealDealerCard(true);
@@ -447,6 +482,18 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             updateGameState(response.data);
         } catch (error) {
             console.error('Error splitting:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                setMessage(error.response.data.error);
+            }
+        }
+    };
+
+    const handleResolveInsurance = async (amount) => {
+        try {
+            const response = await resolveInsurance(amount);
+            updateGameState(response.data);
+        } catch (error) {
+            console.error('Error resolving insurance:', error);
             if (error.response && error.response.data && error.response.data.error) {
                 setMessage(error.response.data.error);
             }
@@ -501,6 +548,21 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const activeHand = activeHandIndex >= 0 ? playerHands[activeHandIndex] : null;
 
     const canSplit = !gameOver && activeHand && activeHand.cards.length === 2 && calculateTotal([activeHand.cards[0]]) === calculateTotal([activeHand.cards[1]]) && balance >= activeHand.bet;
+    const insuranceDecisionPending = !bettingOpen && !gameOver && insuranceOffered && !insuranceResolved;
+    const maxInsurance = Math.max(0, Math.min(Math.floor(currentBet / 2), balance));
+
+    useEffect(() => {
+        if (!insuranceDecisionPending) return;
+        setInsuranceAmount(prev => {
+            if (typeof prev !== 'number' || Number.isNaN(prev) || prev < 0) {
+                return maxInsurance;
+            }
+            if (prev === 0) {
+                return maxInsurance;
+            }
+            return Math.min(prev, maxInsurance);
+        });
+    }, [insuranceDecisionPending, maxInsurance]);
 
     return (
         <div className="blackjack-game">
@@ -645,6 +707,52 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 <div className="table-surface">
                     <DealerHand hand={displayedDealerHand} reveal={revealDealerCard} cardBackColor={cardBackColor} />
 
+                    {(insuranceDecisionPending || insuranceBet > 0) && (
+                        <div className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}>
+                            <div className="insurance-bar-header">
+                                <span className="insurance-label">Insurance</span>
+                                {insuranceDecisionPending ? (
+                                    <span className="insurance-hint">Dealer shows an Ace • Up to ${maxInsurance}</span>
+                                ) : (
+                                    <span className="insurance-summary">
+                                        {insuranceBet > 0 ? `Bet $${insuranceBet}` : 'No bet'}
+                                        {insuranceOutcome && insuranceOutcome !== 'DECLINED' ? ` • ${insuranceOutcome}` : ''}
+                                    </span>
+                                )}
+                            </div>
+
+                            {insuranceDecisionPending && (
+                                <div className="insurance-bar-controls">
+                                    <input
+                                        className="insurance-input"
+                                        type="number"
+                                        min={0}
+                                        max={maxInsurance}
+                                        step={5}
+                                        value={insuranceAmount}
+                                        onChange={(e) => setInsuranceAmount(parseInt(e.target.value || '0', 10))}
+                                        disabled={isAnimating}
+                                        aria-label="Insurance amount"
+                                    />
+                                    <button
+                                        className="action-btn secondary-btn"
+                                        onClick={() => handleResolveInsurance(insuranceAmount)}
+                                        disabled={insuranceAmount <= 0 || insuranceAmount > maxInsurance || isAnimating}
+                                    >
+                                        INSURE
+                                    </button>
+                                    <button
+                                        className="action-btn secondary-btn"
+                                        onClick={() => handleResolveInsurance(0)}
+                                        disabled={isAnimating}
+                                    >
+                                        NO INSURANCE
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="player-hands-container">
                         {playerHands.map((hand, index) => (
                             <PlayerHand
@@ -669,19 +777,19 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                             </div>
                         ) : (
                             !gameOver && (
-                                <div className="play-controls">
+                                <div className="play-controls" aria-hidden={insuranceDecisionPending}>
                                     <div className="primary-actions">
                                         <button
                                             className="action-btn hit-btn"
                                             onClick={handleHit}
-                                            disabled={!activeHand || isAnimating}
+                                            disabled={insuranceDecisionPending || !activeHand || isAnimating}
                                         >
                                             HIT
                                         </button>
                                         <button
                                             className="action-btn stand-btn"
                                             onClick={handleStand}
-                                            disabled={!activeHand || isAnimating}
+                                            disabled={insuranceDecisionPending || !activeHand || isAnimating}
                                         >
                                             STAND
                                         </button>
@@ -692,7 +800,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                             <button
                                                 className="action-btn secondary-btn"
                                                 onClick={handleSplit}
-                                                disabled={isAnimating}
+                                                disabled={insuranceDecisionPending || isAnimating}
                                             >
                                                 SPLIT
                                             </button>
@@ -703,6 +811,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                                 className="action-btn secondary-btn"
                                                 onClick={handleDoubleDown}
                                                 disabled={
+                                                    insuranceDecisionPending ||
                                                     balance < activeHand.bet ||
                                                     isAnimating
                                                 }

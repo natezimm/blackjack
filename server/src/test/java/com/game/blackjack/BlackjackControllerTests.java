@@ -450,4 +450,86 @@ class BlackjackControllerTests {
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.error").exists());
         }
+
+        @Test
+        void insurance_missingAmount_returnsBadRequest() throws Exception {
+                prepareGameForPlay(50);
+
+                mockMvc.perform(post("/api/blackjack/insurance")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
+                                .session(session))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").value("Insurance amount is required"));
+        }
+
+        @Test
+        void insurance_losesBetAndContinuesWhenDealerNoBlackjack() throws Exception {
+                prepareGameForPlay(100);
+                BlackjackGame game = getSessionGame();
+
+                game.getPlayerHands().get(0).getCards().clear();
+                game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                                new Card("9", "Hearts"),
+                                new Card("7", "Spades")));
+                game.getDealerHand().clear();
+                game.getDealerHand().addAll(Arrays.asList(
+                                new Card("9", "Clubs"),
+                                new Card("A", "Diamonds")));
+
+                setPrivateField(game, "insuranceOffered", true);
+                setPrivateField(game, "insuranceResolved", false);
+                setPrivateField(game, "insuranceBet", 0);
+                setPrivateField(game, "insuranceOutcome", null);
+                setPrivateField(game, "playerActed", false);
+
+                mockMvc.perform(post("/api/blackjack/insurance")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("amount", 50)))
+                                .session(session))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.insuranceBet").value(50))
+                                .andExpect(jsonPath("$.insuranceOutcome").value("LOSS"))
+                                .andExpect(jsonPath("$.gameOver").value(false))
+                                .andExpect(jsonPath("$.bettingOpen").value(false))
+                                .andExpect(jsonPath("$.balance").value(850));
+        }
+
+        @Test
+        void insurance_paysTwoToOneAndEndsRoundWhenDealerHasBlackjack() throws Exception {
+                prepareGameForPlay(100);
+                BlackjackGame game = getSessionGame();
+
+                game.getPlayerHands().get(0).getCards().clear();
+                game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
+                                new Card("9", "Hearts"),
+                                new Card("7", "Spades")));
+                game.getDealerHand().clear();
+                game.getDealerHand().addAll(Arrays.asList(
+                                new Card("10", "Clubs"),
+                                new Card("A", "Diamonds")));
+
+                setPrivateField(game, "insuranceOffered", true);
+                setPrivateField(game, "insuranceResolved", false);
+                setPrivateField(game, "insuranceBet", 0);
+                setPrivateField(game, "insuranceOutcome", null);
+                setPrivateField(game, "playerActed", false);
+
+                mockMvc.perform(post("/api/blackjack/insurance")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("amount", 50)))
+                                .session(session))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.insuranceBet").value(50))
+                                .andExpect(jsonPath("$.insuranceOutcome").value("WIN"))
+                                .andExpect(jsonPath("$.gameOver").value(true))
+                                .andExpect(jsonPath("$.bettingOpen").value(true))
+                                .andExpect(jsonPath("$.balance").value(1000));
+        }
+
+        private void setPrivateField(Object target, String name, Object value) throws Exception {
+                Field field = BlackjackGame.class.getDeclaredField(name);
+                field.setAccessible(true);
+                field.set(target, value);
+        }
 }

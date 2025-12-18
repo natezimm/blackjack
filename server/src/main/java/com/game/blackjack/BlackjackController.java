@@ -77,6 +77,22 @@ public class BlackjackController {
         }
     }
 
+    @PostMapping("/insurance")
+    public ResponseEntity<?> resolveInsurance(@RequestBody Map<String, Integer> insuranceRequest, HttpSession session) {
+        try {
+            BlackjackGame game = getOrCreateGame(session);
+            Integer amount = insuranceRequest.get("amount");
+            if (amount == null) {
+                return ResponseEntity.badRequest()
+                        .body(Collections.singletonMap("error", "Insurance amount is required"));
+            }
+            game.resolveInsurance(amount);
+            return ResponseEntity.ok(new GameResponse(game));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/state")
     public GameResponse getState(HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
@@ -131,6 +147,11 @@ public class BlackjackController {
         private boolean dealerHitsOnSoft17;
         private int numberOfDecks;
         private boolean hasDoubledDown; // Global flag?
+        private int insuranceBet;
+        private boolean insuranceOffered;
+        private boolean insuranceResolved;
+        private String insuranceOutcome;
+        private int maxInsuranceBet;
 
         // Helper legacy getters for frontend if needed?
         // We will update frontend to look at playerHands.
@@ -146,6 +167,11 @@ public class BlackjackController {
             this.dealerHitsOnSoft17 = game.isDealerHitsOnSoft17();
             this.numberOfDecks = game.getNumberOfDecks();
             this.hasDoubledDown = game.hasDoubledDown();
+            this.insuranceBet = game.getInsuranceBet();
+            this.insuranceOffered = game.isInsuranceOffered();
+            this.insuranceResolved = game.isInsuranceResolved();
+            this.insuranceOutcome = game.getInsuranceOutcome();
+            this.maxInsuranceBet = game.getMaxInsuranceBet();
         }
 
         public List<Hand> getPlayerHands() {
@@ -186,6 +212,26 @@ public class BlackjackController {
 
         public boolean isHasDoubledDown() {
             return hasDoubledDown;
+        }
+
+        public int getInsuranceBet() {
+            return insuranceBet;
+        }
+
+        public boolean isInsuranceOffered() {
+            return insuranceOffered;
+        }
+
+        public boolean isInsuranceResolved() {
+            return insuranceResolved;
+        }
+
+        public String getInsuranceOutcome() {
+            return insuranceOutcome;
+        }
+
+        public int getMaxInsuranceBet() {
+            return maxInsuranceBet;
         }
 
         // Legacy compatibility for simple frontend checks (optional)

@@ -31,6 +31,10 @@ export const split = async () => {
     return apiClient.post('/split');
 };
 
+export const resolveInsurance = async (amount) => {
+    return apiClient.post('/insurance', { amount });
+};
+
 export const getState = async () => {
     return apiClient.get('/state');
 };

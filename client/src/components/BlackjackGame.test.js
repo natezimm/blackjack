@@ -15,7 +15,7 @@ import BlackjackGame, {
 } from './BlackjackGame';
 import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
 import { MESSAGES } from '../constants/messages';
-import { getState, placeBet, startGame, hit, stand, doubleDown, split, resetGame } from '../api/blackjackApi';
+import { getState, placeBet, startGame, hit, stand, doubleDown, split, resolveInsurance, resetGame } from '../api/blackjackApi';
 
 jest.mock('../api/blackjackApi', () => ({
     startGame: jest.fn(),
@@ -24,6 +24,7 @@ jest.mock('../api/blackjackApi', () => ({
     placeBet: jest.fn(),
     doubleDown: jest.fn(),
     split: jest.fn(),
+    resolveInsurance: jest.fn(),
     getState: jest.fn(),
     resetGame: jest.fn(),
 }));
@@ -46,6 +47,7 @@ describe('BlackjackGame', () => {
         getState.mockResolvedValue({ data: {} });
         placeBet.mockResolvedValue({ data: {} });
         startGame.mockResolvedValue({ data: defaultApiState });
+        resolveInsurance.mockResolvedValue({ data: defaultApiState });
     });
 
     afterEach(() => {
@@ -143,6 +145,63 @@ describe('BlackjackGame', () => {
         });
 
         expect(startGame).toHaveBeenCalled();
+    });
+
+    it('offers insurance when dealer shows an Ace and resolves through the API', async () => {
+        startGame.mockResolvedValue({
+            data: {
+                playerHands: [{ cards: [{ value: '9', suit: 'Hearts' }, { value: '7', suit: 'Spades' }], isTurn: true, bet: 100 }],
+                dealerHand: [{ value: '10', suit: 'Clubs' }, { value: 'A', suit: 'Spades' }],
+                currentBet: 100,
+                balance: 900,
+                bettingOpen: false,
+                gameOver: false,
+                insuranceOffered: true,
+                insuranceResolved: false,
+                insuranceBet: 0,
+                insuranceOutcome: null,
+            },
+        });
+
+        resolveInsurance.mockResolvedValue({
+            data: {
+                playerHands: [{ cards: [{ value: '9', suit: 'Hearts' }, { value: '7', suit: 'Spades' }], isTurn: true, bet: 100 }],
+                dealerHand: [{ value: '10', suit: 'Clubs' }, { value: 'A', suit: 'Spades' }],
+                currentBet: 100,
+                balance: 850,
+                bettingOpen: false,
+                gameOver: false,
+                insuranceOffered: true,
+                insuranceResolved: true,
+                insuranceBet: 50,
+                insuranceOutcome: 'LOSS',
+            },
+        });
+
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
+
+        await waitFor(() => expect(getState).toHaveBeenCalled());
+
+        await act(async () => {
+            await userEvent.click(screen.getByAltText('$100 chip'));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('DEAL'));
+        });
+
+        const insuranceInput = await screen.findByLabelText('Insurance amount');
+        await waitFor(() => expect(insuranceInput).toHaveValue(50));
+
+        expect(screen.getByText('HIT')).toBeDisabled();
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('INSURE'));
+        });
+
+        expect(resolveInsurance).toHaveBeenCalledWith(50);
     });
 
     it('handles hit action and shows bust message when player busts', async () => {

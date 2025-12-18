@@ -15,6 +15,8 @@ describe('blackjackApi', () => {
     let stand;
     let placeBet;
     let doubleDown;
+    let split;
+    let resolveInsurance;
     let getState;
     let resetGame;
 
@@ -26,6 +28,8 @@ describe('blackjackApi', () => {
                 stand,
                 placeBet,
                 doubleDown,
+                split,
+                resolveInsurance,
                 getState,
                 resetGame,
             } = require('./blackjackApi'));
@@ -53,7 +57,7 @@ describe('blackjackApi', () => {
         expect(mockGet).toHaveBeenCalledWith('/start', { params: { decks: 2, dealerHitsOnSoft17: true } });
     });
 
-    it('posts hit, stand, and double down actions', async () => {
+    it('posts hit, stand, split, double down, and insurance actions', async () => {
         await hit();
         expect(mockPost).toHaveBeenCalledWith('/hit');
 
@@ -62,8 +66,16 @@ describe('blackjackApi', () => {
         expect(mockPost).toHaveBeenCalledWith('/stand');
 
         mockPost.mockClear();
+        await split();
+        expect(mockPost).toHaveBeenCalledWith('/split');
+
+        mockPost.mockClear();
         await doubleDown();
         expect(mockPost).toHaveBeenCalledWith('/doubledown');
+
+        mockPost.mockClear();
+        await resolveInsurance(25);
+        expect(mockPost).toHaveBeenCalledWith('/insurance', { amount: 25 });
     });
 
     it('places a bet with the specified amount', async () => {
