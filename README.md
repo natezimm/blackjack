@@ -3,70 +3,75 @@
 
 # Blackjack Game
 
-Full-stack Blackjack experience pairing a React 18 front-end with a modernized Spring Boot 3 backend running on Java 21 (LTS). The game threads RESTful APIs through Axios so the UI stays in sync with an always-session stateful dealer and wallet.
+Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Game state lives in the server-side HTTP session (cookies) and the UI can also resume from a local snapshot.
 
-## Highlights
-- **Live balance and betting**: Players start with \$1,000, place bets each round, can forfeit a round, and the backend keeps the current bet, balance, deck size, and double-down flag in the session.
-- **Configurable dealer behavior**: You can choose whether the dealer hits on soft 17 and select 1 / 2 / 4 / 6 / 8 decks before a new deal.
-- **Standard Blackjack moves**: Hit, stand, and double down are all supported, with automatic dealer play and round resolution logic managed server-side.
+## Features
+- **Bankroll + betting**: start at $1,000; chips add to the current bet before dealing.
+- **Multi-hand play**: **split** pairs into multiple hands and play them sequentially.
+- **Standard actions**: hit, stand, double down.
+- **Insurance**: offered when the dealer shows an Ace; must be resolved before playing.
+- **Rules + table settings**: number of decks (1/2/4/6/8) and “dealer hits soft 17”.
+- **Resume + stats** (client): optional resume prompt and per-browser stats (win streaks, best payout, etc.).
 
 ## Technology Stack
-- **Frontend**: React 18 with `react-scripts`, `axios`, and the usual testing helpers (`@testing-library/*`).
-- **Backend**: Spring Boot 3.x (`org.springframework.boot:spring-boot-starter-web`) orchestrated with Gradle via the wrapper and built-in JaCoCo reports with enforced coverage.
+- **Frontend**: React 18 (`react-scripts`) + Axios.
+- **Backend**: Spring Boot 3.2 (Gradle) with JaCoCo coverage verification.
 
 ## Project Layout
-- `server/`: Spring Boot service exposing `/api/blackjack/*` endpoints, game state objects, and card/deck logic plus Gradle configuration, and tests.
-- `client/`: React SPA that renders the blackjack table, exposes betting controls, and hits the backend API through Axios helpers.
+- `server/`: Spring Boot API (`/api/blackjack/*`), session-backed game engine, tests, and coverage gates.
+- `client/`: React UI, API wrapper (`client/src/api/blackjackApi.js`), and component tests.
 
 ## Prerequisites
-- Java 21+ (for the backend).
-- Node.js 22.x + npm (for the frontend).
-- Gradle is provided via the wrapper (`./gradlew`).
+- Java 21 (backend toolchain).
+- Node.js 22 (see `.nvmrc`) + npm.
+- Gradle via wrapper (`server/gradlew`).
 
 ## Running Locally
 
 ### Backend
 1. `cd server`
 2. `./gradlew bootRun`
-3. The service listens on `http://localhost:8080`; set `ALLOWED_ORIGINS` in the environment if you need to whitelist a different frontend origin.
+3. API listens on `http://localhost:8080`
+
+The backend enables CORS for `/api/**` with credentials; allowed origins are currently hard-coded in `server/src/main/java/com/game/blackjack/BlackjackApplication.java`.
 
 ### Frontend
 1. `cd client`
 2. `npm install`
 3. `npm start`
-4. The React app starts on `http://localhost:3000` and proxies API calls to the backend (configured via `.env` or the default development proxy).
+4. App runs on `http://localhost:3000`
+
+The client reads `REACT_APP_API_URL` (see `client/.env`) and sends requests with `withCredentials: true` so the backend session cookie is preserved.
 
 ## API Reference
-- `GET /api/blackjack/start?decks=<1|2|4|6|8>&dealerHitsOnSoft17=<true|false>` – initialize a round (`decks` defaults to 1, `dealerHitsOnSoft17` defaults to false).
-- `POST /api/blackjack/bet` – body `{ "amount": <int> }`, places the bet before dealing; betting is rejected once cards are dealt.
-- `POST /api/blackjack/hit` – draws a card for the player and updates the session state.
-- `POST /api/blackjack/stand` – resolves the round by letting the dealer play, then determines win/tie/loss and adjusts the balance.
-- `POST /api/blackjack/doubledown` – doubles the bet, deals exactly one card, then forces a stand/dealer resolution.
-- `POST /api/blackjack/insurance` – body `{ "amount": <int> }`, places/declines insurance (max half the main bet) when the dealer shows an Ace.
-- `GET /api/blackjack/state` – returns the current hands, balance, bet, deck size, whether betting is open, and soft 17 setting.
-- `POST /api/blackjack/reset` – optional body `{ "decks": <int>, "dealerHitsOnSoft17": <bool> }`, clears the session, and starts fresh with the requested configuration.
-- `GET /api/blackjack/gameover` – indicates if the current round has been marked as finished.
+Base path: `/api/blackjack` (responses are JSON; most endpoints return the full `GameResponse` snapshot).
 
-The controller stores `BlackjackGame` in the HTTP session so each client keeps its own ongoing hand, balance, and configuration.
+- `POST /bet` – body `{ "amount": <int> }` sets the **total** bet for the next deal (only while betting is open).
+- `GET /start?decks=<1|2|4|6|8>&dealerHitsOnSoft17=<true|false>` – shuffles/configures and deals the round.
+- `POST /hit` – hit the active player hand.
+- `POST /stand` – stand the active player hand; moves to next hand or dealer play.
+- `POST /doubledown` – double the active hand bet, draw exactly one card, then auto-stand.
+- `POST /split` – split a pair into two hands (requires enough balance for the second bet).
+- `POST /insurance` – body `{ "amount": <int> }` resolves insurance (0 = decline); only when dealer shows an Ace and before the player acts.
+- `GET /state` – fetch current session state (hands, balance, deck size, flags, insurance state).
+- `POST /reset` – body `{ "decks": <int>, "dealerHitsOnSoft17": <bool> }` resets the session game (does not deal).
+- `GET /gameover` – returns `true|false`.
 
-## Gameplay Features
-- Players can place custom bets, forfeit a round, or double down (with balance enforced per round).
-- Dealer hits logic respects the soft 17 toggle and keeps drawing until the rules are satisfied.
-- Both player and dealer hands, along with the deck, persist until a new round/reset so the UI can reflect remaining cards and betting status.
+The controller stores `BlackjackGame` in the HTTP session, so each browser session gets its own isolated game.
 
 ## Testing
-- Run backend tests with `./gradlew test` and inspect the HTML report at `server/build/reports/tests/test/index.html` (54 tests passing as of the latest run).
-- Run frontend tests with `npm test` and capture coverage via `npm run test:coverage`.
+- Backend: `cd server && ./gradlew test jacocoTestCoverageVerification`
+- Frontend: `cd client && npm test` or `npm run test:coverage`
 
 ## Testing & Quality
-
-- CI runs frontend (React) and backend (Spring Boot) test suites before deployment
-- Code coverage is checked and enforced automatically
-- Coverage thresholds:
-  - Lines ≥ 90%
-  - Statements ≥ 85%
-  - Functions ≥ 85%
-  - Branches ≥ 80%
+- Frontend coverage thresholds are enforced via Jest (`client/package.json`): lines ≥ 90%, statements ≥ 85%, functions ≥ 85%, branches ≥ 80%.
+- Backend coverage thresholds are enforced via JaCoCo (`server/build.gradle`): line ≥ 0.90, instruction ≥ 0.85, method ≥ 0.85, branch ≥ 0.80.
 
 ## Additional Resources
 - `server/HELP.md` contains helpful Gradle/Spring guides if you need extra reference material or want to extend the backend.
+
+## CI / Deploy
+GitHub Actions (`.github/workflows/deploy.yml`) runs frontend + backend tests/coverage on pushes to `main`, then SSHes into Lightsail to run an external deploy script.
+
+## Docker (server)
+`server/Dockerfile` is currently out of sync with the Java 21 / Spring Boot 3 build (it uses Java 11). If you want Docker support, update the base images/tooling to Java 21+ first.
