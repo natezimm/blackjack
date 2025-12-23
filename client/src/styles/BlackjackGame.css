@@ -215,6 +215,32 @@ h1 {
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
+.sound-fab {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid #8e90a6;
+    /* A neutral color to differentiate from stats/settings */
+    background: rgba(0, 0, 0, 0.6);
+    color: #8e90a6;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.sound-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
 @media (max-width: 900px) {
     .stats-fab {
         width: 42px;
@@ -224,6 +250,13 @@ h1 {
     }
 
     .settings-fab {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+        border-width: 1.5px;
+    }
+
+    .sound-fab {
         width: 42px;
         height: 42px;
         font-size: 1rem;
@@ -240,6 +273,13 @@ h1 {
     }
 
     .settings-fab {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+        border-width: 1px;
+    }
+
+    .sound-fab {
         width: 32px;
         height: 32px;
         font-size: 0.85rem;
@@ -794,6 +834,22 @@ h1 {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+@keyframes dealCard {
+    from {
+        transform: translateY(-100px) scale(0.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.playing-card {
+    animation: dealCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
 }
 
 .insurance-bar {

@@ -9,6 +9,10 @@ import chip10 from '../assets/chips/chip-10.png';
 import chip25 from '../assets/chips/chip-25.png';
 import chip100 from '../assets/chips/chip-100.png';
 
+import cardSoundAsset from '../assets/sounds/card.mp3';
+import chipSoundAsset from '../assets/sounds/chip.mp3';
+import clickSoundAsset from '../assets/sounds/click.mp3';
+
 import '../styles/BlackjackGame.css';
 import { MESSAGES } from '../constants/messages';
 
@@ -159,6 +163,7 @@ export const handleBetLogic = async ({
     setMessage,
     setCurrentBet,
     placeBet,
+    onSuccess,
 }, amount) => {
     if (!bettingOpen) return;
     if (currentBet + amount > balance) {
@@ -170,6 +175,7 @@ export const handleBetLogic = async ({
         const newBet = currentBet + amount;
         await placeBet(newBet);
         setCurrentBet(newBet);
+        if (onSuccess) onSuccess();
     } catch (error) {
         console.error('Error placing bet:', error);
     }
@@ -210,6 +216,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const [insuranceResolved, setInsuranceResolved] = useState(true);
     const [insuranceOutcome, setInsuranceOutcome] = useState(null);
     const [insuranceAmount, setInsuranceAmount] = useState(0);
+
+    const [isDealing, setIsDealing] = useState(false);
+    const [muted, setMuted] = useState(() => {
+        return localStorage.getItem('blackjack_muted') === 'true';
+    });
 
     const loadFromStorage = (key, fallback) => {
         try {
@@ -354,6 +365,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     }, [persistGameState, canPersistState]);
 
     const handleResume = () => {
+        playClickSound();
         if (!pendingState) {
             setShowResumePrompt(false);
             setCanPersistState(true);
@@ -366,6 +378,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const handleFreshStart = async () => {
+        playClickSound();
         try {
             const response = await resetGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
@@ -396,12 +409,14 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const resetStats = () => {
+        playClickSound();
         const reset = { ...defaultStats, highestBankroll: balance };
         persistStats(reset);
         setStats(reset);
     };
 
     const handleStart = async () => {
+        playClickSound();
         try {
             const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
             const data = response.data;
@@ -423,8 +438,55 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             } else {
                 updateBalanceAndStats(balance - currentBet);
             }
+
+            // New dealing sequence
+            setIsDealing(true);
+            setBettingOpen(false);
+
+            // Initial empty hands to start animation
+            setPlayerHands([]);
+            setDealerHand([]);
+
+            const finalPlayerHand = data.playerHands[0];
+            const finalDealerHand = ensureHand(data.dealerHand);
+
+            // Deal 1: Player Card 1 (Face Up)
+            setTimeout(() => {
+                if (finalPlayerHand && finalPlayerHand.cards && finalPlayerHand.cards[0]) {
+                    setPlayerHands([{ ...finalPlayerHand, cards: [finalPlayerHand.cards[0]] }]);
+                    playCardSound();
+                }
+            }, 0);
+
+            // Deal 2: Dealer Card 1 (Face Up)
+            setTimeout(() => {
+                setDealerHand([finalDealerHand[0]]);
+                playCardSound();
+            }, 500);
+
+            // Deal 3: Player Card 2 (Face Up)
+            setTimeout(() => {
+                setPlayerHands([finalPlayerHand]);
+                playCardSound();
+            }, 1000);
+
+            // Deal 4: Dealer Card 2 (Face Down - represented effectively by just not showing it if reveal is false, 
+            // but we need to update state to match final).
+            // Note: The UI component handles 'reveal' prop. If reveal is false, it usually only renders the first card 
+            // and a card back for the rest? 
+            // Actually DealerHand.js renders all cards in the array. 
+            // So if we set the full array, and reveal is false, DealerHand.js should handle hiding the second card.
+            // Let's check DealerHand.js behavior.
+            // If DealerHand just renders what's given, we pass the full hand now.
+            setTimeout(() => {
+                setDealerHand(finalDealerHand);
+                playCardSound();
+                setIsDealing(false);
+            }, 1500);
+
         } catch (error) {
             console.error('Error starting game:', error);
+            setIsDealing(false);
         }
     };
 
@@ -447,15 +509,21 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const handleHit = async () => {
+        playClickSound();
         try {
             const response = await hit();
-            updateGameState(response.data);
+            // Add a small delay for "swish" feel
+            playCardSound();
+            setTimeout(() => {
+                updateGameState(response.data);
+            }, 200);
         } catch (error) {
             console.error('Error hitting:', error);
         }
     };
 
     const handleStand = async () => {
+        playClickSound();
         try {
             const response = await stand();
             updateGameState(response.data);
@@ -465,9 +533,12 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const handleDoubleDown = async () => {
+        playClickSound();
         try {
             const response = await doubleDown();
             updateGameState(response.data);
+            playChipSound();
+            setTimeout(playCardSound, 300);
         } catch (error) {
             console.error('Error doubling down:', error);
             if (error.response && error.response.data && error.response.data.error) {
@@ -477,9 +548,12 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const handleSplit = async () => {
+        playClickSound();
         try {
             const response = await split();
             updateGameState(response.data);
+            playChipSound();
+            setTimeout(playCardSound, 300);
         } catch (error) {
             console.error('Error splitting:', error);
             if (error.response && error.response.data && error.response.data.error) {
@@ -489,6 +563,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     };
 
     const handleResolveInsurance = async (amount) => {
+        playClickSound();
         try {
             const response = await resolveInsurance(amount);
             updateGameState(response.data);
@@ -505,6 +580,31 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         setDeckSize,
     });
 
+    const toggleMute = () => {
+        playClickSound();
+        const newMuted = !muted;
+        setMuted(newMuted);
+        localStorage.setItem('blackjack_muted', newMuted);
+    };
+
+    const playSound = (file) => {
+        if (muted) return;
+        if (process.env.NODE_ENV === 'test') return; // Stub playSound in tests
+        const audio = new Audio(file);
+        audio.volume = 0.5;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => {
+                // Ignore errors from JSDOM/autoplaying restrictions
+                console.error("Error playing sound:", e);
+            });
+        }
+    };
+
+    const playCardSound = () => playSound(cardSoundAsset);
+    const playChipSound = () => playSound(chipSoundAsset);
+    const playClickSound = () => playSound(clickSoundAsset);
+
     const handleBet = async (amount) => {
         await handleBetLogic({
             bettingOpen,
@@ -513,6 +613,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             setMessage,
             setCurrentBet,
             placeBet,
+            onSuccess: playChipSound,
         }, amount);
     };
 
@@ -544,7 +645,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         </>
     );
 
-    const activeHandIndex = playerHands.findIndex(h => h.isTurn);
+    const activeHandIndex = playerHands.findIndex(h => h && h.isTurn);
     const activeHand = activeHandIndex >= 0 ? playerHands[activeHandIndex] : null;
 
     const canSplit = !gameOver && activeHand && activeHand.cards.length === 2 && calculateTotal([activeHand.cards[0]]) === calculateTotal([activeHand.cards[1]]) && balance >= activeHand.bet;
@@ -568,8 +669,20 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         <div className="blackjack-game">
             <div className="fab-cluster">
                 <button
+                    className="sound-fab"
+                    onClick={toggleMute}
+                    aria-label={muted ? "Unmute sounds" : "Mute sounds"}
+                    title={muted ? "Unmute sounds" : "Mute sounds"}
+                >
+                    {muted ? '🔇' : '🔊'}
+                </button>
+
+                <button
                     className="stats-fab"
-                    onClick={() => setShowStatsModal(true)}
+                    onClick={() => {
+                        playClickSound();
+                        setShowStatsModal(true);
+                    }}
                     aria-label="Show stats"
                     title="Show stats"
                 >
@@ -578,7 +691,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
                 <button
                     className="settings-fab"
-                    onClick={() => setShowSettings(true)}
+                    onClick={() => {
+                        playClickSound();
+                        setShowSettings(true);
+                    }}
                     disabled={!bettingOpen}
                     aria-label="Game settings"
                     title="Game settings"
@@ -666,16 +782,25 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                 </label>
                             </div>
                         </div>
-                        <button className="close-settings" onClick={() => setShowSettings(false)}>Close</button>
+                        <button className="close-settings" onClick={() => {
+                            playClickSound();
+                            setShowSettings(false);
+                        }}>Close</button>
                     </div>
                 </div>
             )}
 
             {showStatsModal && (
-                <div className="settings-modal-overlay" onClick={() => setShowStatsModal(false)}>
+                <div className="settings-modal-overlay" onClick={() => {
+                    playClickSound();
+                    setShowStatsModal(false);
+                }}>
                     <div className="settings-modal-content" onClick={(e) => e.stopPropagation()}>
                         {renderStatsContent()}
-                        <button className="close-settings" onClick={() => setShowStatsModal(false)}>Close</button>
+                        <button className="close-settings" onClick={() => {
+                            playClickSound();
+                            setShowStatsModal(false);
+                        }}>Close</button>
                     </div>
                 </div>
             )}
@@ -754,14 +879,17 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     )}
 
                     <div className="player-hands-container">
-                        {playerHands.map((hand, index) => (
-                            <PlayerHand
-                                key={index}
-                                hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
-                                isActive={hand.isTurn}
-                                showBet={playerHands.length > 1} // Show bet if multiple hands
-                            />
-                        ))}
+                        {playerHands.map((hand, index) => {
+                            if (!hand) return null;
+                            return (
+                                <PlayerHand
+                                    key={index}
+                                    hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
+                                    isActive={hand.isTurn}
+                                    showBet={playerHands.length > 1} // Show bet if multiple hands
+                                />
+                            );
+                        })}
                     </div>
 
                     <div className="action-bar-container">
@@ -770,7 +898,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                 <button
                                     className="action-btn deal-btn"
                                     onClick={handleStart}
-                                    disabled={currentBet === 0 || isAnimating}
+                                    disabled={currentBet === 0 || isAnimating || isDealing}
                                 >
                                     DEAL
                                 </button>
