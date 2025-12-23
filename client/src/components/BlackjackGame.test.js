@@ -177,7 +177,7 @@ describe('BlackjackGame', () => {
 
         expect(startGame).toHaveBeenCalled();
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
     });
 
     it('offers insurance when dealer shows an Ace and resolves through the API', async () => {
@@ -224,6 +224,8 @@ describe('BlackjackGame', () => {
         await act(async () => {
             await userEvent.click(screen.getByText('DEAL'));
         });
+
+        await advanceTimers(5000);
 
         const insuranceInput = await screen.findByLabelText('Insurance amount');
         await waitFor(() => expect(insuranceInput).toHaveValue(50));
@@ -275,7 +277,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -289,7 +291,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(hitButton);
         });
 
-        await advanceTimers(1000);
+        await advanceTimers(2000);
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
@@ -334,7 +336,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -391,7 +393,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -445,7 +447,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
@@ -458,7 +460,7 @@ describe('BlackjackGame', () => {
         });
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
-        await advanceTimers(3000);
+        await advanceTimers(6000);
         await waitFor(() => expect(screen.getByText('LOSS')).toBeInTheDocument());
     });
 
@@ -500,7 +502,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -515,9 +517,9 @@ describe('BlackjackGame', () => {
         });
 
         // Advance timers to reveal the dealer's cards
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -560,7 +562,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -574,7 +576,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -617,7 +619,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -631,10 +633,10 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -674,7 +676,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -735,7 +737,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
@@ -747,10 +749,10 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -795,8 +797,8 @@ describe('BlackjackGame', () => {
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
-        await advanceTimers(2000);
-        await advanceTimers(2000);
+        await advanceTimers(5000);
+        await advanceTimers(5000);
 
         // Wait for Split button to be enabled
         await waitFor(() => {
@@ -1484,10 +1486,10 @@ describe('BlackjackGame', () => {
         });
 
         // Advance timers for all card reveals
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
-        await advanceTimers(500);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
+        await advanceTimers(1100);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -1530,7 +1532,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -1544,7 +1546,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -2082,7 +2084,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await act(async () => {
             await userEvent.click(screen.getByText('HIT'));
@@ -2141,7 +2143,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(standButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -2178,14 +2180,14 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(stand).toHaveBeenCalled());
     });
@@ -2228,7 +2230,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         // Wait for state to update
         await waitFor(() => {
@@ -2242,7 +2244,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -2279,14 +2281,14 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -2522,7 +2524,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(hitButton);
         });
 
-        await advanceTimers(1000);
+        await advanceTimers(2000);
 
         await waitFor(() => expect(hit).toHaveBeenCalled());
     });
@@ -2832,7 +2834,7 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
@@ -2844,7 +2846,7 @@ describe('BlackjackGame', () => {
             await userEvent.click(doubleDownButton);
         });
 
-        await advanceTimers(2000);
+        await advanceTimers(5000);
 
         await waitFor(() => expect(doubleDown).toHaveBeenCalled());
     });
@@ -2968,6 +2970,8 @@ describe('BlackjackGame', () => {
         });
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+        await advanceTimers(5000);
 
         await waitFor(() => {
             const standButton = screen.getByText('STAND');

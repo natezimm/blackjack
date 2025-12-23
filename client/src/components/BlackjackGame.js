@@ -348,7 +348,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             setIsAnimating(true);
             const timer = setTimeout(() => {
                 setDisplayedDealerHand(dealerHand.slice(0, displayedDealerHand.length + 1));
-            }, 750);
+                playCardSound();
+            }, 1000);
             return () => clearTimeout(timer);
         } else {
             setIsAnimating(false);
@@ -456,33 +457,26 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     setPlayerHands([{ ...finalPlayerHand, cards: [finalPlayerHand.cards[0]] }]);
                     playCardSound();
                 }
-            }, 0);
+            }, 750);
 
             // Deal 2: Dealer Card 1 (Face Up)
             setTimeout(() => {
                 setDealerHand([finalDealerHand[0]]);
                 playCardSound();
-            }, 500);
+            }, 1500);
 
             // Deal 3: Player Card 2 (Face Up)
             setTimeout(() => {
                 setPlayerHands([finalPlayerHand]);
                 playCardSound();
-            }, 1000);
+            }, 2250);
 
-            // Deal 4: Dealer Card 2 (Face Down - represented effectively by just not showing it if reveal is false, 
-            // but we need to update state to match final).
-            // Note: The UI component handles 'reveal' prop. If reveal is false, it usually only renders the first card 
-            // and a card back for the rest? 
-            // Actually DealerHand.js renders all cards in the array. 
-            // So if we set the full array, and reveal is false, DealerHand.js should handle hiding the second card.
-            // Let's check DealerHand.js behavior.
-            // If DealerHand just renders what's given, we pass the full hand now.
+            // Deal 4: Dealer Card 2 (Face Down)
             setTimeout(() => {
                 setDealerHand(finalDealerHand);
                 playCardSound();
                 setIsDealing(false);
-            }, 1500);
+            }, 3000);
 
         } catch (error) {
             console.error('Error starting game:', error);
@@ -512,13 +506,15 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playClickSound();
         try {
             const response = await hit();
-            // Add a small delay for "swish" feel
-            playCardSound();
+            setIsAnimating(true);
             setTimeout(() => {
+                playCardSound();
                 updateGameState(response.data);
-            }, 200);
+                setIsAnimating(false);
+            }, 750);
         } catch (error) {
             console.error('Error hitting:', error);
+            setIsAnimating(false);
         }
     };
 
@@ -526,9 +522,14 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playClickSound();
         try {
             const response = await stand();
-            updateGameState(response.data);
+            setIsAnimating(true);
+            setTimeout(() => {
+                updateGameState(response.data);
+                setIsAnimating(false);
+            }, 750);
         } catch (error) {
             console.error('Error standing:', error);
+            setIsAnimating(false);
         }
     };
 
@@ -536,11 +537,16 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playClickSound();
         try {
             const response = await doubleDown();
-            updateGameState(response.data);
+            setIsAnimating(true);
             playChipSound();
-            setTimeout(playCardSound, 300);
+            setTimeout(() => {
+                playCardSound();
+                updateGameState(response.data);
+                setIsAnimating(false);
+            }, 750);
         } catch (error) {
             console.error('Error doubling down:', error);
+            setIsAnimating(false);
             if (error.response && error.response.data && error.response.data.error) {
                 setMessage(error.response.data.error);
             }
@@ -551,11 +557,16 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playClickSound();
         try {
             const response = await split();
-            updateGameState(response.data);
+            setIsAnimating(true);
             playChipSound();
-            setTimeout(playCardSound, 300);
+            setTimeout(() => {
+                playCardSound();
+                updateGameState(response.data);
+                setIsAnimating(false);
+            }, 750);
         } catch (error) {
             console.error('Error splitting:', error);
+            setIsAnimating(false);
             if (error.response && error.response.data && error.response.data.error) {
                 setMessage(error.response.data.error);
             }
@@ -566,9 +577,14 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playClickSound();
         try {
             const response = await resolveInsurance(amount);
-            updateGameState(response.data);
+            setIsAnimating(true);
+            setTimeout(() => {
+                updateGameState(response.data);
+                setIsAnimating(false);
+            }, 750);
         } catch (error) {
             console.error('Error resolving insurance:', error);
+            setIsAnimating(false);
             if (error.response && error.response.data && error.response.data.error) {
                 setMessage(error.response.data.error);
             }
@@ -833,7 +849,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 <div className="table-surface">
                     <DealerHand hand={displayedDealerHand} reveal={revealDealerCard} cardBackColor={cardBackColor} />
 
-                    {(insuranceDecisionPending || insuranceBet > 0) && (
+                    {(!isDealing && (insuranceDecisionPending || insuranceBet > 0)) && (
                         <div className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}>
                             <div className="insurance-bar-header">
                                 <span className="insurance-label">Insurance</span>
