@@ -447,7 +447,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             setPlayerHands([]);
             setDealerHand([]);
 
-            const finalPlayerHand = data.playerHands[0];
+            const finalPlayerHand = (data.playerHands || [])[0];
             const finalDealerHand = ensureHand(data.dealerHand);
 
             // Deal 1: Player Card 1 (Face Up)
@@ -590,6 +590,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const playSound = (file) => {
         if (muted) return;
         if (process.env.NODE_ENV === 'test') return; // Stub playSound in tests
+        /* istanbul ignore next */
         const audio = new Audio(file);
         audio.volume = 0.5;
         const playPromise = audio.play();

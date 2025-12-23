@@ -125,6 +125,37 @@ describe('BlackjackGame', () => {
         expect(screen.getByText("Easy, high roller. That bet's bigger than your stack.")).toBeInTheDocument();
     });
 
+    it('toggles mute state when sound button is clicked', async () => {
+        await act(async () => {
+            render(<BlackjackGame initialSkipAnimations={true} />);
+        });
+
+        // Default is unmuted (or based on localStorage, which we cleared in beforeEach)
+        const muteButton = screen.getByTitle('Mute sounds');
+        expect(muteButton).toBeInTheDocument();
+        expect(muteButton).toHaveTextContent('🔊');
+
+        // Click to mute
+        await act(async () => {
+            await userEvent.click(muteButton);
+        });
+
+        // Should now be muted
+        expect(muteButton).toHaveTextContent('🔇');
+        expect(screen.getByTitle('Unmute sounds')).toBeInTheDocument();
+        expect(localStorage.getItem('blackjack_muted')).toBe('true');
+
+        // Click to unmute
+        await act(async () => {
+            await userEvent.click(muteButton);
+        });
+
+        // Should be unmuted
+        expect(muteButton).toHaveTextContent('🔊');
+        expect(screen.getByTitle('Mute sounds')).toBeInTheDocument();
+        expect(localStorage.getItem('blackjack_muted')).toBe('false');
+    });
+
     it('starts a new game when Deal button is clicked', async () => {
         await act(async () => {
             render(<BlackjackGame initialSkipAnimations={true} />);
