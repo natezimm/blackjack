@@ -12,9 +12,9 @@ const PlayerHand = ({ hand, isActive, showBet = false }) => {
 
     return (
         <div className={`player-hand ${isActive ? 'active-hand' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}>
-            {outcome && (
-                <div className={`outcome-badge badge-${outcome.toLowerCase()}`}>
-                    {outcome}
+            {(outcome || hand.isBusted) && (
+                <div className={`outcome-badge badge-${hand.isBusted ? 'busted' : outcome.toLowerCase()}`}>
+                    {hand.isBusted ? 'BUSTED' : outcome}
                 </div>
             )}
             <div className="hand-header">

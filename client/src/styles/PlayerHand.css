@@ -75,7 +75,8 @@
 }
 
 .badge-loss,
-.badge-bust {
+.badge-bust,
+.badge-busted {
     color: #ff6b6b;
     text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
     border-color: #ff6b6b;
