@@ -1,5 +1,8 @@
 .blackjack-game {
     background-image: url('../assets/blackjack-felt-background.png');
+    background-image: image-set(url('../assets/blackjack-felt-background.avif') type("image/avif"),
+            url('../assets/blackjack-felt-background.webp') type("image/webp"),
+            url('../assets/blackjack-felt-background.png') type("image/png"));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

@@ -4,10 +4,33 @@ import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
 
-import chip5 from '../assets/chips/chip-5.png';
-import chip10 from '../assets/chips/chip-10.png';
-import chip25 from '../assets/chips/chip-25.png';
-import chip100 from '../assets/chips/chip-100.png';
+import chip5Png from '../assets/chips/chip-5.png';
+import chip5Webp from '../assets/chips/chip-5.webp';
+import chip5Avif from '../assets/chips/chip-5.avif';
+import chip5SmallPng from '../assets/chips/chip-5-small.png';
+import chip5SmallWebp from '../assets/chips/chip-5-small.webp';
+import chip5SmallAvif from '../assets/chips/chip-5-small.avif';
+
+import chip10Png from '../assets/chips/chip-10.png';
+import chip10Webp from '../assets/chips/chip-10.webp';
+import chip10Avif from '../assets/chips/chip-10.avif';
+import chip10SmallPng from '../assets/chips/chip-10-small.png';
+import chip10SmallWebp from '../assets/chips/chip-10-small.webp';
+import chip10SmallAvif from '../assets/chips/chip-10-small.avif';
+
+import chip25Png from '../assets/chips/chip-25.png';
+import chip25Webp from '../assets/chips/chip-25.webp';
+import chip25Avif from '../assets/chips/chip-25.avif';
+import chip25SmallPng from '../assets/chips/chip-25-small.png';
+import chip25SmallWebp from '../assets/chips/chip-25-small.webp';
+import chip25SmallAvif from '../assets/chips/chip-25-small.avif';
+
+import chip100Png from '../assets/chips/chip-100.png';
+import chip100Webp from '../assets/chips/chip-100.webp';
+import chip100Avif from '../assets/chips/chip-100.avif';
+import chip100SmallPng from '../assets/chips/chip-100-small.png';
+import chip100SmallWebp from '../assets/chips/chip-100-small.webp';
+import chip100SmallAvif from '../assets/chips/chip-100-small.avif';
 
 import cardSoundAsset from '../assets/sounds/card.mp3';
 import chipSoundAsset from '../assets/sounds/chip.mp3';
@@ -15,6 +38,42 @@ import clickSoundAsset from '../assets/sounds/click.mp3';
 
 import '../styles/BlackjackGame.css';
 import { MESSAGES } from '../constants/messages';
+
+const chip5Images = {
+    png: chip5Png,
+    webp: chip5Webp,
+    avif: chip5Avif,
+    smallPng: chip5SmallPng,
+    smallWebp: chip5SmallWebp,
+    smallAvif: chip5SmallAvif
+};
+
+const chip10Images = {
+    png: chip10Png,
+    webp: chip10Webp,
+    avif: chip10Avif,
+    smallPng: chip10SmallPng,
+    smallWebp: chip10SmallWebp,
+    smallAvif: chip10SmallAvif
+};
+
+const chip25Images = {
+    png: chip25Png,
+    webp: chip25Webp,
+    avif: chip25Avif,
+    smallPng: chip25SmallPng,
+    smallWebp: chip25SmallWebp,
+    smallAvif: chip25SmallAvif
+};
+
+const chip100Images = {
+    png: chip100Png,
+    webp: chip100Webp,
+    avif: chip100Avif,
+    smallPng: chip100SmallPng,
+    smallWebp: chip100SmallWebp,
+    smallAvif: chip100SmallAvif
+};
 
 export const calculateTotal = (hand) => {
     let total = 0;
@@ -839,10 +898,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                         <strong>{`$${currentBet}`}</strong>
                     </div>
                     <div className="chip-row">
-                        <Chip amount={5} image={chip5} disabled={!bettingOpen} onClick={handleBet} />
-                        <Chip amount={10} image={chip10} disabled={!bettingOpen} onClick={handleBet} />
-                        <Chip amount={25} image={chip25} disabled={!bettingOpen} onClick={handleBet} />
-                        <Chip amount={100} image={chip100} disabled={!bettingOpen} onClick={handleBet} />
+                        <Chip amount={5} images={chip5Images} disabled={!bettingOpen} onClick={handleBet} />
+                        <Chip amount={10} images={chip10Images} disabled={!bettingOpen} onClick={handleBet} />
+                        <Chip amount={25} images={chip25Images} disabled={!bettingOpen} onClick={handleBet} />
+                        <Chip amount={100} images={chip100Images} disabled={!bettingOpen} onClick={handleBet} />
                     </div>
                 </aside>
 
