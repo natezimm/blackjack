@@ -517,26 +517,26 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     setPlayerHands([{ ...finalPlayerHand, cards: [finalPlayerHand.cards[0]] }]);
                     playCardSound();
                 }
-            }, 750);
+            }, 625);
 
             // Deal 2: Dealer Card 1 (Face Up)
             setTimeout(() => {
                 setDealerHand([finalDealerHand[0]]);
                 playCardSound();
-            }, 1500);
+            }, 1250);
 
             // Deal 3: Player Card 2 (Face Up)
             setTimeout(() => {
                 setPlayerHands([finalPlayerHand]);
                 playCardSound();
-            }, 2250);
+            }, 1875);
 
             // Deal 4: Dealer Card 2 (Face Down)
             setTimeout(() => {
                 setDealerHand(finalDealerHand);
                 playCardSound();
                 setIsDealing(false);
-            }, 3000);
+            }, 2500);
 
         } catch (error) {
             console.error('Error starting game:', error);
