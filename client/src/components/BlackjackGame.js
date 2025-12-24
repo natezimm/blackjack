@@ -641,7 +641,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const deckRemainingLabel = deckSize !== null ? ` • ${deckSize} cards remain` : '';
     const renderStatsContent = () => (
         <>
-            <h3 className="panel-title stats-title">Stats</h3>
+            <h2 className="panel-title stats-title">Stats</h2>
             <div className="stat-row">
                 <span>Highest Bankroll</span>
                 <strong>{formatDollar(stats.highestBankroll)}</strong>
@@ -723,7 +723,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             {showResumePrompt && (
                 <div className="resume-modal-overlay">
                     <div className="resume-modal">
-                        <h3>Resume your game?</h3>
+                        <h2>Resume your game?</h2>
                         <p>We saved your last game. Continue where you left off or start a new game.</p>
                         <div className="resume-actions">
                             <button onClick={handleResume}>Resume</button>
@@ -737,7 +737,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 <div className="settings-modal-overlay">
                     <div className="settings-modal-content">
                         <div className="modal-header">
-                            <h3 className="modal-title">Game Settings</h3>
+                            <h2 className="modal-title">Game Settings</h2>
                         </div>
                         <div className="settings-group">
                             <div className="group-label">
@@ -829,7 +829,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
             <div className="table-layout">
                 <aside className="betting-panel">
-                    <h3 className="panel-title">Bank & Bets</h3>
+                    <h2 className="panel-title">Bank & Bets</h2>
                     <div className="betting-summary">
                         <span>Balance</span>
                         <strong>{`$${balance}`}</strong>
