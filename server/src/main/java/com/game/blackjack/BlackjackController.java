@@ -16,7 +16,16 @@ public class BlackjackController {
     public GameResponse startGame(@RequestParam(required = false, defaultValue = "1") int decks,
             @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17, HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
-        game.initializeDeck(decks);
+
+        // Only reshuffle if the deck configuration changed or if we are low on cards
+        // (penetration limit)
+        boolean configChanged = game.getNumberOfDecks() != decks;
+        boolean lowCards = game.getDeckSize() < 20; // Re-shuffle if fewer than 20 cards remain
+
+        if (configChanged || lowCards) {
+            game.initializeDeck(decks);
+        }
+
         game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
         game.dealInitialCards();
         return new GameResponse(game);

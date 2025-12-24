@@ -726,8 +726,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                         <h2>Resume your game?</h2>
                         <p>We saved your last game. Continue where you left off or start a new game.</p>
                         <div className="resume-actions">
-                            <button onClick={handleResume}>Resume</button>
                             <button className="ghost" onClick={handleFreshStart}>Start New</button>
+                            <button onClick={handleResume}>Resume</button>
                         </div>
                     </div>
                 </div>

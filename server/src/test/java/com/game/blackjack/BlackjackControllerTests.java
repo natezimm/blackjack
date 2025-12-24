@@ -527,6 +527,30 @@ class BlackjackControllerTests {
                                 .andExpect(jsonPath("$.balance").value(1000));
         }
 
+        @Test
+        void startGame_preservesDeckState() throws Exception {
+                // First game
+                mockMvc.perform(get("/api/blackjack/start")
+                                .param("decks", "1")
+                                .session(session))
+                                .andExpect(status().isOk());
+
+                BlackjackGame game = getSessionGame();
+                // 1 deck (52) - 4 dealt = 48
+                int sizeAfterFirstGame = game.getDeckSize();
+                assertEquals(48, sizeAfterFirstGame);
+
+                // Second game (simulating next round)
+                mockMvc.perform(get("/api/blackjack/start")
+                                .param("decks", "1")
+                                .session(session))
+                                .andExpect(status().isOk());
+
+                // Should have dealt 4 more cards, so 48 - 4 = 44.
+                // If it reset, it would be 48 again.
+                assertEquals(44, game.getDeckSize());
+        }
+
         private void setPrivateField(Object target, String name, Object value) throws Exception {
                 Field field = BlackjackGame.class.getDeclaredField(name);
                 field.setAccessible(true);
