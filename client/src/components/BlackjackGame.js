@@ -3,6 +3,7 @@ import { startGame, hit, stand, placeBet, doubleDown, split, resolveInsurance, g
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
+import Toast from './Toast';
 
 import chip5Png from '../assets/chips/chip-5.png';
 import chip5Webp from '../assets/chips/chip-5.webp';
@@ -1034,10 +1035,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                         {balance === 0 && bettingOpen && gameOver && (
                             <div className="message-card game-over">Bankroll empty. Reset to reload the fun.</div>
                         )}
-                        {message && <div className="message-card game-message">{message}</div>}
+                        <Toast message={message} onClose={() => setMessage('')} />
                     </div>
                 </div>
-
             </div>
         </div>
     );

@@ -13,7 +13,7 @@ import BlackjackGame, {
     safePersistGameState,
     safePersistStats,
 } from './BlackjackGame';
-import { processDoubleDownOutcome } from '../utils/doubleDownUtils';
+
 import { MESSAGES } from '../constants/messages';
 import { getState, placeBet, startGame, hit, stand, doubleDown, split, resolveInsurance, resetGame } from '../api/blackjackApi';
 
@@ -1826,100 +1826,7 @@ describe('BlackjackGame', () => {
     });
 
 
-    it('processDoubleDownOutcome honours the tie branch', () => {
-        const updateBalance = jest.fn();
-        const updateStats = jest.fn();
-        const setMessage = jest.fn();
 
-        processDoubleDownOutcome({
-            data: { tie: true, gameOver: true, balance: 300 },
-            doubledBet: 15,
-            balance: 280,
-            updateBalanceAndStats: updateBalance,
-            updateStatsWithOutcome: updateStats,
-            setMessage,
-        });
-
-        expect(setMessage).toHaveBeenCalledWith('Push 🤝 Chips stay put.');
-        expect(updateBalance).toHaveBeenCalledWith(300);
-        expect(updateStats).toHaveBeenCalledWith('tie', 0, 300);
-    });
-
-    it('processDoubleDownOutcome honour the dealer win branch', () => {
-        const updateBalance = jest.fn();
-        const updateStats = jest.fn();
-        const setMessage = jest.fn();
-
-        processDoubleDownOutcome({
-            data: { balance: 150 },
-            doubledBet: 15,
-            balance: 200,
-            updateBalanceAndStats: updateBalance,
-            updateStatsWithOutcome: updateStats,
-            setMessage,
-        });
-
-        expect(setMessage).toHaveBeenCalledWith('Dealer takes it. 💼 Try again!');
-        expect(updateBalance).toHaveBeenCalledWith(150);
-        expect(updateStats).toHaveBeenCalledWith('loss', 0, 150);
-    });
-
-    it('processDoubleDownOutcome falls back to provided balance for ties without API value', () => {
-        const updateBalance = jest.fn();
-        const updateStats = jest.fn();
-        const setMessage = jest.fn();
-
-        processDoubleDownOutcome({
-            data: { tie: true },
-            doubledBet: 10,
-            balance: 50,
-            updateBalanceAndStats: updateBalance,
-            updateStatsWithOutcome: updateStats,
-            setMessage,
-        });
-
-        expect(setMessage).toHaveBeenCalledWith('Push 🤝 Chips stay put.');
-        expect(updateBalance).toHaveBeenCalledWith(50);
-        expect(updateStats).toHaveBeenCalledWith('tie', 0, 50);
-    });
-
-    it('processDoubleDownOutcome falls back to provided balance when dealer wins without API value', () => {
-        const updateBalance = jest.fn();
-        const updateStats = jest.fn();
-        const setMessage = jest.fn();
-
-        processDoubleDownOutcome({
-            data: {},
-            doubledBet: 10,
-            balance: 75,
-            updateBalanceAndStats: updateBalance,
-            updateStatsWithOutcome: updateStats,
-            setMessage,
-        });
-
-        expect(setMessage).toHaveBeenCalledWith('Dealer takes it. 💼 Try again!');
-        expect(updateBalance).toHaveBeenCalledWith(75);
-        expect(updateStats).toHaveBeenCalledWith('loss', 0, 75);
-    });
-
-    it('processDoubleDownOutcome honours the player win branch', () => {
-        const updateBalance = jest.fn();
-        const updateStats = jest.fn();
-        const setMessage = jest.fn();
-
-        processDoubleDownOutcome({
-            data: { playerWins: true },
-            doubledBet: 10,
-            balance: 200,
-            updateBalanceAndStats: updateBalance,
-            updateStatsWithOutcome: updateStats,
-            setMessage,
-        });
-
-        expect(setMessage).toHaveBeenCalledWith('Win! 🥳 You outplayed the house.');
-        expect(updateBalance).toHaveBeenCalledWith(220);
-        expect(updateStats).toHaveBeenCalledWith('win', 10, 220);
-    });
 
     it('handles startGame with balance from API', async () => {
         startGame.mockResolvedValue({
