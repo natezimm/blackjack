@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/PlayerHand.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
 
-const PlayerHand = ({ hand, isActive, showBet = false }) => {
+const PlayerHand = ({ hand, isActive, showBet = false, isPlaceholder = false }) => {
     // legacy support or new structure check
     const cards = hand.cards || hand;
     const bet = hand.bet || 0;
@@ -11,7 +11,7 @@ const PlayerHand = ({ hand, isActive, showBet = false }) => {
     const total = calculateTotal(cards);
 
     return (
-        <div className={`player-hand ${isActive ? 'active-hand' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}>
+        <div className={`player-hand ${isActive || isPlaceholder ? 'active-hand' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}>
             {(outcome || hand.isBusted) && (
                 <div className={`outcome-badge badge-${hand.isBusted ? 'busted' : outcome.toLowerCase()}`}>
                     {hand.isBusted ? 'BUSTED' : outcome}
@@ -19,7 +19,7 @@ const PlayerHand = ({ hand, isActive, showBet = false }) => {
             )}
             <div className="hand-header">
                 {showBet && <span className="hand-bet">Bet: ${bet}</span>}
-                <span className="hand-total">{total}</span>
+                {(cards.length > 0 || isPlaceholder) && <span className="hand-total">{cards.length > 0 ? total : 0}</span>}
             </div>
             <div className="hand">
                 {cards.map((card, index) => (

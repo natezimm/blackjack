@@ -70,6 +70,25 @@ h1 {
     margin: 0 auto;
 }
 
+@media (max-width: 900px) {
+    .betting-panel {
+        max-width: 100%;
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    .betting-panel .panel-title {
+        display: none;
+        /* Save vertical space on mobile */
+    }
+
+    .betting-summary {
+        display: inline-flex;
+        margin-right: 10px;
+        margin-bottom: 0;
+        font-size: 0.95rem;
+    }
+}
+
 .panel-title {
     margin: 0 0 16px;
     font-size: 1.3rem;
@@ -101,7 +120,16 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: clamp(460px, 60vh, 560px);
+    min-height: clamp(400px, 50vh, 560px);
+}
+
+@media (max-width: 900px) {
+    .table-surface {
+        padding-bottom: 20px;
+        /* Don't need extra padding here, handled by body/container */
+        border: none;
+        background: transparent;
+    }
 }
 
 .stats-panel {
@@ -659,7 +687,38 @@ h1 {
     width: 100%;
     margin-top: 10px;
     min-height: 80px;
-    /* Prevent layout jump */
+    z-index: 100;
+}
+
+@media (max-width: 900px) {
+    .action-bar-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 16px;
+        background: rgba(13, 19, 31, 0.85);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+        animation: slideUpBottom 0.3s ease;
+    }
+
+    .blackjack-game {
+        padding-bottom: 120px;
+        /* Make room for sticky bar */
+    }
+}
+
+@keyframes slideUpBottom {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 .betting-controls {

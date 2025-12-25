@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { startGame, hit, stand, placeBet, doubleDown, split, resolveInsurance, getState, resetGame } from '../api/blackjackApi';
 import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
@@ -282,6 +282,30 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         return localStorage.getItem('blackjack_muted') === 'true';
     });
 
+    const mutedRef = useRef(muted);
+    useEffect(() => {
+        mutedRef.current = muted;
+    }, [muted]);
+
+    const playSound = useCallback((file) => {
+        if (mutedRef.current) return;
+        if (process.env.NODE_ENV === 'test') return; // Stub playSound in tests
+        /* istanbul ignore next */
+        const audio = new Audio(file);
+        audio.volume = 0.5;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => {
+                // Ignore errors from JSDOM/autoplaying restrictions
+                console.error("Error playing sound:", e);
+            });
+        }
+    }, []);
+
+    const playCardSound = useCallback(() => playSound(cardSoundAsset), [playSound]);
+    const playChipSound = useCallback(() => playSound(chipSoundAsset), [playSound]);
+    const playClickSound = useCallback(() => playSound(clickSoundAsset), [playSound]);
+
     const loadFromStorage = (key, fallback) => {
         try {
             const raw = localStorage.getItem(key);
@@ -291,7 +315,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             return fallback;
         }
     };
-
     const persistStats = (statsToSave) => {
         safePersistStats(statsToSave);
     };
@@ -418,7 +441,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             }, 500);
             return () => clearTimeout(outcomeTimer);
         }
-    }, [dealerHand, revealDealerCard, displayedDealerHand.length, initialSkipAnimations]);
+    }, [dealerHand, revealDealerCard, displayedDealerHand.length, initialSkipAnimations, playCardSound]);
 
     useEffect(() => {
         if (!canPersistState) return;
@@ -663,24 +686,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         localStorage.setItem('blackjack_muted', newMuted);
     };
 
-    const playSound = (file) => {
-        if (muted) return;
-        if (process.env.NODE_ENV === 'test') return; // Stub playSound in tests
-        /* istanbul ignore next */
-        const audio = new Audio(file);
-        audio.volume = 0.5;
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(e => {
-                // Ignore errors from JSDOM/autoplaying restrictions
-                console.error("Error playing sound:", e);
-            });
-        }
-    };
-
-    const playCardSound = () => playSound(cardSoundAsset);
-    const playChipSound = () => playSound(chipSoundAsset);
-    const playClickSound = () => playSound(clickSoundAsset);
 
     const handleBet = async (amount) => {
         await handleBetLogic({
@@ -956,17 +961,26 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     )}
 
                     <div className="player-hands-container">
-                        {playerHands.map((hand, index) => {
-                            if (!hand) return null;
-                            return (
-                                <PlayerHand
-                                    key={index}
-                                    hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
-                                    isActive={hand.isTurn}
-                                    showBet={playerHands.length > 1} // Show bet if multiple hands
-                                />
-                            );
-                        })}
+                        {playerHands.length === 0 ? (
+                            <PlayerHand
+                                hand={{ cards: [], bet: 0, outcome: null, isBusted: false }}
+                                isActive={false}
+                                showBet={false}
+                                isPlaceholder={true}
+                            />
+                        ) : (
+                            playerHands.map((hand, index) => {
+                                if (!hand) return null;
+                                return (
+                                    <PlayerHand
+                                        key={index}
+                                        hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
+                                        isActive={hand.isTurn}
+                                        showBet={playerHands.length > 1} // Show bet if multiple hands
+                                    />
+                                );
+                            })
+                        )}
                     </div>
 
                     <div className="action-bar-container">

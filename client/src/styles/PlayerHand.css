@@ -44,6 +44,16 @@
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
+    min-height: 145.2px;
+    min-width: 210px;
+    transition: min-height 0.3s ease;
+}
+
+@media (max-width: 600px) {
+    .hand {
+        min-height: 116.16px;
+        min-width: 170px;
+    }
 }
 
 /* Outcome Badge Styles */
