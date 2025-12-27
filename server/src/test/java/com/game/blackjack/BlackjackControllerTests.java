@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BlackjackController.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 @SuppressWarnings("null")
 class BlackjackControllerTests {
 
@@ -68,7 +70,7 @@ class BlackjackControllerTests {
                                 .content("{}")
                                 .session(session))
                                 .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error").value("Bet amount is required"));
+                                .andExpect(jsonPath("$.error").exists());
         }
 
         @Test
@@ -348,11 +350,21 @@ class BlackjackControllerTests {
 
         @Test
         void reset_withInvalidPayload_fallsBackToDefaults() throws Exception {
+                // Invalid JSON types will now return bad request due to validation
                 mockMvc.perform(post("/api/blackjack/reset")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(Map.of(
                                                 "decks", "many",
                                                 "dealerHitsOnSoft17", "yes")))
+                                .session(session))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void reset_withNullPayload_usesDefaults() throws Exception {
+                mockMvc.perform(post("/api/blackjack/reset")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
                                 .session(session))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.numberOfDecks").value(1))

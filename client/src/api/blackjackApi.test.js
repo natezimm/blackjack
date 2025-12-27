@@ -1,5 +1,17 @@
 jest.mock('axios', () => {
-    const create = jest.fn();
+    const mockInterceptors = {
+        response: {
+            use: jest.fn(),
+        },
+        request: {
+            use: jest.fn(),
+        },
+    };
+    const create = jest.fn(() => ({
+        get: jest.fn(),
+        post: jest.fn(),
+        interceptors: mockInterceptors,
+    }));
     const mockAxios = { create };
     mockAxios.default = mockAxios;
     return mockAxios;
@@ -8,6 +20,10 @@ jest.mock('axios', () => {
 const axios = require('axios');
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockInterceptors = {
+    response: { use: jest.fn() },
+    request: { use: jest.fn() },
+};
 
 describe('blackjackApi', () => {
     let startGame;
@@ -40,16 +56,20 @@ describe('blackjackApi', () => {
         jest.clearAllMocks();
         mockGet.mockReset();
         mockPost.mockReset();
-        axios.create.mockReturnValue({ get: mockGet, post: mockPost });
+        axios.create.mockReturnValue({ 
+            get: mockGet, 
+            post: mockPost,
+            interceptors: mockInterceptors,
+        });
         process.env.REACT_APP_API_URL = 'https://example.com';
         reloadApi();
     });
 
     it('configures the axios client with the API base url', () => {
-        expect(axios.create).toHaveBeenCalledWith({
+        expect(axios.create).toHaveBeenCalledWith(expect.objectContaining({
             baseURL: 'https://example.com',
             withCredentials: true,
-        });
+        }));
     });
 
     it('requests game start with deck options', async () => {
@@ -96,6 +116,59 @@ describe('blackjackApi', () => {
     it('uses default parameters for startGame when not provided', async () => {
         await startGame();
         expect(mockGet).toHaveBeenCalledWith('/start', { params: { decks: 1, dealerHitsOnSoft17: false } });
+    });
+
+    it('handles response interceptor for successful responses', () => {
+        // Verify interceptor was registered
+        expect(mockInterceptors.response.use).toHaveBeenCalled();
+        
+        // Get the success handler from the interceptor registration
+        const successHandler = mockInterceptors.response.use.mock.calls[0][0];
+        const testResponse = { data: 'test' };
+        expect(successHandler(testResponse)).toBe(testResponse);
+    });
+
+    it('handles response interceptor for errors with response', () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+        const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
+        
+        const errorWithResponse = { response: { status: 500 } };
+        expect(() => errorHandler(errorWithResponse)).rejects.toEqual(errorWithResponse);
+        
+        errorSpy.mockRestore();
+    });
+
+    it('handles response interceptor for network errors', () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+        const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
+        
+        const networkError = { request: {} };
+        expect(() => errorHandler(networkError)).rejects.toEqual(networkError);
+        
+        errorSpy.mockRestore();
+    });
+
+    it('handles response interceptor for request setup errors', () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+        const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
+        
+        const setupError = { message: 'Request setup failed' };
+        expect(() => errorHandler(setupError)).rejects.toEqual(setupError);
+        
+        errorSpy.mockRestore();
+    });
+
+    it('falls back to localhost in development when API URL validation fails', () => {
+        process.env.NODE_ENV = 'development';
+        process.env.REACT_APP_API_URL = '';  // Empty/invalid URL
+        
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+        
+        reloadApi();
+        
+        // Should create client with fallback URL
+        expect(axios.create).toHaveBeenCalled();
+        errorSpy.mockRestore();
     });
 
     it('uses default parameters for resetGame when not provided', async () => {

@@ -15,7 +15,19 @@ Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Ga
 
 ## Technology Stack
 - **Frontend**: React 18 (`react-scripts`) + Axios.
-- **Backend**: Spring Boot 3.2 (Gradle) with JaCoCo coverage verification.
+- **Backend**: Spring Boot 3.2 (Gradle) with Spring Security and JaCoCo coverage verification.
+
+## Security
+The application includes security best practices aligned with OWASP Top 10 guidelines:
+
+- **Security Headers**: CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy
+- **Input Validation**: Server-side validation with Jakarta Bean Validation (`@Valid`, `@Min`, `@Max`)
+- **CORS Hardening**: Environment-based configuration; production restricts to specific origins
+- **Session Security**: HTTP-only, SameSite cookies with configurable secure flag
+- **HTTPS Enforcement**: Client-side URL validation enforces HTTPS in production
+- **Prototype Pollution Protection**: Safe JSON parsing utilities
+
+See [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for a full security audit report.
 
 ## Project Layout
 - `server/`: Spring Boot API (`/api/blackjack/*`), session-backed game engine, tests, and coverage gates.
@@ -33,7 +45,7 @@ Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Ga
 2. `./gradlew bootRun`
 3. API listens on `http://localhost:8080`
 
-The backend enables CORS for `/api/**` with credentials; allowed origins are currently hard-coded in `server/src/main/java/com/game/blackjack/BlackjackApplication.java`.
+The backend enables CORS for `/api/**` with credentials. Allowed origins are configured via `app.cors.allowed-origins` in `application.properties` (defaults to localhost for development). For production, use `application-prod.properties` or set the environment variable.
 
 ### Frontend
 1. `cd client`

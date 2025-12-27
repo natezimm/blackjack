@@ -4,6 +4,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -12,18 +15,27 @@ import java.util.Map;
 @RequestMapping("/api/blackjack")
 public class BlackjackController {
 
+    private static final int MIN_DECKS = 1;
+    private static final int MAX_DECKS = 8;
+    private static final int LOW_CARD_THRESHOLD = 20;
+
     @GetMapping("/start")
-    public GameResponse startGame(@RequestParam(required = false, defaultValue = "1") int decks,
-            @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17, HttpSession session) {
+    public GameResponse startGame(
+            @RequestParam(required = false, defaultValue = "1") @Min(1) @Max(8) int decks,
+            @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17,
+            HttpSession session) {
+
+        // Validate deck count
+        int validDecks = Math.max(MIN_DECKS, Math.min(MAX_DECKS, decks));
+
         BlackjackGame game = getOrCreateGame(session);
 
         // Only reshuffle if the deck configuration changed or if we are low on cards
-        // (penetration limit)
-        boolean configChanged = game.getNumberOfDecks() != decks;
-        boolean lowCards = game.getDeckSize() < 20; // Re-shuffle if fewer than 20 cards remain
+        boolean configChanged = game.getNumberOfDecks() != validDecks;
+        boolean lowCards = game.getDeckSize() < LOW_CARD_THRESHOLD;
 
         if (configChanged || lowCards) {
-            game.initializeDeck(decks);
+            game.initializeDeck(validDecks);
         }
 
         game.setDealerHitsOnSoft17(dealerHitsOnSoft17);
@@ -32,18 +44,17 @@ public class BlackjackController {
     }
 
     @PostMapping("/bet")
-    public ResponseEntity<?> placeBet(@RequestBody Map<String, Integer> betRequest, HttpSession session) {
+    public ResponseEntity<?> placeBet(@Valid @RequestBody BetRequest betRequest, HttpSession session) {
         BlackjackGame game = getOrCreateGame(session);
         if (!game.isBettingOpen()) {
             game.forfeitRound();
         }
         try {
-            Integer amount = betRequest.get("amount");
+            Integer amount = betRequest.getAmount();
             if (amount == null) {
                 return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Bet amount is required"));
             }
-            int bet = amount;
-            game.placeBet(bet);
+            game.placeBet(amount);
             return ResponseEntity.ok(Collections.singletonMap("balance", game.getBalance()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
@@ -87,10 +98,10 @@ public class BlackjackController {
     }
 
     @PostMapping("/insurance")
-    public ResponseEntity<?> resolveInsurance(@RequestBody Map<String, Integer> insuranceRequest, HttpSession session) {
+    public ResponseEntity<?> resolveInsurance(@Valid @RequestBody InsuranceRequest insuranceRequest, HttpSession session) {
         try {
             BlackjackGame game = getOrCreateGame(session);
-            Integer amount = insuranceRequest.get("amount");
+            Integer amount = insuranceRequest.getAmount();
             if (amount == null) {
                 return ResponseEntity.badRequest()
                         .body(Collections.singletonMap("error", "Insurance amount is required"));
@@ -109,12 +120,12 @@ public class BlackjackController {
     }
 
     @PostMapping("/reset")
-    public GameResponse reset(@RequestBody(required = false) Map<String, Object> payload, HttpSession session) {
-        int decks = payload != null && payload.get("decks") instanceof Number
-                ? ((Number) payload.get("decks")).intValue()
+    public GameResponse reset(@Valid @RequestBody(required = false) ResetRequest payload, HttpSession session) {
+        int decks = payload != null && payload.getDecks() != null
+                ? Math.max(MIN_DECKS, Math.min(MAX_DECKS, payload.getDecks()))
                 : 1;
-        boolean dealerHitsOnSoft17 = payload != null && payload.get("dealerHitsOnSoft17") instanceof Boolean
-                ? (Boolean) payload.get("dealerHitsOnSoft17")
+        boolean dealerHitsOnSoft17 = payload != null && payload.getDealerHitsOnSoft17() != null
+                ? payload.getDealerHitsOnSoft17()
                 : false;
 
         BlackjackGame game = new BlackjackGame();
