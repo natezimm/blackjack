@@ -3,10 +3,6 @@ package com.game.blackjack;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-/**
- * Request DTO for insurance bets.
- * Includes validation constraints for security.
- */
 public class InsuranceRequest {
 
     @Min(value = 0, message = "Insurance amount cannot be negative")

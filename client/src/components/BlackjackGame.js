@@ -289,14 +289,13 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
     const playSound = useCallback((file) => {
         if (mutedRef.current) return;
-        if (process.env.NODE_ENV === 'test') return; // Stub playSound in tests
+        if (process.env.NODE_ENV === 'test') return;
         /* istanbul ignore next */
         const audio = new Audio(file);
         audio.volume = 0.5;
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.catch(e => {
-                // Ignore errors from JSDOM/autoplaying restrictions
                 console.error("Error playing sound:", e);
             });
         }
@@ -523,18 +522,15 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 updateBalanceAndStats(balance - currentBet);
             }
 
-            // New dealing sequence
             setIsDealing(true);
             setBettingOpen(false);
 
-            // Initial empty hands to start animation
             setPlayerHands([]);
             setDealerHand([]);
 
             const finalPlayerHand = (data.playerHands || [])[0];
             const finalDealerHand = ensureHand(data.dealerHand);
 
-            // Deal 1: Player Card 1 (Face Up)
             setTimeout(() => {
                 if (finalPlayerHand && finalPlayerHand.cards && finalPlayerHand.cards[0]) {
                     setPlayerHands([{ ...finalPlayerHand, cards: [finalPlayerHand.cards[0]] }]);
@@ -542,19 +538,16 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 }
             }, 625);
 
-            // Deal 2: Dealer Card 1 (Face Up)
             setTimeout(() => {
                 setDealerHand([finalDealerHand[0]]);
                 playCardSound();
             }, 1250);
 
-            // Deal 3: Player Card 2 (Face Up)
             setTimeout(() => {
                 setPlayerHands([finalPlayerHand]);
                 playCardSound();
             }, 1875);
 
-            // Deal 4: Dealer Card 2 (Face Down)
             setTimeout(() => {
                 setDealerHand(finalDealerHand);
                 playCardSound();
@@ -976,7 +969,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                         key={index}
                                         hand={{ ...hand, outcome: outcomeVisible ? hand.outcome : null }}
                                         isActive={hand.isTurn}
-                                        showBet={playerHands.length > 1} // Show bet if multiple hands
+                                        showBet={playerHands.length > 1}
                                     />
                                 );
                             })
@@ -1042,7 +1035,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                                 </div>
                             )
                         )}
-                        {/* Game Over State handled by status messages or auto-reset to betting */}
                     </div>
 
                     <div className="status-messages">

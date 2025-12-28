@@ -130,27 +130,22 @@ describe('BlackjackGame', () => {
             render(<BlackjackGame initialSkipAnimations={true} />);
         });
 
-        // Default is unmuted (or based on localStorage, which we cleared in beforeEach)
         const muteButton = screen.getByTitle('Mute sounds');
         expect(muteButton).toBeInTheDocument();
         expect(muteButton).toHaveTextContent('🔊');
 
-        // Click to mute
         await act(async () => {
             await userEvent.click(muteButton);
         });
 
-        // Should now be muted
         expect(muteButton).toHaveTextContent('🔇');
         expect(screen.getByTitle('Unmute sounds')).toBeInTheDocument();
         expect(localStorage.getItem('blackjack_muted')).toBe('true');
 
-        // Click to unmute
         await act(async () => {
             await userEvent.click(muteButton);
         });
 
-        // Should be unmuted
         expect(muteButton).toHaveTextContent('🔊');
         expect(screen.getByTitle('Mute sounds')).toBeInTheDocument();
         expect(localStorage.getItem('blackjack_muted')).toBe('false');
@@ -163,14 +158,12 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Place a bet first
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
 
         await waitFor(() => expect(placeBet).toHaveBeenCalled());
 
-        // Click Deal
         await act(async () => {
             await userEvent.click(screen.getByText('DEAL'));
         });
@@ -266,7 +259,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -279,13 +271,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        // Click Hit
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -308,7 +298,6 @@ describe('BlackjackGame', () => {
             },
         });
 
-        // ... intermediate setup omitted for brevity ...
         hit.mockResolvedValue({
             data: {
                 playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'WIN' }],
@@ -325,7 +314,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -338,13 +326,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        // Click Hit
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -365,7 +351,6 @@ describe('BlackjackGame', () => {
             },
         });
 
-        // ... intermediate setup omitted for brevity in replacement ...
         hit.mockResolvedValue({
             data: {
                 playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10, outcome: 'TIE' }],
@@ -382,7 +367,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -395,13 +379,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        // Click Hit
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -491,7 +473,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -504,19 +485,16 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
-        // Click Stand
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
 
-        // Advance timers to reveal the dealer's cards
         await advanceTimers(1100);
         await advanceTimers(1100);
         await advanceTimers(1100);
@@ -551,7 +529,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -564,13 +541,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
-        // Click Stand
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
@@ -608,7 +583,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state with 2 cards
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -621,13 +595,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        // Click Double Down
         const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
@@ -665,7 +637,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -678,13 +649,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        // Click Double Down
         const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
@@ -706,7 +675,6 @@ describe('BlackjackGame', () => {
             },
         });
 
-        // ... intermediate setup omitted ...
         doubleDown.mockResolvedValue({
             data: {
                 playerHands: [{ cards: [{ value: '8', suit: 'Hearts' }, { value: '9', suit: 'Spades' }, { value: 'A', suit: 'Clubs' }], isTurn: true, bet: 10, outcome: 'WIN' }],
@@ -777,7 +745,7 @@ describe('BlackjackGame', () => {
                 ],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 gameOver: false,
-                balance: 980, // Bet doubled
+                balance: 980,
             },
         });
 
@@ -787,7 +755,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -800,7 +767,6 @@ describe('BlackjackGame', () => {
         await advanceTimers(5000);
         await advanceTimers(5000);
 
-        // Wait for Split button to be enabled
         await waitFor(() => {
             const splitButton = screen.getByText('SPLIT');
             expect(splitButton).not.toBeDisabled();
@@ -813,7 +779,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(split).toHaveBeenCalled());
 
-        // Use getAllByText for "Bet: 10" since there are now two hands with that bet
         await waitFor(() => {
             const betElements = screen.getAllByText('Bet: $10');
             expect(betElements.length).toBeGreaterThanOrEqual(2);
@@ -929,7 +894,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open settings
         const settingsButton = screen.getByLabelText('Game settings');
         await act(async () => {
             await userEvent.click(settingsButton);
@@ -937,7 +901,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Close settings
         const closeButton = screen.getByText('Close');
         await act(async () => {
             await userEvent.click(closeButton);
@@ -953,7 +916,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open settings
         const settingsButton = screen.getByLabelText('Game settings');
         await act(async () => {
             await userEvent.click(settingsButton);
@@ -961,7 +923,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Change deck count
         const deckSelect = screen.getByDisplayValue('1');
         await act(async () => {
             await userEvent.selectOptions(deckSelect, '4');
@@ -977,7 +938,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open settings
         const settingsButton = screen.getByLabelText('Game settings');
         await act(async () => {
             await userEvent.click(settingsButton);
@@ -985,7 +945,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Toggle soft 17
         const checkbox = screen.getByRole('checkbox');
         await act(async () => {
             await userEvent.click(checkbox);
@@ -1001,7 +960,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open settings
         const settingsButton = screen.getByLabelText('Game settings');
         await act(async () => {
             await userEvent.click(settingsButton);
@@ -1009,7 +967,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Change to blue
         const blueRadio = screen.getByDisplayValue('blue');
         await act(async () => {
             await userEvent.click(blueRadio);
@@ -1025,7 +982,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open stats
         const statsButton = screen.getByLabelText('Show stats');
         await act(async () => {
             await userEvent.click(statsButton);
@@ -1033,7 +989,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
 
-        // Close stats
         const closeButtons = screen.getAllByText('Close');
         const statsCloseButton = closeButtons.find(btn => btn.closest('.settings-modal-content'));
         if (statsCloseButton) {
@@ -1052,7 +1007,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open stats
         const statsButton = screen.getByLabelText('Show stats');
         await act(async () => {
             await userEvent.click(statsButton);
@@ -1060,13 +1014,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
 
-        // Reset stats
         const resetButton = screen.getByText('Reset Stats');
         await act(async () => {
             await userEvent.click(resetButton);
         });
 
-        // Stats should still be visible
         expect(screen.getByText('Stats')).toBeInTheDocument();
     });
 
@@ -1081,12 +1033,10 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Place a bet
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
 
-        // Try to start game
         await act(async () => {
             await userEvent.click(screen.getByText('DEAL'));
         });
@@ -1105,7 +1055,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Try to place bet
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1135,7 +1084,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1146,13 +1094,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update and button to be enabled
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         }, { timeout: 3000 });
 
-        // Try to hit
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -1183,7 +1129,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1194,13 +1139,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update and button to be enabled
         await waitFor(() => {
             const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         }, { timeout: 3000 });
 
-        // Try to stand
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
@@ -1257,29 +1200,26 @@ describe('BlackjackGame', () => {
     });
 
     it('does not place bet when betting is closed', async () => {
-        // Clear localStorage to avoid resume prompt
         localStorage.clear();
 
-        // Set up state - start with bettingOpen: true to avoid resume prompt
         getState.mockResolvedValue({
             data: {
                 playerHand: [],
                 dealerHand: [],
                 currentBet: 0,
                 gameOver: true, balance: 990,
-                bettingOpen: true, // Start with betting open to avoid resume prompt
+                bettingOpen: true,
                 gameOver: false,
             },
         });
 
-        // Mock startGame to return state with betting closed
         startGame.mockResolvedValue({
             data: {
                 playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
                 balance: 980,
-                bettingOpen: false, // Game starts, betting closes
+                bettingOpen: false,
                 gameOver: false,
             },
         });
@@ -1290,8 +1230,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Now simulate a game state where betting is closed
-        // We'll do this by starting a game, which closes betting
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1302,35 +1240,23 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // After starting a game, betting should be closed
-        // Wait for chips to be disabled
         await waitFor(() => {
             const chip = screen.getByAltText('$10 chip');
             const chipContainer = chip.closest('.chip-img');
             expect(chipContainer).toHaveClass('disabled');
         }, { timeout: 3000 });
 
-        // Clear any previous calls
         placeBet.mockClear();
 
-        // Verify chip is disabled before trying to click
         const chip = screen.getByAltText('$10 chip');
         const chipContainer = chip.closest('.chip-img');
 
-        // The chip should be disabled, so clicking it should not trigger onClick
         expect(chipContainer).toHaveClass('disabled');
 
-        // Even if we try to click, the Chip component checks !disabled before calling onClick
-        // And handleBet checks bettingOpen at the start and returns early
-        // So placeBet should never be called
         await act(async () => {
-            // Try clicking - but it should be a no-op because chip is disabled
             await userEvent.click(chip);
         });
 
-        // handleBet should not be called because:
-        // 1. Chip is disabled, so onClick is not called
-        // 2. Even if onClick were called, handleBet checks bettingOpen and returns early
         expect(placeBet).not.toHaveBeenCalled();
     });
 
@@ -1375,7 +1301,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // If resume prompt shows, click resume
         const resumePrompt = screen.queryByText(/Resume your game/i);
         if (resumePrompt) {
             const resumeButton = screen.getByText('Resume');
@@ -1392,7 +1317,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open stats
         const statsButton = screen.getByLabelText('Show stats');
         await act(async () => {
             await userEvent.click(statsButton);
@@ -1400,7 +1324,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
 
-        // Click outside (on overlay)
         const overlay = document.querySelector('.settings-modal-overlay');
         if (overlay) {
             await act(async () => {
@@ -1418,7 +1341,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Test all chips
         const chips = [5, 10, 25, 100];
         for (const amount of chips) {
             const chip = screen.getByAltText(`$${amount} chip`);
@@ -1462,7 +1384,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1473,19 +1394,16 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update
         await waitFor(() => {
             const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
-        // Click Stand
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
         });
 
-        // Advance timers for all card reveals
         await advanceTimers(1100);
         await advanceTimers(1100);
         await advanceTimers(1100);
@@ -1521,7 +1439,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1534,13 +1451,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        // Click Double Down
         const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
@@ -1553,7 +1468,6 @@ describe('BlackjackGame', () => {
 
     it('handles localStorage errors gracefully', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-        // Mock localStorage to throw errors
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = jest.fn(() => {
             throw new Error('Storage quota exceeded');
@@ -1566,12 +1480,10 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Try to place a bet (should handle storage error)
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
 
-        // Restore
         localStorage.setItem = originalSetItem;
     });
 
@@ -1589,7 +1501,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Restore
         localStorage.getItem = originalGetItem;
     });
 
@@ -1931,7 +1842,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -1942,13 +1852,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        // Click Hit
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -2027,7 +1935,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -2038,13 +1945,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update
         await waitFor(() => {
             const standButton = screen.getByText('STAND');
             expect(standButton).not.toBeDisabled();
         });
 
-        // Click Stand
         const standButton = screen.getByText('STAND');
         await act(async () => {
             await userEvent.click(standButton);
@@ -2126,7 +2031,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -2139,13 +2043,11 @@ describe('BlackjackGame', () => {
 
         await advanceTimers(5000);
 
-        // Wait for state to update
         await waitFor(() => {
             const doubleDownButton = screen.getByText('DOUBLE');
             expect(doubleDownButton).not.toBeDisabled();
         });
 
-        // Click Double Down
         const doubleDownButton = screen.getByText('DOUBLE');
         await act(async () => {
             await userEvent.click(doubleDownButton);
@@ -2201,29 +2103,26 @@ describe('BlackjackGame', () => {
     });
 
     it('handles settings button disabled when betting is not open', async () => {
-        // Clear localStorage to avoid resume prompt
         localStorage.clear();
 
-        // Set up state - start with bettingOpen: true to avoid resume prompt
         getState.mockResolvedValue({
             data: {
                 playerHand: [],
                 dealerHand: [],
                 currentBet: 0,
                 gameOver: true, balance: 990,
-                bettingOpen: true, // Start with betting open to avoid resume prompt
+                bettingOpen: true,
                 gameOver: false,
             },
         });
 
-        // Mock startGame to return state with betting closed
         startGame.mockResolvedValue({
             data: {
                 playerHands: [{ cards: [{ value: '10', suit: 'Hearts' }, { value: '10', suit: 'Spades' }], isTurn: true, bet: 10 }],
                 dealerHand: [{ value: 'K', suit: 'Hearts' }],
                 currentBet: 10,
                 balance: 980,
-                bettingOpen: false, // Game starts, betting closes
+                bettingOpen: false,
                 gameOver: false,
             },
         });
@@ -2234,7 +2133,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Start a game to close betting
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -2245,10 +2143,8 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for component to update - settings button should be disabled when betting is closed
         await waitFor(() => {
             const settingsButton = screen.getByLabelText('Game settings');
-            // Settings button should be disabled when bettingOpen is false (after game starts)
             expect(settingsButton).toBeDisabled();
         }, { timeout: 3000 });
     });
@@ -2408,7 +2304,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Set up game state
         await act(async () => {
             await userEvent.click(screen.getByAltText('$10 chip'));
         });
@@ -2419,13 +2314,11 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(startGame).toHaveBeenCalled());
 
-        // Wait for state to update
         await waitFor(() => {
             const hitButton = screen.getByText('HIT');
             expect(hitButton).not.toBeDisabled();
         });
 
-        // Click Hit to bust
         const hitButton = screen.getByText('HIT');
         await act(async () => {
             await userEvent.click(hitButton);
@@ -2774,11 +2667,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Manually trigger handleResume without pendingState
-        // This would happen if resume is called but pendingState is null
-        // We can't directly call handleResume, but we can test the scenario
-        // by ensuring the component handles the case where resume prompt might show
-        // but pendingState is cleared
     });
 
     it('handles fetchExistingState error with storedGameState', async () => {
@@ -2825,7 +2713,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(getState).toHaveBeenCalled());
 
-        // Open settings
         const settingsButton = screen.getByLabelText('Game settings');
         await act(async () => {
             await userEvent.click(settingsButton);
@@ -2833,7 +2720,6 @@ describe('BlackjackGame', () => {
 
         await waitFor(() => expect(screen.getByText('Game Settings')).toBeInTheDocument());
 
-        // Toggle card back colors
         const blueRadio = screen.getByDisplayValue('blue');
         await act(async () => {
             await userEvent.click(blueRadio);

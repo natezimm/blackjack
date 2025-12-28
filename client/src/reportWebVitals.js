@@ -8,7 +8,7 @@ const reportWebVitals = (onPerfEntry, webVitals) => {
       getLCP(onPerfEntry);
       getTTFB(onPerfEntry);
     } catch (e) {
-      // If web-vitals isn't available, silently ignore in non-browser/test envs
+      return;
     }
   }
 };

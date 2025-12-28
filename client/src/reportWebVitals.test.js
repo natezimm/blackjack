@@ -73,24 +73,10 @@ describe('reportWebVitals', () => {
     });
 
     it('handles errors when web-vitals is not available', () => {
-        // IMPORTANT: require('web-vitals') is inside the function (line 4 of source),
-        // not at module load time. This means the module can be loaded safely,
-        // and the require() only happens when the function is called.
-        //
-        // The test sets up jest.doMock to make require('web-vitals') throw.
-        // When the function calls require('web-vitals'), it will throw,
-        // but the error is caught by the try-catch block in the source code.
-        
-        // Set up the mock BEFORE loading the module
-        // The mock factory throws, which will cause require('web-vitals') to throw
-        // when it's called inside the function
         jest.doMock('web-vitals', () => {
             throw new Error('Module not found');
         }, { virtual: true });
 
-        // Load the module in an isolated context
-        // This is safe because require('web-vitals') is inside the function,
-        // not executed during module loading
         let reportWebVitals;
         jest.isolateModules(() => {
             reportWebVitals = require('./reportWebVitals').default;
@@ -98,16 +84,9 @@ describe('reportWebVitals', () => {
 
         const handler = jest.fn();
 
-        // Call the function without webVitals parameter
-        // This will trigger: webVitals || require('web-vitals')
-        // Since webVitals is undefined, require('web-vitals') is called,
-        // which throws due to our mock. The error is caught by the try-catch
-        // in the source code (lines 3-12), so the function should not throw
         expect(() => {
             reportWebVitals(handler);
         }).not.toThrow();
-        
-        // Handler should not be called since web-vitals failed to load
         expect(handler).not.toHaveBeenCalled();
     });
 });

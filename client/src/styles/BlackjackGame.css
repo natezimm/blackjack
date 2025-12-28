@@ -79,7 +79,7 @@ h1 {
 
     .betting-panel .panel-title {
         display: none;
-        /* Save vertical space on mobile */
+        
     }
 
     .betting-summary {
@@ -127,7 +127,7 @@ h1 {
 @media (max-width: 900px) {
     .table-surface {
         padding-bottom: 20px;
-        /* Don't need extra padding here, handled by body/container */
+        
         border: none;
         background: transparent;
     }
@@ -201,7 +201,7 @@ h1 {
     font-weight: 700;
 }
 
-/* Floating Buttons */
+
 .fab-cluster {
     position: absolute;
     top: clamp(12px, 2vh, 24px);
@@ -251,7 +251,7 @@ h1 {
     height: 48px;
     border-radius: 50%;
     border: 2px solid #8e90a6;
-    /* A neutral color to differentiate from stats/settings */
+    
     background: rgba(0, 0, 0, 0.6);
     color: #8e90a6;
     font-size: 1.25rem;
@@ -681,7 +681,7 @@ h1 {
     }
 }
 
-/* Contextual Action Bar */
+
 .action-bar-container {
     display: flex;
     justify-content: center;
@@ -708,7 +708,7 @@ h1 {
 
     .blackjack-game {
         padding-bottom: 120px;
-        /* Make room for sticky bar */
+        
     }
 }
 
@@ -833,7 +833,7 @@ h1 {
     }
 }
 
-/* Responsive adjustments for controls */
+
 @media (max-width: 768px) {
     .play-controls {
         width: 100%;
@@ -997,7 +997,7 @@ h1 {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     border-radius: 16px;
     padding: 16px;
-    /* Ensure it has a subtle background to distinguish hands */
+    
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.05);
 }

@@ -3,7 +3,6 @@ import '../styles/PlayerHand.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
 
 const PlayerHand = ({ hand, isActive, showBet = false, isPlaceholder = false }) => {
-    // legacy support or new structure check
     const cards = hand.cards || hand;
     const bet = hand.bet || 0;
     const outcome = hand.outcome;

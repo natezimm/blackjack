@@ -53,29 +53,20 @@ public class BlackjackApplication {
         };
     }
 
-    /**
-     * Determines allowed CORS origins based on environment.
-     * In production, only allows the configured production origin.
-     * In development, allows localhost origins for testing.
-     */
     private String[] getAllowedOrigins() {
-        // If explicitly configured, use that
         if (allowedOriginsConfig != null && !allowedOriginsConfig.isEmpty()) {
             String[] configured = allowedOriginsConfig.split(",");
-            // Trim whitespace and filter empty strings
             return Arrays.stream(configured)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toArray(String[]::new);
         }
 
-        // Check if running in production mode
         String profile = System.getProperty("spring.profiles.active", "");
         if (profile.contains("prod")) {
             return new String[] { PRODUCTION_ORIGIN };
         }
 
-        // Default to development origins
         List<String> origins = new java.util.ArrayList<>(DEFAULT_DEV_ORIGINS);
         origins.add(PRODUCTION_ORIGIN);
         return origins.toArray(new String[0]);

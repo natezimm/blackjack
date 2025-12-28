@@ -119,10 +119,8 @@ describe('blackjackApi', () => {
     });
 
     it('handles response interceptor for successful responses', () => {
-        // Verify interceptor was registered
         expect(mockInterceptors.response.use).toHaveBeenCalled();
-        
-        // Get the success handler from the interceptor registration
+
         const successHandler = mockInterceptors.response.use.mock.calls[0][0];
         const testResponse = { data: 'test' };
         expect(successHandler(testResponse)).toBe(testResponse);
@@ -160,13 +158,12 @@ describe('blackjackApi', () => {
 
     it('falls back to localhost in development when API URL validation fails', () => {
         process.env.NODE_ENV = 'development';
-        process.env.REACT_APP_API_URL = '';  // Empty/invalid URL
+        process.env.REACT_APP_API_URL = '';
         
         const errorSpy = jest.spyOn(console, 'error').mockImplementation();
         
         reloadApi();
-        
-        // Should create client with fallback URL
+
         expect(axios.create).toHaveBeenCalled();
         errorSpy.mockRestore();
     });

@@ -347,7 +347,6 @@ class BlackjackGameTests {
         game.placeBet(100);
         game.dealInitialCards();
 
-        // Setup a pair
         game.getPlayerHands().get(0).getCards().clear();
         game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("8", "Clubs"),
@@ -394,10 +393,9 @@ class BlackjackGameTests {
     @Test
     void split_throwsWhenInsufficientBalance() {
         BlackjackGame game = new BlackjackGame();
-        game.placeBet(1000); // balance is 1000, so betting 1000 leaves 0
+        game.placeBet(1000);
         game.dealInitialCards();
 
-        // Setup pair
         game.getPlayerHands().get(0).getCards().clear();
         game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("8", "Hearts"),
@@ -413,7 +411,6 @@ class BlackjackGameTests {
         game.placeBet(50);
         game.dealInitialCards();
 
-        // Setup pair
         game.getPlayerHands().get(0).getCards().clear();
         game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("8", "Clubs"),
@@ -421,14 +418,12 @@ class BlackjackGameTests {
 
         game.split();
 
-        // Stand on first hand
         game.stand();
 
         assertFalse(game.getPlayerHands().get(0).isTurn());
         assertTrue(game.getPlayerHands().get(1).isTurn());
         assertFalse(game.isGameOver());
 
-        // Stand on second hand
         game.stand();
 
         assertFalse(game.getPlayerHands().get(1).isTurn());
@@ -441,10 +436,10 @@ class BlackjackGameTests {
         game.placeBet(100);
 
         replaceDeck(game, Arrays.asList(
-                new Card("9", "Hearts"), // player
-                new Card("10", "Clubs"), // dealer hole
-                new Card("7", "Spades"), // player
-                new Card("A", "Diamonds") // dealer upcard
+                new Card("9", "Hearts"),
+                new Card("10", "Clubs"),
+                new Card("7", "Spades"),
+                new Card("A", "Diamonds")
         ));
 
         game.dealInitialCards();
@@ -467,10 +462,10 @@ class BlackjackGameTests {
         game.placeBet(100);
 
         replaceDeck(game, Arrays.asList(
-                new Card("9", "Hearts"), // player
-                new Card("9", "Clubs"), // dealer hole
-                new Card("7", "Spades"), // player
-                new Card("A", "Diamonds") // dealer upcard
+                new Card("9", "Hearts"),
+                new Card("9", "Clubs"),
+                new Card("7", "Spades"),
+                new Card("A", "Diamonds")
         ));
 
         game.dealInitialCards();
@@ -523,11 +518,11 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
         replaceDeck(game, Arrays.asList(
-                new Card("2", "Hearts"), // player
-                new Card("9", "Clubs"), // dealer hole
-                new Card("3", "Spades"), // player
-                new Card("A", "Diamonds"), // dealer upcard
-                new Card("5", "Clubs") // hit card
+                new Card("2", "Hearts"),
+                new Card("9", "Clubs"),
+                new Card("3", "Spades"),
+                new Card("A", "Diamonds"),
+                new Card("5", "Clubs")
         ));
         game.dealInitialCards();
 

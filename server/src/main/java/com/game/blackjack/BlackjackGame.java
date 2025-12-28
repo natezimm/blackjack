@@ -27,7 +27,7 @@ public class BlackjackGame {
         this.dealerHand = new ArrayList<>();
         this.deck = new ArrayList<>();
         this.gameOver = false;
-        this.balance = 1000; // Initial balance
+        this.balance = 1000;
         this.initialBet = 0;
         this.insuranceBet = 0;
         this.insuranceOffered = false;
@@ -63,13 +63,11 @@ public class BlackjackGame {
         insuranceResolved = true;
         playerActed = false;
 
-        // Create initial hand
         Hand initialHand = new Hand(initialBet);
         playerHands.add(initialHand);
         currentHandIndex = 0;
         initialHand.setTurn(true);
 
-        // Deal cards
         initialHand.addCard(deck.remove(0));
         dealerHand.add(deck.remove(0));
         initialHand.addCard(deck.remove(0));
@@ -101,20 +99,16 @@ public class BlackjackGame {
             int playerValue = calculateHandValue(hand.getCards());
             int bet = hand.getBet();
 
-            // Logic for each hand
             if (hand.isBusted() || playerValue > 21) {
                 hand.setOutcome("LOSS");
             } else {
                 if (dealerValue > 21) {
-                    // Dealer busts, player wins
                     balance += bet * 2;
                     hand.setOutcome("WIN");
                 } else if (playerValue > dealerValue) {
-                    // Player wins
                     balance += bet * 2;
                     hand.setOutcome("WIN");
                 } else if (playerValue == dealerValue) {
-                    // Push
                     balance += bet;
                     hand.setOutcome("TIE");
                 } else {
@@ -182,21 +176,18 @@ public class BlackjackGame {
 
         playerActed = true;
 
-        // Double the bet
         int bet = currentHand.getBet();
         balance -= bet;
         currentHand.setBet(bet * 2);
         currentHand.setDoubledDown(true);
 
-        // Deal exactly one card
         Card newCard = deck.remove(0);
         currentHand.addCard(newCard);
 
-        // Check bust/stand
         if (calculateHandValue(currentHand.getCards()) > 21) {
             currentHand.setBusted(true);
         }
-        stand(); // Auto-stand after double down
+        stand();
     }
 
     public void split() {
@@ -211,7 +202,6 @@ public class BlackjackGame {
         Card card1 = currentHand.getCards().get(0);
         Card card2 = currentHand.getCards().get(1);
 
-        // Check values (taking 10, J, Q, K as 10)
         int v1 = getCardValueForSplit(card1);
         int v2 = getCardValueForSplit(card2);
 
@@ -225,26 +215,18 @@ public class BlackjackGame {
 
         playerActed = true;
 
-        // Process split
-        balance -= currentHand.getBet(); // Place bet for new hand
+        balance -= currentHand.getBet();
 
-        // Remove second card from current hand
         currentHand.getCards().remove(1);
 
-        // Create new hand with that card
         Hand newHand = new Hand(currentHand.getBet());
         newHand.addCard(card2);
 
-        // Insert new hand after current hand
         playerHands.add(currentHandIndex + 1, newHand);
 
-        // Deal one card to current hand
         currentHand.addCard(deck.remove(0));
 
-        // Deal one card to new hand
         newHand.addCard(deck.remove(0));
-
-        // Current hand continues playing (isTurn remains true)
     }
 
     private int getCardValueForSplit(Card card) {
@@ -264,14 +246,11 @@ public class BlackjackGame {
             currentHand.setTurn(false);
         }
 
-        // Move to next hand
         currentHandIndex++;
 
         if (currentHandIndex < playerHands.size()) {
-            // Play next hand
             playerHands.get(currentHandIndex).setTurn(true);
         } else {
-            // All hands done, dealer plays
             dealerPlay();
         }
     }
@@ -312,7 +291,6 @@ public class BlackjackGame {
     }
 
     public void dealerPlay() {
-        // Check if all hands are busted - if so, dealer doesn't need to play
         boolean allBusted = true;
         for (Hand h : playerHands) {
             if (!h.isBusted()) {
@@ -469,7 +447,7 @@ public class BlackjackGame {
 
         if (isDealerBlackjack()) {
             if (amount > 0) {
-                balance += amount * 3; // Pays 2:1, plus original insurance bet back
+                balance += amount * 3;
                 insuranceOutcome = "WIN";
             } else {
                 insuranceOutcome = "DECLINED";

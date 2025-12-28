@@ -350,7 +350,6 @@ class BlackjackControllerTests {
 
         @Test
         void reset_withInvalidPayload_fallsBackToDefaults() throws Exception {
-                // Invalid JSON types will now return bad request due to validation
                 mockMvc.perform(post("/api/blackjack/reset")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(Map.of(
@@ -451,7 +450,6 @@ class BlackjackControllerTests {
         @Test
         void split_invalidRequest_returnsBadRequest() throws Exception {
                 prepareGameForPlay(50);
-                // Default hand is not a pair usually, but let's force a non-pair to be safe
                 BlackjackGame game = getSessionGame();
                 game.getPlayerHands().get(0).getCards().clear();
                 game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
@@ -541,25 +539,20 @@ class BlackjackControllerTests {
 
         @Test
         void startGame_preservesDeckState() throws Exception {
-                // First game
                 mockMvc.perform(get("/api/blackjack/start")
                                 .param("decks", "1")
                                 .session(session))
                                 .andExpect(status().isOk());
 
                 BlackjackGame game = getSessionGame();
-                // 1 deck (52) - 4 dealt = 48
                 int sizeAfterFirstGame = game.getDeckSize();
                 assertEquals(48, sizeAfterFirstGame);
 
-                // Second game (simulating next round)
                 mockMvc.perform(get("/api/blackjack/start")
                                 .param("decks", "1")
                                 .session(session))
                                 .andExpect(status().isOk());
 
-                // Should have dealt 4 more cards, so 48 - 4 = 44.
-                // If it reset, it would be 48 again.
                 assertEquals(44, game.getDeckSize());
         }
 

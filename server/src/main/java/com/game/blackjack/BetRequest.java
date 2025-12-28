@@ -4,10 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Request DTO for placing a bet.
- * Includes validation constraints for security.
- */
 public class BetRequest {
 
     @NotNull(message = "Bet amount is required")

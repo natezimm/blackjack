@@ -75,7 +75,6 @@ describe('securityUtils', () => {
             process.env.NODE_ENV = 'production';
             const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
             
-            // HTTP localhost is allowed but should warn
             validateApiUrl('http://localhost:8080');
             
             warnSpy.mockRestore();

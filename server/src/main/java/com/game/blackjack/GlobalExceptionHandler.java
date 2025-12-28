@@ -11,9 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Global exception handler for consistent error responses.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -25,8 +22,7 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        
-        // Return first error as the main error message for backwards compatibility
+
         String firstError = errors.values().stream().findFirst().orElse("Validation error");
         return ResponseEntity.badRequest().body(Collections.singletonMap("error", firstError));
     }

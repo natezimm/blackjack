@@ -19,7 +19,7 @@ const Toast = ({ message, duration = 3000, onClose }) => {
             const timer = setTimeout(() => {
                 onClose();
                 setIsClosing(false);
-            }, 300); // Match animation duration
+            }, 300);
             return () => clearTimeout(timer);
         }
     }, [isClosing, onClose]);

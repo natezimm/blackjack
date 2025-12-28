@@ -24,12 +24,10 @@ public class BlackjackController {
             @RequestParam(required = false, defaultValue = "false") boolean dealerHitsOnSoft17,
             HttpSession session) {
 
-        // Validate deck count
         int validDecks = Math.max(MIN_DECKS, Math.min(MAX_DECKS, decks));
 
         BlackjackGame game = getOrCreateGame(session);
 
-        // Only reshuffle if the deck configuration changed or if we are low on cards
         boolean configChanged = game.getNumberOfDecks() != validDecks;
         boolean lowCards = game.getDeckSize() < LOW_CARD_THRESHOLD;
 
@@ -152,28 +150,19 @@ public class BlackjackController {
     public static class GameResponse {
         private List<Hand> playerHands;
         private List<Card> dealerHand;
-        // playerWins / tie removed as they are per-hand outcomes now managed within
-        // Hand object
-        // keeping implicit structure or could add "overallResult" if needed, but
-        // Hand.outcome is source of truth.
-        // For partial compatibility check if we want to keep them?
-        // No, let's break clean given we control frontend.
         private boolean gameOver;
         private int balance;
-        private int currentBet; // Total current bet?
+        private int currentBet;
         private boolean bettingOpen;
         private int deckSize;
         private boolean dealerHitsOnSoft17;
         private int numberOfDecks;
-        private boolean hasDoubledDown; // Global flag?
+        private boolean hasDoubledDown;
         private int insuranceBet;
         private boolean insuranceOffered;
         private boolean insuranceResolved;
         private String insuranceOutcome;
         private int maxInsuranceBet;
-
-        // Helper legacy getters for frontend if needed?
-        // We will update frontend to look at playerHands.
 
         public GameResponse(BlackjackGame game) {
             this.playerHands = game.getPlayerHands();
@@ -252,8 +241,5 @@ public class BlackjackController {
         public int getMaxInsuranceBet() {
             return maxInsuranceBet;
         }
-
-        // Legacy compatibility for simple frontend checks (optional)
-        // Leaving out to force migration.
     }
 }

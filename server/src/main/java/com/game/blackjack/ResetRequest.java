@@ -3,10 +3,6 @@ package com.game.blackjack;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-/**
- * Request DTO for game reset.
- * Includes validation constraints for security.
- */
 public class ResetRequest {
 
     @Min(value = 1, message = "Must use at least 1 deck")
