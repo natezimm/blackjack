@@ -80,6 +80,3 @@ The controller stores `BlackjackGame` in the HTTP session, so each browser sessi
 
 ## CI / Deploy
 GitHub Actions (`.github/workflows/deploy.yml`) runs frontend + backend tests/coverage on pushes to `main`, then SSHes into Lightsail to run an external deploy script.
-
-## Docker (server)
-`server/Dockerfile` is currently out of sync with the Java 21 / Spring Boot 3 build (it uses Java 11). If you want Docker support, update the base images/tooling to Java 21+ first.
