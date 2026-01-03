@@ -1045,6 +1045,13 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     </div>
                 </div>
             </div>
+
+            <footer className="site-footer">
+                <span>Made by </span>
+                <a href="https://nathanzimmerman.com" target="_blank" rel="noopener noreferrer">
+                    Nathan Zimmerman
+                </a>
+            </footer>
         </div>
     );
 };

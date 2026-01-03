@@ -2779,4 +2779,40 @@ describe('BlackjackGame', () => {
         await waitFor(() => expect(stand).toHaveBeenCalled());
         consoleSpy.mockRestore();
     });
+
+    describe('Site Footer', () => {
+        it('renders the footer with attribution text', async () => {
+            getState.mockResolvedValue({ data: defaultApiState });
+
+            await act(async () => {
+                render(<BlackjackGame initialSkipAnimations={true} />);
+            });
+
+            expect(screen.getByText('Made by')).toBeInTheDocument();
+            expect(screen.getByText('Nathan Zimmerman')).toBeInTheDocument();
+        });
+
+        it('renders portfolio link with correct href', async () => {
+            getState.mockResolvedValue({ data: defaultApiState });
+
+            await act(async () => {
+                render(<BlackjackGame initialSkipAnimations={true} />);
+            });
+
+            const link = screen.getByRole('link', { name: 'Nathan Zimmerman' });
+            expect(link).toHaveAttribute('href', 'https://nathanzimmerman.com');
+        });
+
+        it('opens portfolio link in new tab', async () => {
+            getState.mockResolvedValue({ data: defaultApiState });
+
+            await act(async () => {
+                render(<BlackjackGame initialSkipAnimations={true} />);
+            });
+
+            const link = screen.getByRole('link', { name: 'Nathan Zimmerman' });
+            expect(link).toHaveAttribute('target', '_blank');
+            expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        });
+    });
 });
