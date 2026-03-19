@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://blackjack.nathanzimmerman.com/sitemap.xml
