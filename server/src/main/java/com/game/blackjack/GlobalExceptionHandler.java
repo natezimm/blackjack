@@ -7,7 +7,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Collections;
+import com.game.blackjack.dto.ErrorResponse;
+
+import jakarta.validation.ConstraintViolationException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +18,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
@@ -24,24 +27,33 @@ public class GlobalExceptionHandler {
         });
 
         String firstError = errors.values().stream().findFirst().orElse("Validation error");
-        return ResponseEntity.badRequest().body(Collections.singletonMap("error", firstError));
+        return ResponseEntity.badRequest().body(new ErrorResponse(firstError));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, String>> handleJsonParseException(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ErrorResponse> handleJsonParseException(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
-            .body(Collections.singletonMap("error", "Invalid request body"));
+            .body(new ErrorResponse("Invalid request body"));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        String firstError = ex.getConstraintViolations().stream()
+            .map(violation -> violation.getMessage())
+            .findFirst()
+            .orElse("Validation error");
+        return ResponseEntity.badRequest().body(new ErrorResponse(firstError));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
-            .body(Collections.singletonMap("error", ex.getMessage()));
+            .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.badRequest()
-            .body(Collections.singletonMap("error", ex.getMessage()));
+            .body(new ErrorResponse(ex.getMessage()));
     }
 }

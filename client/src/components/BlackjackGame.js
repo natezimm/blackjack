@@ -39,6 +39,7 @@ import clickSoundAsset from '../assets/sounds/click.mp3';
 
 import '../styles/BlackjackGame.css';
 import { MESSAGES } from '../constants/messages';
+import { calculateTotal } from '../utils/cardUtils';
 
 const chip5Images = {
     png: chip5Png,
@@ -76,27 +77,7 @@ const chip100Images = {
     smallAvif: chip100SmallAvif
 };
 
-export const calculateTotal = (hand) => {
-    let total = 0;
-    let aces = 0;
-
-    hand.forEach(card => {
-        if (card.value === 'A') {
-            aces++;
-            total += 11;
-        } else if (['K', 'Q', 'J'].includes(card.value)) {
-            total += 10;
-        } else {
-            total += parseInt(card.value);
-        }
-    });
-
-    while (total > 21 && aces > 0) {
-        total -= 10;
-        aces--;
-    }
-    return total;
-};
+export { calculateTotal };
 
 const STORAGE_KEYS = {
     stats: 'blackjackStats',

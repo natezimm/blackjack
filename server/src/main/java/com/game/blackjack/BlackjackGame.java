@@ -53,6 +53,11 @@ public class BlackjackGame {
         Collections.shuffle(deck);
     }
 
+    void replaceDeck(List<Card> cards) {
+        deck.clear();
+        deck.addAll(cards);
+    }
+
     public void dealInitialCards() {
         playerHands.clear();
         dealerHand.clear();

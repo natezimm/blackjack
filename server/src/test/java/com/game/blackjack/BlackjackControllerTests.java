@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BlackjackController.class)
-@Import({SecurityConfig.class, GlobalExceptionHandler.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class, BlackjackSessionService.class})
 @SuppressWarnings("null")
 class BlackjackControllerTests {
 
@@ -51,6 +51,15 @@ class BlackjackControllerTests {
                                 .andExpect(jsonPath("$.bettingOpen").value(false))
                                 .andExpect(jsonPath("$.playerHands[0].cards", hasSize(2)))
                                 .andExpect(jsonPath("$.dealerHand", hasSize(2)));
+        }
+
+        @Test
+        void startGame_rejectsInvalidDeckCount() throws Exception {
+                mockMvc.perform(get("/api/blackjack/start")
+                                .param("decks", "9")
+                                .session(session))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").exists());
         }
 
         @Test
@@ -226,7 +235,7 @@ class BlackjackControllerTests {
                 game.getDealerHand().addAll(Arrays.asList(
                                 new Card("10", "Clubs"),
                                 new Card("6", "Spades")));
-                replaceDeck(game, List.of(
+                game.replaceDeck(List.of(
                                 new Card("5", "Clubs"),
                                 new Card("4", "Hearts"),
                                 new Card("7", "Diamonds")));
@@ -258,7 +267,7 @@ class BlackjackControllerTests {
                 game.getDealerHand().addAll(Arrays.asList(
                                 new Card("10", "Hearts"),
                                 new Card("6", "Spades")));
-                replaceDeck(game, List.of(new Card("10", "Spades")));
+                game.replaceDeck(List.of(new Card("10", "Spades")));
 
                 mockMvc.perform(post("/api/blackjack/doubledown").session(session))
                                 .andExpect(status().isOk())
@@ -278,7 +287,7 @@ class BlackjackControllerTests {
                 game.getDealerHand().addAll(Arrays.asList(
                                 new Card("9", "Clubs"),
                                 new Card("7", "Spades")));
-                replaceDeck(game, List.of(
+                game.replaceDeck(List.of(
                                 new Card("2", "Clubs"),
                                 new Card("10", "Diamonds")));
 
@@ -299,7 +308,7 @@ class BlackjackControllerTests {
                 game.getDealerHand().addAll(Arrays.asList(
                                 new Card("10", "Clubs"),
                                 new Card("9", "Spades")));
-                replaceDeck(game, List.of(new Card("2", "Hearts")));
+                game.replaceDeck(List.of(new Card("2", "Hearts")));
 
                 mockMvc.perform(post("/api/blackjack/doubledown").session(session))
                                 .andExpect(status().isOk())
@@ -318,7 +327,7 @@ class BlackjackControllerTests {
                 game.getDealerHand().addAll(Arrays.asList(
                                 new Card("8", "Clubs"),
                                 new Card("9", "Spades")));
-                replaceDeck(game, List.of(new Card("2", "Clubs")));
+                game.replaceDeck(List.of(new Card("2", "Clubs")));
 
                 mockMvc.perform(post("/api/blackjack/doubledown").session(session))
                                 .andExpect(status().isOk())
@@ -357,6 +366,16 @@ class BlackjackControllerTests {
                                                 "dealerHitsOnSoft17", "yes")))
                                 .session(session))
                                 .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void reset_rejectsInvalidDeckCount() throws Exception {
+                mockMvc.perform(post("/api/blackjack/reset")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("decks", 9)))
+                                .session(session))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").value("Cannot use more than 8 decks"));
         }
 
         @Test
@@ -403,15 +422,6 @@ class BlackjackControllerTests {
 
         private BlackjackGame getSessionGame() {
                 return (BlackjackGame) session.getAttribute("blackjackGame");
-        }
-
-        @SuppressWarnings("unchecked")
-        private void replaceDeck(BlackjackGame game, List<Card> cards) throws Exception {
-                Field deckField = BlackjackGame.class.getDeclaredField("deck");
-                deckField.setAccessible(true);
-                List<Card> deck = (List<Card>) deckField.get(game);
-                deck.clear();
-                deck.addAll(cards);
         }
 
         private void placeBet(int amount) throws Exception {

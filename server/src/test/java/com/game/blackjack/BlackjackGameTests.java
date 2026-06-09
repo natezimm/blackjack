@@ -65,7 +65,7 @@ class BlackjackGameTests {
     @Test
     void dealerPlay_hitsOnSoft17() throws Exception {
         BlackjackGame game = new BlackjackGame();
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("5", "Clubs"),
                 new Card("7", "Hearts"),
                 new Card("9", "Spades")));
@@ -136,7 +136,7 @@ class BlackjackGameTests {
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Clubs"),
                 new Card("7", "Spades")));
-        replaceDeck(game, List.of(new Card("5", "Clubs")));
+        game.replaceDeck(List.of(new Card("5", "Clubs")));
         game.doubleDown();
         assertTrue(game.hasDoubledDown());
         assertEquals(200, game.getCurrentBet());
@@ -177,7 +177,7 @@ class BlackjackGameTests {
     @Test
     void dealerPlay_standsOnHard17() throws Exception {
         BlackjackGame game = new BlackjackGame();
-        replaceDeck(game, List.of(new Card("5", "Clubs")));
+        game.replaceDeck(List.of(new Card("5", "Clubs")));
         game.getDealerHand().clear();
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Hearts"),
@@ -210,7 +210,7 @@ class BlackjackGameTests {
         game.getDealerHand().addAll(Arrays.asList(
                 new Card("10", "Clubs"),
                 new Card("7", "Spades")));
-        replaceDeck(game, List.of(new Card("5", "Clubs")));
+        game.replaceDeck(List.of(new Card("5", "Clubs")));
         game.doubleDown();
 
         if (game.getPlayerHands().get(0).getCards().size() > 2) {
@@ -333,7 +333,7 @@ class BlackjackGameTests {
         game.getPlayerHands().get(0).getCards().addAll(Arrays.asList(
                 new Card("9", "Clubs"),
                 new Card("8", "Diamonds")));
-        replaceDeck(game, List.of(new Card("10", "Hearts")));
+        game.replaceDeck(List.of(new Card("10", "Hearts")));
 
         game.doubleDown();
 
@@ -435,7 +435,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
 
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("9", "Hearts"),
                 new Card("10", "Clubs"),
                 new Card("7", "Spades"),
@@ -461,7 +461,7 @@ class BlackjackGameTests {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
 
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("9", "Hearts"),
                 new Card("9", "Clubs"),
                 new Card("7", "Spades"),
@@ -485,7 +485,7 @@ class BlackjackGameTests {
     void resolveInsurance_throwsWhenInsuranceExceedsHalfBet() throws Exception {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("9", "Hearts"),
                 new Card("9", "Clubs"),
                 new Card("7", "Spades"),
@@ -501,7 +501,7 @@ class BlackjackGameTests {
     void resolveInsurance_throwsWhenNotOffered() throws Exception {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("9", "Hearts"),
                 new Card("9", "Clubs"),
                 new Card("7", "Spades"),
@@ -517,7 +517,7 @@ class BlackjackGameTests {
     void resolveInsurance_throwsWhenPlayerAlreadyActed() throws Exception {
         BlackjackGame game = new BlackjackGame();
         game.placeBet(100);
-        replaceDeck(game, Arrays.asList(
+        game.replaceDeck(Arrays.asList(
                 new Card("2", "Hearts"),
                 new Card("9", "Clubs"),
                 new Card("3", "Spades"),
@@ -544,12 +544,4 @@ class BlackjackGameTests {
         return (boolean) method.invoke(game, hand);
     }
 
-    @SuppressWarnings("unchecked")
-    private static void replaceDeck(BlackjackGame game, List<Card> cards) throws Exception {
-        Field deckField = BlackjackGame.class.getDeclaredField("deck");
-        deckField.setAccessible(true);
-        List<Card> deck = (List<Card>) deckField.get(game);
-        deck.clear();
-        deck.addAll(cards);
-    }
 }

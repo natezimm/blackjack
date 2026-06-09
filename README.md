@@ -36,12 +36,19 @@ Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Ga
 
 ## Running Locally
 
+Copy the example environment files before running services locally:
+
+- Root/server Spring variables: `cp .env.example .env`
+- Client variables: `cp client/.env.example client/.env`
+
 ### Backend
 1. `cd server`
 2. `./gradlew bootRun`
 3. API listens on `http://localhost:8080`
 
 The backend enables CORS for `/api/**` with credentials. Allowed origins are configured via `app.cors.allowed-origins` in `application.properties` (defaults to localhost for development). For production, use `application-prod.properties` or set the environment variable.
+
+Health checks are available at `GET /api/health`.
 
 ### Frontend
 1. `cd client`
@@ -66,6 +73,8 @@ Base path: `/api/blackjack` (responses are JSON; most endpoints return the full 
 - `GET /gameover` – returns `true|false`.
 
 The controller stores `BlackjackGame` in the HTTP session, so each browser session gets its own isolated game.
+
+Health endpoint: `GET /api/health` returns service health for deploy checks.
 
 ## Testing
 - Backend: `cd server && ./gradlew test jacocoTestCoverageVerification`
