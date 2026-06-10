@@ -96,18 +96,30 @@ jobs:
           ssh lightsail "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
 
       - name: Health check (frontend + backend)
+        env:
+          APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
         run: |
+          app_domain="$(printf '%s' "${APP_DOMAIN:-}" | tr -d '[:space:]')"
+          app_domain="${app_domain#https://}"
+          app_domain="${app_domain#http://}"
+          app_domain="${app_domain%/}"
+
+          if [ -z "$app_domain" ]; then
+            echo "APP_DOMAIN secret is empty"
+            exit 1
+          fi
+
           echo "Waiting for services to start..."
           sleep 10
 
           echo "Checking frontend..."
-          curl -f https://${{ secrets.APP_DOMAIN }} || {
+          curl --fail --location --show-error --silent "https://${app_domain}/" || {
             echo "Frontend health check failed"
             exit 1
           }
 
           echo "Checking backend..."
-          curl -f https://${{ secrets.APP_DOMAIN }}/api/health || {
+          curl --fail --location --show-error --silent "https://${app_domain}/api/health" || {
             echo "Backend health check failed"
             exit 1
           }
