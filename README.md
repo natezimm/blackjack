@@ -6,6 +6,7 @@
 Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Game state lives in the server-side HTTP session (cookies) and the UI can also resume from a local snapshot.
 
 ## Features
+
 - **Bankroll + betting**: start at $1,000; chips add to the current bet before dealing.
 - **Multi-hand play**: **split** pairs into multiple hands and play them sequentially.
 - **Standard actions**: hit, stand, double down.
@@ -14,10 +15,15 @@ Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Ga
 - **Resume + stats** (client): optional resume prompt and per-browser stats (win streaks, best payout, etc.).
 
 ## Technology Stack
+
 - **Frontend**: React 18 (`react-scripts`) + Axios.
 - **Backend**: Spring Boot 3.2 (Gradle) with Spring Security and JaCoCo coverage verification.
+- **Quality**: Repo-root Prettier, Jest coverage, Gradle/JUnit coverage, and a shared `npm run quality` gate.
+
+See [`docs/architecture.md`](docs/architecture.md) for runtime boundaries, quality gates, deployment flow, and deferred architecture follow-ups.
 
 ## Security
+
 - **Security Headers**: CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy
 - **Input Validation**: Server-side validation with Jakarta Bean Validation (`@Valid`, `@Min`, `@Max`)
 - **CORS Hardening**: Environment-based configuration; production restricts to specific origins
@@ -26,10 +32,12 @@ Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Ga
 - **Prototype Pollution Protection**: Safe JSON parsing utilities
 
 ## Project Layout
+
 - `server/`: Spring Boot API (`/api/blackjack/*`), session-backed game engine, tests, and coverage gates.
 - `client/`: React UI, API wrapper (`client/src/api/blackjackApi.js`), and component tests.
 
 ## Prerequisites
+
 - Java 21 (backend toolchain).
 - Node.js 22 (see `.nvmrc`) + npm.
 - Gradle via wrapper (`server/gradlew`).
@@ -42,6 +50,7 @@ Copy the example environment files before running services locally:
 - Client variables: `cp client/.env.example client/.env`
 
 ### Backend
+
 1. `cd server`
 2. `./gradlew bootRun`
 3. API listens on `http://localhost:8080`
@@ -51,6 +60,7 @@ The backend enables CORS for `/api/**` with credentials. Allowed origins are con
 Health checks are available at `GET /api/health`.
 
 ### Frontend
+
 1. `cd client`
 2. `npm install`
 3. `npm start`
@@ -59,6 +69,7 @@ Health checks are available at `GET /api/health`.
 The client reads `REACT_APP_API_URL` (see `client/.env`) and sends requests with `withCredentials: true` so the backend session cookie is preserved.
 
 ## API Reference
+
 Base path: `/api/blackjack` (responses are JSON; most endpoints return the full `GameResponse` snapshot).
 
 - `POST /bet` – body `{ "amount": <int> }` sets the **total** bet for the next deal (only while betting is open).
@@ -77,15 +88,21 @@ The controller stores `BlackjackGame` in the HTTP session, so each browser sessi
 Health endpoint: `GET /api/health` returns service health for deploy checks.
 
 ## Testing
+
+- Full gate: `npm run quality` from the repo root.
 - Backend: `cd server && ./gradlew test jacocoTestCoverageVerification`
 - Frontend: `cd client && npm test` or `npm run test:coverage`
 
 ## Testing & Quality
-- Frontend coverage thresholds are enforced via Jest (`client/package.json`): lines ≥ 90%, statements ≥ 85%, functions ≥ 85%, branches ≥ 80%.
-- Backend coverage thresholds are enforced via JaCoCo (`server/build.gradle`): line ≥ 0.90, instruction ≥ 0.85, method ≥ 0.85, branch ≥ 0.80.
+
+- `npm run format:check` enforces the shared Prettier config.
+- Frontend coverage thresholds are enforced via Jest (`client/package.json`): lines >= 90%, statements >= 85%, functions >= 85%, branches >= 80%.
+- Backend coverage thresholds are enforced via JaCoCo (`server/build.gradle`): line >= 0.90, instruction >= 0.85, method >= 0.85, branch >= 0.80.
 
 ## Additional Resources
+
 - `server/HELP.md` contains helpful Gradle/Spring guides if you need extra reference material or want to extend the backend.
 
 ## CI / Deploy
-GitHub Actions (`.github/workflows/deploy.yml`) runs frontend + backend tests/coverage on pushes to `main`, then SSHes into Lightsail to run an external deploy script.
+
+GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. Pushes to `main` then SSH into Lightsail to run an external deploy script.

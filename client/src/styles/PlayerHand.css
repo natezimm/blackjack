@@ -1,108 +1,108 @@
 @import './Card.css';
 
 .player-hand {
-    margin: 20px 0;
-    position: relative;
+  margin: 20px 0;
+  position: relative;
 }
 
 .hand-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
 .player-hand h2,
 .dealer-hand h2 {
-    font-size: 1.8rem;
-    margin: 0;
-    color: #fff;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+  font-size: 1.8rem;
+  margin: 0;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .hand-total {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 50px;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-    font-size: 1.4rem;
-    font-weight: 700;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .hand {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    min-height: 145.2px;
-    min-width: 210px;
-    transition: min-height 0.3s ease;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 145.2px;
+  min-width: 210px;
+  transition: min-height 0.3s ease;
 }
 
 @media (max-width: 600px) {
-    .hand {
-        min-height: 116.16px;
-        min-width: 170px;
-    }
+  .hand {
+    min-height: 116.16px;
+    min-width: 170px;
+  }
 }
 
 .outcome-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-15deg);
-    z-index: 10;
-    padding: 12px 24px;
-    border: 3px solid currentColor;
-    border-radius: 12px;
-    font-size: 1.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  z-index: 10;
+  padding: 12px 24px;
+  border: 3px solid currentColor;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
 }
 
 .badge-win,
 .badge-blackjack {
-    color: #4fd1c5;
-    text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
-    border-color: #4fd1c5;
+  color: #4fd1c5;
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+  border-color: #4fd1c5;
 }
 
 .badge-loss,
 .badge-bust,
 .badge-busted {
-    color: #ff6b6b;
-    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-    border-color: #ff6b6b;
+  color: #ff6b6b;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+  border-color: #ff6b6b;
 }
 
 .badge-tie,
 .badge-push {
-    color: #f6d365;
-    text-shadow: 0 0 10px rgba(246, 211, 101, 0.5);
-    border-color: #f6d365;
+  color: #f6d365;
+  text-shadow: 0 0 10px rgba(246, 211, 101, 0.5);
+  border-color: #f6d365;
 }
 
 @keyframes stampIn {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(2) rotate(-15deg);
-    }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2) rotate(-15deg);
+  }
 
-    100% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1) rotate(-15deg);
-    }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-15deg);
+  }
 }

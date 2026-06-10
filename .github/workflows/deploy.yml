@@ -1,8 +1,10 @@
 name: CI & Deploy
 
 on:
+  pull_request:
+    branches: ['main']
   push:
-    branches: ["main"]
+    branches: ['main']
 
 jobs:
   ci:
@@ -12,23 +14,22 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # ---------- Client (React) ----------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+
+      - name: Install root quality dependencies
+        run: npm ci
 
       - name: Install frontend dependencies
         working-directory: client
         run: npm ci
 
-      - name: Frontend tests + coverage
-        working-directory: client
-        run: npm run test:coverage
-
-      # ---------- Server (Java) ----------
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -36,11 +37,11 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Backend tests + coverage
-        working-directory: server
-        run: ./gradlew test jacocoTestCoverageVerification
+      - name: Run quality gate
+        run: npm run quality
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -71,19 +72,19 @@ jobs:
 
       - name: Health check (frontend + backend)
         run: |
-          echo "⏳ Waiting for services to start..."
+          echo "Waiting for services to start..."
           sleep 10
 
-          echo "🔍 Checking frontend..."
+          echo "Checking frontend..."
           curl -f https://${{ secrets.APP_DOMAIN }} || {
-            echo "❌ Frontend health check failed"
+            echo "Frontend health check failed"
             exit 1
           }
 
-          echo "🔍 Checking backend..."
+          echo "Checking backend..."
           curl -f https://${{ secrets.APP_DOMAIN }}/api/health || {
-            echo "❌ Backend health check failed"
+            echo "Backend health check failed"
             exit 1
           }
 
-          echo "✅ Deploy health check passed"
+          echo "Deploy health check passed"

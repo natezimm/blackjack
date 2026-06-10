@@ -1,88 +1,87 @@
 .card {
-    width: 100px;
-    height: auto;
-    aspect-ratio: 500 / 726;
-    object-fit: contain;
-    display: block;
-    border-radius: 5px;
-    box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease;
-    animation: dealCard 0.5s ease-out;
+  width: 100px;
+  height: auto;
+  aspect-ratio: 500 / 726;
+  object-fit: contain;
+  display: block;
+  border-radius: 5px;
+  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+  animation: dealCard 0.5s ease-out;
 }
 
 .card:hover {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 .card-container {
-    perspective: 1000px;
-    width: 100px;
-    aspect-ratio: 500 / 726;
-    margin: 0 5px;
+  perspective: 1000px;
+  width: 100px;
+  aspect-ratio: 500 / 726;
+  margin: 0 5px;
 }
 
 .card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
 }
 
 .card-inner.no-flip-transition {
-    transition: none;
+  transition: none;
 }
 
 .card-inner.flipped {
-    transform: rotateY(180deg);
+  transform: rotateY(180deg);
 }
 
 .card-front,
 .card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: 5px;
-    box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 5px;
+  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
 }
 
 .card-front {
-    transform: rotateY(180deg);
+  transform: rotateY(180deg);
 }
 
 .card-back {
-    background-color: #fff;
+  background-color: #fff;
 }
 
 .card-front img,
 .card-back img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-    border-radius: 5px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 5px;
 }
 
 @keyframes dealCard {
-    from {
-        opacity: 0;
-        transform: translateY(-50px) scale(0.5);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.5);
+  }
 
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 600px) {
-
-    .card,
-    .card-container {
-        width: 80px;
-        height: auto;
-        aspect-ratio: 500 / 726;
-    }
+  .card,
+  .card-container {
+    width: 80px;
+    height: auto;
+    aspect-ratio: 500 / 726;
+  }
 }

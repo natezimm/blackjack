@@ -1,0 +1,19 @@
+{
+  "name": "blackjack",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "client:test:coverage": "npm run test:coverage --prefix client",
+    "client:build": "npm run build --prefix client",
+    "server:test:coverage": "cd server && ./gradlew test jacocoTestCoverageVerification",
+    "quality": "npm run format:check && npm run client:test:coverage && npm run client:build && npm run server:test:coverage"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
+  }
+}
