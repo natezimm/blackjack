@@ -57,7 +57,7 @@ Copy the example environment files before running services locally:
 
 The backend enables CORS for `/api/**` with credentials. Allowed origins are configured via `app.cors.allowed-origins` in `application.properties` (defaults to localhost for development). For production, use `application-prod.properties` or set the environment variable.
 
-Health checks are available at `GET /api/health`.
+Health checks are available at `GET /api/health`; production deploy checks use the routed alias `GET /api/blackjack/health`.
 
 ### Frontend
 
@@ -85,7 +85,7 @@ Base path: `/api/blackjack` (responses are JSON; most endpoints return the full 
 
 The controller stores `BlackjackGame` in the HTTP session, so each browser session gets its own isolated game.
 
-Health endpoint: `GET /api/health` returns service health for deploy checks.
+Health endpoint: `GET /api/health` returns service health internally, and `GET /api/blackjack/health` exposes the same payload through the production API route.
 
 ## Testing
 

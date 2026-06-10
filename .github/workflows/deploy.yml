@@ -113,14 +113,21 @@ jobs:
           sleep 10
 
           echo "Checking frontend..."
-          curl --fail --location --show-error --silent "https://${app_domain}/" || {
+          curl --fail --location --show-error --silent --output /dev/null "https://${app_domain}/" || {
             echo "Frontend health check failed"
             exit 1
           }
 
           echo "Checking backend..."
-          curl --fail --location --show-error --silent "https://${app_domain}/api/health" || {
+          backend_response="$(curl --fail --location --show-error --silent "https://${app_domain}/api/blackjack/health")" || {
             echo "Backend health check failed"
+            exit 1
+          }
+
+          if ! printf '%s' "$backend_response" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"UP"' ||
+             ! printf '%s' "$backend_response" | grep -Eq '"service"[[:space:]]*:[[:space:]]*"blackjack"'; then
+            echo "Backend health check returned an unexpected response"
+            printf '%s\n' "$backend_response"
             exit 1
           }
 

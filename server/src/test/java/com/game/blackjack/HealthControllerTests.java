@@ -24,4 +24,12 @@ class HealthControllerTests {
             .andExpect(jsonPath("$.status").value("UP"))
             .andExpect(jsonPath("$.service").value("blackjack"));
     }
+
+    @Test
+    void health_returnsUpStatusFromPublicApiRoute() throws Exception {
+        mockMvc.perform(get("/api/blackjack/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.service").value("blackjack"));
+    }
 }
