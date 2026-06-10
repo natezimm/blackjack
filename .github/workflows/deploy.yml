@@ -129,6 +129,6 @@ jobs:
             echo "Backend health check returned an unexpected response"
             printf '%s\n' "$backend_response"
             exit 1
-          }
+          fi
 
           echo "Deploy health check passed"
