@@ -68,6 +68,31 @@ jobs:
 
       - name: Deploy to Lightsail
         run: |
+          ssh lightsail "bash -s" <<'EOF'
+          set -euo pipefail
+
+          repo_dir=$(
+            find "$HOME" -maxdepth 4 -type d -name .git -print 2>/dev/null |
+              while IFS= read -r git_dir; do
+                work_tree=${git_dir%/.git}
+                remote_url=$(git -C "$work_tree" config --get remote.origin.url 2>/dev/null || true)
+
+                case "$remote_url" in
+                  *natezimm/blackjack*)
+                    printf '%s\n' "$work_tree"
+                    break
+                    ;;
+                esac
+              done
+          )
+
+          if [ -n "$repo_dir" ] &&
+             [ -e "$repo_dir/package-lock.json" ] &&
+             ! git -C "$repo_dir" ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            rm -f "$repo_dir/package-lock.json"
+          fi
+          EOF
+
           ssh lightsail "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
 
       - name: Health check (frontend + backend)
