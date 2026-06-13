@@ -92,10 +92,12 @@ Health endpoint: `GET /api/health` returns service health internally, and `GET /
 - Full gate: `npm run quality` from the repo root.
 - Backend: `cd server && ./gradlew test jacocoTestCoverageVerification`
 - Frontend: `cd client && npm test` or `npm run test:coverage`
+- Browser smoke tests: `npm run test:e2e` from the repo root.
 
 ## Testing & Quality
 
 - `npm run format:check` enforces the shared Prettier config.
+- Playwright covers the built React client across desktop and mobile Chromium viewports with Blackjack API responses mocked at the browser boundary.
 - Frontend coverage thresholds are enforced via Jest (`client/package.json`): lines >= 90%, statements >= 85%, functions >= 85%, branches >= 80%.
 - Backend coverage thresholds are enforced via JaCoCo (`server/build.gradle`): line >= 0.90, instruction >= 0.85, method >= 0.85, branch >= 0.80.
 

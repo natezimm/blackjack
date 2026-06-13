@@ -37,6 +37,9 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
       - name: Run quality gate
         run: npm run quality
 

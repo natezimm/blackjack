@@ -9,6 +9,8 @@ server/bin/
 client/build/
 coverage/
 client/coverage/
+playwright-report/
+test-results/
 
 # Local environment files
 .env
