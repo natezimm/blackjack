@@ -38,7 +38,6 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
         ))}
         {isPlaceholder && (
           <div className="empty-hand" aria-live="polite">
-            <span className="empty-hand-mark">21</span>
             <p>Choose your wager, then deal.</p>
           </div>
         )}
