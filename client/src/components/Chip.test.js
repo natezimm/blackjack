@@ -15,6 +15,9 @@ describe('Chip', () => {
       />
     );
 
+    expect(
+      screen.getByRole('button', { name: 'Add $25 to wager' })
+    ).toBeEnabled();
     await userEvent.click(screen.getByAltText('$25 chip'));
 
     expect(handleClick).toHaveBeenCalledWith(25);
@@ -32,6 +35,9 @@ describe('Chip', () => {
       />
     );
 
+    expect(
+      screen.getByRole('button', { name: 'Add $10 to wager' })
+    ).toBeDisabled();
     await userEvent.click(screen.getByAltText('$10 chip'));
 
     expect(handleClick).not.toHaveBeenCalled();

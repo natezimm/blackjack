@@ -129,6 +129,30 @@ describe('BlackjackGame', () => {
     );
   });
 
+  it('clears the current wager before dealing', async () => {
+    await act(async () => {
+      render(<BlackjackGame initialSkipAnimations={true} />);
+    });
+
+    await waitFor(() => expect(getState).toHaveBeenCalled());
+
+    await act(async () => {
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Add $25 to wager' })
+      );
+    });
+
+    await act(async () => {
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Clear wager' })
+      );
+    });
+
+    expect(placeBet).toHaveBeenLastCalledWith(0);
+    const betRow = screen.getByText('Current Bet').closest('.betting-summary');
+    expect(within(betRow).getByText('$0')).toBeInTheDocument();
+  });
+
   it('blocks bets that exceed the available balance and shows a message', async () => {
     getState.mockResolvedValue({ data: { balance: 5 } });
 
@@ -160,22 +184,22 @@ describe('BlackjackGame', () => {
 
     const muteButton = screen.getByTitle('Mute sounds');
     expect(muteButton).toBeInTheDocument();
-    expect(muteButton).toHaveTextContent('🔊');
+    expect(muteButton).toHaveAccessibleName('Mute sounds');
 
     await act(async () => {
       await userEvent.click(muteButton);
     });
 
-    expect(muteButton).toHaveTextContent('🔇');
     expect(screen.getByTitle('Unmute sounds')).toBeInTheDocument();
+    expect(muteButton).toHaveAccessibleName('Unmute sounds');
     expect(localStorage.getItem('blackjack_muted')).toBe('true');
 
     await act(async () => {
       await userEvent.click(muteButton);
     });
 
-    expect(muteButton).toHaveTextContent('🔊');
     expect(screen.getByTitle('Mute sounds')).toBeInTheDocument();
+    expect(muteButton).toHaveAccessibleName('Mute sounds');
     expect(localStorage.getItem('blackjack_muted')).toBe('false');
   });
 

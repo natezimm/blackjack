@@ -27,7 +27,7 @@ const Toast = ({ message, duration = 3000, onClose }) => {
   if (!message) return null;
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" role="status" aria-live="polite">
       <div className={`toast ${isClosing ? 'toast-closing' : ''}`}>
         {message}
       </div>

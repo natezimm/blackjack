@@ -87,6 +87,42 @@ const chip100Images = {
   smallAvif: chip100SmallAvif,
 };
 
+const InterfaceIcon = ({ name }) => {
+  const paths = {
+    sound: (
+      <>
+        <path className="icon-fill" d="M4 10v4h3l4 4V6L7 10H4Z" />
+        <path d="M15 9.5a4 4 0 0 1 0 5" />
+        <path d="M17.5 7a7.5 7.5 0 0 1 0 10" />
+      </>
+    ),
+    muted: (
+      <>
+        <path className="icon-fill" d="M4 10v4h3l4 4V6L7 10H4Z" />
+        <path d="m16 10 5 5m0-5-5 5" />
+      </>
+    ),
+    stats: (
+      <>
+        <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" />
+      </>
+    ),
+    settings: (
+      <>
+        <path d="M4 7h10m4 0h2M4 17h2m4 0h10" />
+        <circle cx="16" cy="7" r="2" />
+        <circle cx="8" cy="17" r="2" />
+      </>
+    ),
+  };
+
+  return (
+    <svg className="interface-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {paths[name]}
+    </svg>
+  );
+};
+
 export { calculateTotal };
 
 const STORAGE_KEYS = {
@@ -772,6 +808,17 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     );
   };
 
+  const handleClearBet = async () => {
+    if (!bettingOpen || currentBet === 0) return;
+    playClickSound();
+    try {
+      await placeBet(0);
+      setCurrentBet(0);
+    } catch (error) {
+      console.error('Error clearing bet:', error);
+    }
+  };
+
   const formatDollar = (value) => `$${(value || 0).toLocaleString()}`;
 
   const deckLabel = numberOfDecks === 1 ? '1 Deck' : `${numberOfDecks} Decks`;
@@ -782,7 +829,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     deckSize !== null ? ` • ${deckSize} cards remain` : '';
   const renderStatsContent = () => (
     <>
-      <h2 className="panel-title stats-title">Stats</h2>
+      <h2 id="stats-dialog-title" className="panel-title stats-title">
+        Stats
+      </h2>
       <div className="stat-row">
         <span>Highest Bankroll</span>
         <strong>{formatDollar(stats.highestBankroll)}</strong>
@@ -844,7 +893,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
           title={muted ? 'Unmute sounds' : 'Mute sounds'}
         >
-          {muted ? '🔇' : '🔊'}
+          <InterfaceIcon name={muted ? 'muted' : 'sound'} />
         </button>
 
         <button
@@ -856,7 +905,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           aria-label="Show stats"
           title="Show stats"
         >
-          <i className="fas fa-chart-line" aria-hidden="true"></i>
+          <InterfaceIcon name="stats" />
         </button>
 
         <button
@@ -869,14 +918,19 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           aria-label="Game settings"
           title="Game settings"
         >
-          ⚙️
+          <InterfaceIcon name="settings" />
         </button>
       </div>
 
       {showResumePrompt && (
         <div className="resume-modal-overlay">
-          <div className="resume-modal">
-            <h2>Resume your game?</h2>
+          <div
+            className="resume-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resume-dialog-title"
+          >
+            <h2 id="resume-dialog-title">Resume your game?</h2>
             <p>
               We saved your last game. Continue where you left off or start a
               new game.
@@ -893,9 +947,16 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
       {showSettings && (
         <div className="settings-modal-overlay">
-          <div className="settings-modal-content">
+          <div
+            className="settings-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-dialog-title"
+          >
             <div className="modal-header">
-              <h2 className="modal-title">Game Settings</h2>
+              <h2 id="settings-dialog-title" className="modal-title">
+                Game Settings
+              </h2>
             </div>
             <div className="settings-group">
               <div className="group-label">
@@ -987,6 +1048,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           <div
             className="settings-modal-content"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stats-dialog-title"
           >
             {renderStatsContent()}
             <button
@@ -1003,7 +1067,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       )}
 
       <header className="table-header">
-        <h1>Blackjack</h1>
+        <span className="brand-kicker">Private table / No. 21</span>
+        <h1 aria-label="Blackjack">
+          <span>Black</span>
+          <span>jack</span>
+        </h1>
         <p className="table-info">
           {deckLabel} • {dealerRuleLabel}
           {deckRemainingLabel}
@@ -1012,7 +1080,15 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
       <div className="table-layout">
         <aside className="betting-panel">
-          <h2 className="panel-title">Bank & Bets</h2>
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">At the table</span>
+              <h2 className="panel-title">Bank & Wager</h2>
+            </div>
+            <span className={`table-status ${bettingOpen ? 'is-open' : ''}`}>
+              {bettingOpen ? 'Bets open' : 'In play'}
+            </span>
+          </div>
           <div className="betting-summary">
             <span>Balance</span>
             <strong>{`$${balance}`}</strong>
@@ -1020,6 +1096,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           <div className="betting-summary">
             <span>Current Bet</span>
             <strong>{`$${currentBet}`}</strong>
+          </div>
+          <div className="chip-picker-heading">
+            <span>Select a chip</span>
           </div>
           <div className="chip-row">
             <Chip
@@ -1047,9 +1126,21 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               onClick={handleBet}
             />
           </div>
+          <button
+            type="button"
+            className="clear-bet"
+            onClick={handleClearBet}
+            disabled={!bettingOpen || currentBet === 0}
+          >
+            Clear wager
+          </button>
         </aside>
 
         <div className="table-surface">
+          <div className="table-watermark" aria-hidden="true">
+            <span>Blackjack pays 3 to 2</span>
+            <small>Dealer stands on 17</small>
+          </div>
           <DealerHand
             hand={displayedDealerHand}
             reveal={revealDealerCard}

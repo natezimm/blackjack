@@ -2,12 +2,7 @@ import React from 'react';
 import '../styles/PlayerHand.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
 
-const PlayerHand = ({
-  hand,
-  isActive,
-  showBet = false,
-  isPlaceholder = false,
-}) => {
+const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
   const cards = hand.cards || hand;
   const bet = hand.bet || 0;
   const outcome = hand.outcome;
@@ -16,7 +11,7 @@ const PlayerHand = ({
 
   return (
     <div
-      className={`player-hand ${isActive || isPlaceholder ? 'active-hand' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}
+      className={`player-hand ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}
     >
       {(outcome || hand.isBusted) && (
         <div
@@ -26,6 +21,7 @@ const PlayerHand = ({
         </div>
       )}
       <div className="hand-header">
+        <h2>Your Hand</h2>
         {showBet && <span className="hand-bet">Bet: ${bet}</span>}
         {(cards.length > 0 || isPlaceholder) && (
           <span className="hand-total">{cards.length > 0 ? total : 0}</span>
@@ -40,6 +36,12 @@ const PlayerHand = ({
             className="card"
           />
         ))}
+        {isPlaceholder && (
+          <div className="empty-hand" aria-live="polite">
+            <span className="empty-hand-mark">21</span>
+            <p>Choose your wager, then deal.</p>
+          </div>
+        )}
       </div>
     </div>
   );

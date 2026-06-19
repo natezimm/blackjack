@@ -6,9 +6,12 @@ const Chip = ({ amount, images, disabled, onClick }) => {
   const fallbackSrc = hasImages ? images.png : images || '';
 
   return (
-    <div
+    <button
+      type="button"
       className={`chip-img ${disabled ? 'disabled' : ''}`}
-      onClick={() => !disabled && onClick(amount)}
+      onClick={() => onClick(amount)}
+      disabled={disabled}
+      aria-label={`Add $${amount} to wager`}
     >
       {hasImages ? (
         <picture>
@@ -42,7 +45,7 @@ const Chip = ({ amount, images, disabled, onClick }) => {
       ) : (
         <img src={fallbackSrc} alt={`$${amount} chip`} />
       )}
-    </div>
+    </button>
   );
 };
 
