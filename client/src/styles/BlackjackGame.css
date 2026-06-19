@@ -367,7 +367,7 @@
 .table-watermark {
   position: absolute;
   z-index: -1;
-  top: 46%;
+  top: 42%;
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -381,12 +381,6 @@
   transform: translate(-50%, -50%);
   white-space: nowrap;
   pointer-events: none;
-}
-
-.table-watermark small {
-  font-family: inherit;
-  font-size: 0.58em;
-  letter-spacing: 0.2em;
 }
 
 .dealer-hand {
@@ -453,6 +447,10 @@
   position: relative;
   border: 1px solid transparent;
   border-radius: 18px;
+}
+
+.player-hand .hand-header {
+  margin: 13px 0 0;
 }
 
 .empty-hand {
@@ -1090,7 +1088,7 @@
     min-height: 118px;
   }
   .table-watermark {
-    top: 45%;
+    top: 40%;
     font-size: 0.8rem;
   }
 

@@ -1139,7 +1139,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         <div className="table-surface">
           <div className="table-watermark" aria-hidden="true">
             <span>Blackjack pays 3 to 2</span>
-            <small>Dealer stands on 17</small>
           </div>
           <DealerHand
             hand={displayedDealerHand}

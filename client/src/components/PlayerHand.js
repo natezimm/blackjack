@@ -20,13 +20,6 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
           {hand.isBusted ? 'BUSTED' : outcome}
         </div>
       )}
-      <div className="hand-header">
-        <h2>Your Hand</h2>
-        {showBet && <span className="hand-bet">Bet: ${bet}</span>}
-        {(cards.length > 0 || isPlaceholder) && (
-          <span className="hand-total">{cards.length > 0 ? total : 0}</span>
-        )}
-      </div>
       <div className="hand">
         {cards.map((card, index) => (
           <img
@@ -40,6 +33,13 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
           <div className="empty-hand" aria-live="polite">
             <p>Choose your wager, then deal.</p>
           </div>
+        )}
+      </div>
+      <div className="hand-header">
+        <h2>Your Hand</h2>
+        {showBet && <span className="hand-bet">Bet: ${bet}</span>}
+        {(cards.length > 0 || isPlaceholder) && (
+          <span className="hand-total">{cards.length > 0 ? total : 0}</span>
         )}
       </div>
     </div>
