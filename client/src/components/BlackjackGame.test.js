@@ -203,6 +203,62 @@ describe('BlackjackGame', () => {
     expect(localStorage.getItem('blackjack_muted')).toBe('false');
   });
 
+  it('toggles basic strategy suggestions and highlights the recommended action', async () => {
+    startGame.mockResolvedValue({
+      data: {
+        playerHands: [
+          {
+            cards: [
+              { value: '6', suit: 'Hearts' },
+              { value: '5', suit: 'Spades' },
+            ],
+            isTurn: true,
+            bet: 10,
+          },
+        ],
+        dealerHand: [
+          { value: '4', suit: 'Clubs' },
+          { value: '10', suit: 'Spades' },
+        ],
+        currentBet: 10,
+        balance: 990,
+        bettingOpen: false,
+        gameOver: false,
+      },
+    });
+
+    await act(async () => {
+      render(<BlackjackGame initialSkipAnimations={true} />);
+    });
+
+    await waitFor(() => expect(getState).toHaveBeenCalled());
+
+    await act(async () => {
+      await userEvent.click(screen.getByAltText('$10 chip'));
+    });
+
+    await act(async () => {
+      await userEvent.click(screen.getByText('DEAL'));
+    });
+
+    await advanceTimers(5000);
+
+    await act(async () => {
+      await userEvent.click(screen.getByText('Basic strategy'));
+    });
+
+    expect(localStorage.getItem('blackjackBasicStrategyHints')).toBe('true');
+
+    const suggestion = screen.getByRole('status');
+    expect(within(suggestion).getByText('DOUBLE')).toBeInTheDocument();
+    expect(
+      within(suggestion).getByText('Hard 11 vs dealer 10')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'DOUBLE' })).toHaveClass(
+      'recommended-action'
+    );
+  });
+
   it('starts a new game when Deal button is clicked', async () => {
     await act(async () => {
       render(<BlackjackGame initialSkipAnimations={true} />);

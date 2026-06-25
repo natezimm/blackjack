@@ -50,6 +50,12 @@ import clickSoundAsset from '../assets/sounds/click.mp3';
 import '../styles/BlackjackGame.css';
 import { MESSAGES } from '../constants/messages';
 import { calculateTotal } from '../utils/cardUtils';
+import {
+  getBasicStrategyRecommendation,
+  getInsuranceStrategyRecommendation,
+  getStrategyButtonClass,
+  STRATEGY_ACTIONS,
+} from '../utils/basicStrategy';
 
 const chip5Images = {
   png: chip5Png,
@@ -128,6 +134,7 @@ export { calculateTotal };
 const STORAGE_KEYS = {
   stats: 'blackjackStats',
   gameState: 'blackjackGameState',
+  strategyHints: 'blackjackBasicStrategyHints',
 };
 
 export const safePersistStats = (statsToSave, storage = localStorage) => {
@@ -329,6 +336,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const [insuranceResolved, setInsuranceResolved] = useState(true);
   const [insuranceOutcome, setInsuranceOutcome] = useState(null);
   const [insuranceAmount, setInsuranceAmount] = useState(0);
+  const [showBasicStrategy, setShowBasicStrategy] = useState(() => {
+    return localStorage.getItem(STORAGE_KEYS.strategyHints) === 'true';
+  });
 
   const [isDealing, setIsDealing] = useState(false);
   const [muted, setMuted] = useState(() => {
@@ -793,6 +803,15 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     localStorage.setItem('blackjack_muted', newMuted);
   };
 
+  const toggleBasicStrategy = () => {
+    playClickSound();
+    setShowBasicStrategy((prev) => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_KEYS.strategyHints, `${next}`);
+      return next;
+    });
+  };
+
   const handleBet = async (amount) => {
     await handleBetLogic(
       {
@@ -864,12 +883,49 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     calculateTotal([activeHand.cards[0]]) ===
       calculateTotal([activeHand.cards[1]]) &&
     balance >= activeHand.bet;
+  const canDouble =
+    !gameOver &&
+    activeHand &&
+    activeHand.cards.length === 2 &&
+    balance >= activeHand.bet;
   const insuranceDecisionPending =
     !bettingOpen && !gameOver && insuranceOffered && !insuranceResolved;
   const maxInsurance = Math.max(
     0,
     Math.min(Math.floor(currentBet / 2), balance)
   );
+  const handStrategyRecommendation =
+    showBasicStrategy && !bettingOpen && !gameOver && activeHand
+      ? getBasicStrategyRecommendation({
+          playerHand: activeHand,
+          dealerHand,
+          canDouble,
+          canSplit,
+          dealerHitsOnSoft17,
+        })
+      : null;
+  const insuranceStrategyRecommendation = showBasicStrategy
+    ? getInsuranceStrategyRecommendation(insuranceDecisionPending)
+    : null;
+  const strategyRecommendation =
+    insuranceStrategyRecommendation || handStrategyRecommendation;
+  const getRecommendedActionClass = (action) =>
+    getStrategyButtonClass(strategyRecommendation, action);
+  const renderStrategyHint = (recommendation, className = '') => {
+    if (!recommendation) return null;
+
+    return (
+      <div
+        className={`strategy-hint ${className}`.trim()}
+        role="status"
+        aria-live="polite"
+      >
+        <span>Basic strategy</span>
+        <strong>{recommendation.action.replace('_', ' ')}</strong>
+        <small>{recommendation.summary}</small>
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (!insuranceDecisionPending) return;
@@ -1134,6 +1190,21 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           >
             Clear wager
           </button>
+          <label
+            className={`strategy-toggle ${showBasicStrategy ? 'active' : ''}`}
+          >
+            <span>Basic strategy</span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={showBasicStrategy}
+              onChange={toggleBasicStrategy}
+              aria-label="Show basic strategy suggestions"
+            />
+            <span className="strategy-toggle-track" aria-hidden="true">
+              <span className="strategy-toggle-thumb" />
+            </span>
+          </label>
         </aside>
 
         <div className="table-surface">
@@ -1168,6 +1239,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
               {insuranceDecisionPending && (
                 <div className="insurance-bar-controls">
+                  {renderStrategyHint(
+                    insuranceStrategyRecommendation,
+                    'strategy-hint-inline'
+                  )}
                   <input
                     className="insurance-input"
                     type="number"
@@ -1193,7 +1268,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     INSURE
                   </button>
                   <button
-                    className="action-btn secondary-btn"
+                    className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.noInsurance)}`.trim()}
                     onClick={() => handleResolveInsurance(0)}
                     disabled={isAnimating}
                   >
@@ -1247,9 +1322,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                   className="play-controls"
                   aria-hidden={insuranceDecisionPending}
                 >
+                  {renderStrategyHint(handStrategyRecommendation)}
                   <div className="primary-actions">
                     <button
-                      className="action-btn hit-btn"
+                      className={`action-btn hit-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.hit)}`.trim()}
                       onClick={handleHit}
                       disabled={
                         insuranceDecisionPending || !activeHand || isAnimating
@@ -1258,7 +1334,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                       HIT
                     </button>
                     <button
-                      className="action-btn stand-btn"
+                      className={`action-btn stand-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.stand)}`.trim()}
                       onClick={handleStand}
                       disabled={
                         insuranceDecisionPending || !activeHand || isAnimating
@@ -1271,7 +1347,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                   <div className="secondary-actions">
                     {canSplit && (
                       <button
-                        className="action-btn secondary-btn"
+                        className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
                         onClick={handleSplit}
                         disabled={insuranceDecisionPending || isAnimating}
                       >
@@ -1281,7 +1357,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
                     {activeHand && activeHand.cards.length === 2 && (
                       <button
-                        className="action-btn secondary-btn"
+                        className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
                         onClick={handleDoubleDown}
                         disabled={
                           insuranceDecisionPending ||

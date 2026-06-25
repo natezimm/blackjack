@@ -311,6 +311,71 @@
   cursor: not-allowed;
 }
 
+.strategy-toggle {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.strategy-toggle.active {
+  color: var(--gold-light);
+  border-color: rgba(211, 173, 98, 0.44);
+}
+
+.strategy-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.strategy-toggle-track {
+  width: 38px;
+  height: 22px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(245, 239, 226, 0.16);
+  border-radius: 999px;
+  background: rgba(5, 17, 12, 0.78);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.strategy-toggle-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.strategy-toggle.active .strategy-toggle-track {
+  border-color: rgba(239, 214, 150, 0.46);
+  background: rgba(211, 173, 98, 0.18);
+}
+
+.strategy-toggle.active .strategy-toggle-thumb {
+  background: var(--gold-light);
+  transform: translateX(16px);
+}
+
 .chip-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -499,6 +564,7 @@
 .play-controls {
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .primary-actions,
@@ -539,6 +605,58 @@
 .action-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.recommended-action {
+  border-color: rgba(239, 214, 150, 0.8);
+  box-shadow:
+    0 0 0 3px rgba(239, 214, 150, 0.16),
+    0 16px 30px rgba(0, 0, 0, 0.28);
+}
+
+.strategy-hint {
+  width: min(410px, 100%);
+  min-height: 52px;
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 3px 10px;
+  border: 1px solid rgba(239, 214, 150, 0.26);
+  border-radius: 10px;
+  color: var(--muted);
+  background: rgba(4, 16, 11, 0.78);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+
+.strategy-hint span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.strategy-hint strong {
+  color: var(--gold-light);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.strategy-hint small {
+  grid-column: 1 / -1;
+  color: rgba(245, 239, 226, 0.58);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.strategy-hint-inline {
+  flex-basis: 100%;
+  margin-bottom: 2px;
 }
 
 .deal-btn {
@@ -979,6 +1097,11 @@
     white-space: nowrap;
   }
 
+  .strategy-toggle {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
   .action-bar-container {
     position: fixed;
     z-index: 500;
@@ -998,6 +1121,12 @@
 
   .play-controls {
     flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .strategy-hint {
+    flex: 1 1 190px;
+    max-width: 260px;
   }
 }
 
@@ -1069,6 +1198,10 @@
     grid-column: 1 / -1;
   }
 
+  .strategy-toggle {
+    grid-column: 1 / -1;
+  }
+
   .table-surface {
     min-height: 525px;
     padding: 28px 10px 16px;
@@ -1107,7 +1240,7 @@
   }
 
   .action-bar-container {
-    min-height: 82px;
+    min-height: 102px;
     padding-block: 10px;
   }
   .play-controls {
@@ -1127,6 +1260,21 @@
   }
   .deal-btn {
     min-width: 180px;
+  }
+  .strategy-hint {
+    flex-basis: 100%;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 6px 10px;
+    grid-template-columns: auto auto 1fr;
+    justify-content: center;
+    text-align: left;
+  }
+  .strategy-hint small {
+    grid-column: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .insurance-bar-header {
