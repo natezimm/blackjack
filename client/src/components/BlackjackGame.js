@@ -141,6 +141,9 @@ const STORAGE_KEYS = {
 
 const MAX_HAND_HISTORY = 50;
 const RECENT_HAND_HISTORY_COUNT = 5;
+export const ACTION_RESOLUTION_DELAY_MS = 1000;
+export const DEALER_CARD_REVEAL_DELAY_MS = 1500;
+export const OUTCOME_REVEAL_DELAY_MS = 1200;
 
 const HISTORY_ACTIONS = {
   hit: 'Hit',
@@ -710,13 +713,13 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           dealerHand.slice(0, displayedDealerHand.length + 1)
         );
         playCardSound();
-      }, 1000);
+      }, DEALER_CARD_REVEAL_DELAY_MS);
       return () => clearTimeout(timer);
     } else {
       setIsAnimating(false);
       const outcomeTimer = setTimeout(() => {
         setOutcomeVisible(true);
-      }, 500);
+      }, OUTCOME_REVEAL_DELAY_MS);
       return () => clearTimeout(outcomeTimer);
     }
   }, [
@@ -953,7 +956,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.hit);
         setIsAnimating(false);
-      }, 750);
+      }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error hitting:', error);
       setIsAnimating(false);
@@ -968,7 +971,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       setTimeout(() => {
         updateGameState(response.data, HISTORY_ACTIONS.stand);
         setIsAnimating(false);
-      }, 750);
+      }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error standing:', error);
       setIsAnimating(false);
@@ -985,7 +988,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.doubleDown);
         setIsAnimating(false);
-      }, 750);
+      }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error doubling down:', error);
       setIsAnimating(false);
@@ -1005,7 +1008,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.split);
         setIsAnimating(false);
-      }, 750);
+      }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error splitting:', error);
       setIsAnimating(false);
@@ -1026,7 +1029,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           amount > 0 ? HISTORY_ACTIONS.insurance : HISTORY_ACTIONS.noInsurance
         );
         setIsAnimating(false);
-      }, 750);
+      }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error resolving insurance:', error);
       setIsAnimating(false);

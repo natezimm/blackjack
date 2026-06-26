@@ -2,6 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import userEvent from '@testing-library/user-event';
 import BlackjackGame, {
+  ACTION_RESOLUTION_DELAY_MS,
+  DEALER_CARD_REVEAL_DELAY_MS,
+  OUTCOME_REVEAL_DELAY_MS,
   calculateTotal,
   buildHandHistoryEntry,
   createDeckCountChangeHandler,
@@ -125,6 +128,58 @@ describe('BlackjackGame', () => {
     expect(
       within(graph).getByText('No completed hands yet.')
     ).toBeInTheDocument();
+  });
+
+  it('delays outcome badges until dealer reveal animation completes', async () => {
+    getState.mockResolvedValue({
+      data: {
+        playerHands: [
+          {
+            cards: [
+              { value: '10', suit: 'Hearts' },
+              { value: 'Q', suit: 'Spades' },
+            ],
+            isTurn: false,
+            bet: 25,
+            outcome: 'WIN',
+          },
+        ],
+        dealerHand: [
+          { value: '9', suit: 'Clubs' },
+          { value: '5', suit: 'Diamonds' },
+          { value: '6', suit: 'Spades' },
+        ],
+        balance: 1050,
+        currentBet: 0,
+        bettingOpen: true,
+        gameOver: true,
+      },
+    });
+
+    await act(async () => {
+      render(<BlackjackGame />);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(/Resume your game/i)).toBeInTheDocument()
+    );
+
+    await act(async () => {
+      await userEvent.click(screen.getByText('Resume'));
+    });
+
+    expect(screen.queryByText('WIN')).not.toBeInTheDocument();
+
+    for (let cardIndex = 0; cardIndex < 3; cardIndex += 1) {
+      await advanceTimers(DEALER_CARD_REVEAL_DELAY_MS);
+      expect(screen.queryByText('WIN')).not.toBeInTheDocument();
+    }
+
+    await advanceTimers(OUTCOME_REVEAL_DELAY_MS - 1);
+    expect(screen.queryByText('WIN')).not.toBeInTheDocument();
+
+    await advanceTimers(1);
+    await waitFor(() => expect(screen.getByText('WIN')).toBeInTheDocument());
   });
 
   it('places a bet through the API and updates the current bet display', async () => {
@@ -1169,6 +1224,7 @@ describe('BlackjackGame', () => {
     });
 
     await waitFor(() => expect(split).toHaveBeenCalled());
+    await advanceTimers(ACTION_RESOLUTION_DELAY_MS);
 
     await waitFor(() => {
       const betElements = screen.getAllByText('Bet: $10');
