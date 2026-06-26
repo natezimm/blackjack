@@ -87,6 +87,9 @@ test.describe('blackjack client', () => {
     ).toBeVisible();
     await expect(page.locator('.betting-panel')).toBeVisible();
     await expect(page.getByText('Balance')).toBeVisible();
+    await expect(
+      page.locator('.bankroll-graph').getByText('No completed hands yet.')
+    ).toBeVisible();
     await expect(page.getByAltText('$25 chip')).toBeVisible();
     await expect(page.getByRole('button', { name: 'DEAL' })).toBeDisabled();
   });

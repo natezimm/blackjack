@@ -280,6 +280,194 @@
   letter-spacing: -0.03em;
 }
 
+.bankroll-graph {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(245, 239, 226, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.bankroll-graph-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bankroll-graph-kicker {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.bankroll-graph-title {
+  margin: 2px 0 0;
+  color: var(--cream);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.08rem;
+  font-weight: 400;
+}
+
+.bankroll-graph-header strong {
+  color: var(--gold-light);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.18rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.bankroll-range-controls {
+  min-height: 31px;
+  margin-top: 11px;
+  padding: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  border: 1px solid rgba(245, 239, 226, 0.1);
+  border-radius: 8px;
+  background: rgba(5, 17, 12, 0.62);
+}
+
+.bankroll-range-controls button {
+  flex: 1 1 94px;
+  min-width: 0;
+  min-height: 24px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 6px;
+  color: rgba(245, 239, 226, 0.58);
+  background: transparent;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.bankroll-range-controls button.is-active {
+  color: var(--ink-950);
+  background: var(--gold-light);
+}
+
+.bankroll-range-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.bankroll-chart {
+  width: 100%;
+  height: auto;
+  margin-top: 9px;
+  display: block;
+  overflow: visible;
+}
+
+.bankroll-grid-line {
+  stroke: rgba(245, 239, 226, 0.1);
+  stroke-width: 1;
+}
+
+.bankroll-axis-line {
+  stroke: rgba(245, 239, 226, 0.18);
+  stroke-width: 1;
+}
+
+.bankroll-axis-label {
+  fill: rgba(245, 239, 226, 0.56);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.bankroll-baseline {
+  stroke: rgba(239, 214, 150, 0.38);
+  stroke-dasharray: 3 4;
+  stroke-width: 1;
+}
+
+.bankroll-area {
+  fill: rgba(121, 184, 146, 0.14);
+}
+
+.bankroll-line {
+  fill: none;
+  stroke: var(--success);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.bankroll-point {
+  fill: rgba(245, 239, 226, 0.9);
+  stroke: rgba(6, 29, 20, 0.9);
+  stroke-width: 1.5;
+}
+
+.bankroll-point.is-latest {
+  fill: var(--gold-light);
+}
+
+.bankroll-graph.is-down .bankroll-area {
+  fill: rgba(215, 123, 114, 0.13);
+}
+
+.bankroll-graph.is-down .bankroll-line {
+  stroke: var(--danger);
+}
+
+.bankroll-graph.is-flat .bankroll-area {
+  fill: rgba(239, 214, 150, 0.11);
+}
+
+.bankroll-graph.is-flat .bankroll-line {
+  stroke: var(--gold);
+}
+
+.bankroll-range-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+  margin-top: 2px;
+  color: rgba(245, 239, 226, 0.58);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.bankroll-range-summary strong {
+  color: var(--gold-light);
+  font-size: 0.62rem;
+  letter-spacing: 0;
+}
+
+.bankroll-graph.is-up .bankroll-range-summary strong {
+  color: #9fd1b0;
+}
+
+.bankroll-graph.is-down .bankroll-range-summary strong {
+  color: #e39a93;
+}
+
+.bankroll-empty {
+  margin: 9px 0 0;
+  color: rgba(245, 239, 226, 0.48);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .chip-picker-heading {
   display: flex;
   align-items: center;
@@ -1212,6 +1400,12 @@
   .betting-summary strong {
     font-size: 1.15rem;
   }
+
+  .bankroll-graph {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
   .chip-picker-heading {
     display: none;
   }
@@ -1341,6 +1535,10 @@
   }
 
   .strategy-toggle {
+    grid-column: 1 / -1;
+  }
+
+  .bankroll-graph {
     grid-column: 1 / -1;
   }
 

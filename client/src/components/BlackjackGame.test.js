@@ -113,6 +113,20 @@ describe('BlackjackGame', () => {
     expect(calculateTotal(hand)).toBe(30);
   });
 
+  it('shows the bankroll graph empty state before completed hands', async () => {
+    await act(async () => {
+      render(<BlackjackGame initialSkipAnimations={true} />);
+    });
+
+    await waitFor(() => expect(getState).toHaveBeenCalled());
+
+    const graph = screen.getByRole('region', { name: 'Trend' });
+    expect(graph).toBeInTheDocument();
+    expect(
+      within(graph).getByText('No completed hands yet.')
+    ).toBeInTheDocument();
+  });
+
   it('places a bet through the API and updates the current bet display', async () => {
     await act(async () => {
       render(<BlackjackGame initialSkipAnimations={true} />);
@@ -1219,9 +1233,46 @@ describe('BlackjackGame', () => {
           { cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 },
         ],
         dealerHand: [{ value: 'Q', suit: 'Hearts' }],
+        balance: 640,
         currentBet: 25,
         bettingOpen: false,
       })
+    );
+    localStorage.setItem(
+      'blackjackStats',
+      JSON.stringify({
+        highestBankroll: 1800,
+        longestWinStreak: 6,
+        mostHandsWon: 12,
+        bestPayout: 250,
+        currentWinStreak: 3,
+        sessionHandsWon: 4,
+      })
+    );
+    localStorage.setItem(
+      'blackjackHandHistory',
+      JSON.stringify([
+        {
+          id: 'old-hand',
+          completedAt: '2026-06-25T12:00:00.000Z',
+          result: 'WIN',
+          net: 250,
+          totalBet: 125,
+          balance: 1800,
+          dealerCards: [{ value: '10', suit: 'Hearts' }],
+          playerHands: [
+            {
+              cards: [{ value: 'K', suit: 'Spades' }],
+              total: 20,
+              bet: 125,
+              outcome: 'WIN',
+              isBusted: false,
+              hasDoubledDown: false,
+            },
+          ],
+          actions: ['Stand'],
+        },
+      ])
     );
     getState.mockResolvedValue({
       data: {
@@ -1229,6 +1280,7 @@ describe('BlackjackGame', () => {
           { cards: [{ value: 'K', suit: 'Spades' }], isTurn: true, bet: 10 },
         ],
         dealerHand: [{ value: 'Q', suit: 'Hearts' }],
+        balance: 640,
         currentBet: 25,
         bettingOpen: false,
       },
@@ -1248,6 +1300,42 @@ describe('BlackjackGame', () => {
     });
 
     await waitFor(() => expect(resetGame).toHaveBeenCalled());
+    const balanceRow = screen.getByText('Balance').closest('.betting-summary');
+    expect(within(balanceRow).getByText('$1000')).toBeInTheDocument();
+
+    const graph = screen.getByRole('region', { name: 'Trend' });
+    expect(
+      within(graph).getByText('No completed hands yet.')
+    ).toBeInTheDocument();
+    expect(within(graph).queryByRole('img')).not.toBeInTheDocument();
+
+    const history = screen.getByRole('region', { name: 'Hand History' });
+    expect(
+      within(history).getByText('No completed hands yet.')
+    ).toBeInTheDocument();
+    expect(within(history).queryByText('Win')).not.toBeInTheDocument();
+
+    expect(JSON.parse(localStorage.getItem('blackjackStats'))).toEqual({
+      highestBankroll: 1000,
+      longestWinStreak: 0,
+      mostHandsWon: 0,
+      bestPayout: 0,
+      currentWinStreak: 0,
+      sessionHandsWon: 0,
+    });
+    expect(JSON.parse(localStorage.getItem('blackjackHandHistory'))).toEqual(
+      []
+    );
+    expect(JSON.parse(localStorage.getItem('blackjackGameState'))).toEqual(
+      expect.objectContaining({
+        playerHands: [],
+        dealerHand: [],
+        balance: 1000,
+        currentBet: 0,
+        bettingOpen: true,
+        gameOver: false,
+      })
+    );
   });
 
   it('handles fresh start with minimal API response', async () => {

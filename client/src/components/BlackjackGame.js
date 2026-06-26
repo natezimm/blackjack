@@ -14,6 +14,7 @@ import PlayerHand from './PlayerHand';
 import DealerHand from './DealerHand';
 import Chip from './Chip';
 import Toast from './Toast';
+import BankrollGraph from './BankrollGraph';
 
 import chip5Png from '../assets/chips/chip-5.png';
 import chip5Webp from '../assets/chips/chip-5.webp';
@@ -753,34 +754,58 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     try {
       const response = await resetGame(numberOfDecks, dealerHitsOnSoft17);
       const data = response.data;
-      updateBalanceAndStats(1000);
-      setPlayerHands(data.playerHands || []);
-      setDealerHand(ensureHand(data.dealerHand));
+      const resetBalance = fallbackTo(data.balance, 1000);
+      const resetPlayerHands = data.playerHands || [];
+      const resetDealerHand = ensureHand(data.dealerHand);
+      const resetDeckSize = fallbackTo(data.deckSize, numberOfDecks * 52);
+      const resetInsuranceBet = fallbackTo(data.insuranceBet, 0);
+      const resetInsuranceResolved =
+        data.insuranceResolved !== undefined ? !!data.insuranceResolved : true;
+      const resetStatsSnapshot = {
+        ...defaultStats,
+        highestBankroll: resetBalance,
+      };
+
+      setBalance(resetBalance);
+      setStats(resetStatsSnapshot);
+      persistStats(resetStatsSnapshot);
+      setHandHistory([]);
+      persistHandHistory([]);
+      safePersistGameState({
+        playerHands: resetPlayerHands,
+        dealerHand: resetDealerHand,
+        revealDealerCard: false,
+        balance: resetBalance,
+        currentBet: 0,
+        bettingOpen: true,
+        gameOver: false,
+        message: '',
+        cardBackColor,
+        numberOfDecks,
+        dealerHitsOnSoft17,
+        deckSize: resetDeckSize,
+        insuranceBet: resetInsuranceBet,
+        insuranceOffered: !!data.insuranceOffered,
+        insuranceResolved: resetInsuranceResolved,
+        insuranceOutcome: data.insuranceOutcome ?? null,
+      });
+
+      setPlayerHands(resetPlayerHands);
+      setDealerHand(resetDealerHand);
       setGameOver(false);
       setRevealDealerCard(false);
       setCurrentBet(0);
       setBettingOpen(true);
       setMessage('');
-      setDeckSize(fallbackTo(data.deckSize, numberOfDecks * 52));
-      setInsuranceBet(fallbackTo(data.insuranceBet, 0));
+      setDeckSize(resetDeckSize);
+      setInsuranceBet(resetInsuranceBet);
       setInsuranceOffered(!!data.insuranceOffered);
-      setInsuranceResolved(
-        data.insuranceResolved !== undefined ? !!data.insuranceResolved : true
-      );
+      setInsuranceResolved(resetInsuranceResolved);
       setInsuranceOutcome(data.insuranceOutcome ?? null);
       setInsuranceAmount(0);
       activeRoundStartBalanceRef.current = null;
       activeRoundActionsRef.current = [];
-      setStats((prev) => {
-        const next = {
-          ...prev,
-          currentWinStreak: 0,
-          sessionHandsWon: 0,
-          mostHandsWon: 0,
-        };
-        persistStats(next);
-        return next;
-      });
+      setPendingState(null);
       setShowResumePrompt(false);
       setCanPersistState(true);
     } catch (error) {
@@ -1468,6 +1493,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             <span>Current Bet</span>
             <strong>{`$${currentBet}`}</strong>
           </div>
+          <BankrollGraph handHistory={handHistory} currentBalance={balance} />
           <div className="chip-picker-heading">
             <span>Select a chip</span>
           </div>
