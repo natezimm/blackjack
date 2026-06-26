@@ -3,6 +3,7 @@ import { act } from 'react';
 import userEvent from '@testing-library/user-event';
 import BlackjackGame, {
   calculateTotal,
+  buildHandHistoryEntry,
   createDeckCountChangeHandler,
   createHydrateStateFromResponse,
   createUpdateBalanceAndStats,
@@ -10,8 +11,10 @@ import BlackjackGame, {
   ensureHand,
   fallbackTo,
   handleBetLogic,
+  safePersistHandHistory,
   safePersistGameState,
   safePersistStats,
+  sanitizeHandHistory,
 } from './BlackjackGame';
 
 import { MESSAGES } from '../constants/messages';
@@ -751,6 +754,22 @@ describe('BlackjackGame', () => {
     await advanceTimers(1100);
 
     await waitFor(() => expect(stand).toHaveBeenCalled());
+    expect(screen.getByText('Hand History')).toBeInTheDocument();
+    expect(screen.getByText('+$20')).toBeInTheDocument();
+    expect(screen.getByText('Stand')).toBeInTheDocument();
+
+    const storedHistory = JSON.parse(
+      localStorage.getItem('blackjackHandHistory')
+    );
+    expect(storedHistory[0]).toEqual(
+      expect.objectContaining({
+        result: 'WIN',
+        net: 20,
+        totalBet: 10,
+        balance: 1020,
+        actions: ['Stand'],
+      })
+    );
   });
 
   it('handles stand action with dealer win', async () => {
@@ -2068,6 +2087,86 @@ describe('BlackjackGame', () => {
       expect.any(String)
     );
     consoleSpy.mockRestore();
+  });
+
+  it('handles errors thrown by safePersistHandHistory', () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const storage = {
+      setItem: jest.fn(() => {
+        throw new Error('Persist hand history failed');
+      }),
+    };
+
+    safePersistHandHistory([], storage);
+
+    expect(storage.setItem).toHaveBeenCalledWith(
+      'blackjackHandHistory',
+      expect.any(String)
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('sanitizes hand history to the recent history limit', () => {
+    const history = Array.from({ length: 55 }, (_, index) => ({
+      id: index,
+      playerHands: [{ cards: [], bet: 0 }],
+    }));
+
+    expect(sanitizeHandHistory(history)).toHaveLength(50);
+    expect(sanitizeHandHistory(null)).toEqual([]);
+    expect(sanitizeHandHistory([{ id: 'broken' }])).toEqual([]);
+  });
+
+  it('builds hand history entries with split outcomes and insurance net', () => {
+    const entry = buildHandHistoryEntry({
+      previousBalance: undefined,
+      completedAt: '2026-06-24T12:00:00.000Z',
+      id: 'history-1',
+      actions: ['Split', 'Stand'],
+      data: {
+        gameOver: true,
+        balance: 1010,
+        insuranceBet: 5,
+        insuranceOutcome: 'LOSS',
+        dealerHand: [
+          { value: '10', suit: 'Hearts' },
+          { value: '6', suit: 'Spades' },
+          { value: '5', suit: 'Clubs' },
+        ],
+        playerHands: [
+          {
+            cards: [
+              { value: '8', suit: 'Hearts' },
+              { value: 'K', suit: 'Clubs' },
+            ],
+            bet: 10,
+            outcome: 'WIN',
+          },
+          {
+            cards: [
+              { value: '8', suit: 'Spades' },
+              { value: 'Q', suit: 'Diamonds' },
+            ],
+            bet: 10,
+            outcome: 'LOSS',
+          },
+        ],
+      },
+    });
+
+    expect(entry).toEqual(
+      expect.objectContaining({
+        id: 'history-1',
+        result: 'MIXED',
+        net: -5,
+        totalBet: 20,
+        dealerTotal: 21,
+        actions: ['Split', 'Stand'],
+        insurance: { bet: 5, outcome: 'LOSS' },
+      })
+    );
   });
 
   it('createUpdateBalanceAndStats handles fallback highest bankroll', () => {

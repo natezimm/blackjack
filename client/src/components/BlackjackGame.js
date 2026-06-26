@@ -135,6 +135,19 @@ const STORAGE_KEYS = {
   stats: 'blackjackStats',
   gameState: 'blackjackGameState',
   strategyHints: 'blackjackBasicStrategyHints',
+  handHistory: 'blackjackHandHistory',
+};
+
+const MAX_HAND_HISTORY = 50;
+const RECENT_HAND_HISTORY_COUNT = 5;
+
+const HISTORY_ACTIONS = {
+  hit: 'Hit',
+  stand: 'Stand',
+  doubleDown: 'Double',
+  split: 'Split',
+  insurance: 'Insurance',
+  noInsurance: 'No insurance',
 };
 
 export const safePersistStats = (statsToSave, storage = localStorage) => {
@@ -151,6 +164,161 @@ export const safePersistGameState = (snapshot, storage = localStorage) => {
   } catch (error) {
     console.error('Unable to persist game state', error);
   }
+};
+
+export const safePersistHandHistory = (
+  historyToSave,
+  storage = localStorage
+) => {
+  try {
+    storage.setItem(STORAGE_KEYS.handHistory, JSON.stringify(historyToSave));
+  } catch (error) {
+    console.error('Unable to persist hand history', error);
+  }
+};
+
+export const sanitizeHandHistory = (history) => {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((entry) => entry && Array.isArray(entry.playerHands))
+    .map((entry, index) => {
+      const dealerCards = ensureHand(entry.dealerCards);
+      const playerHands = entry.playerHands.map((hand) => {
+        const cards = ensureHand(hand.cards);
+        return {
+          cards,
+          total:
+            typeof hand.total === 'number' ? hand.total : calculateTotal(cards),
+          bet: typeof hand.bet === 'number' ? hand.bet : 0,
+          outcome: normalizeOutcome(hand.outcome),
+          isBusted: !!hand.isBusted,
+          hasDoubledDown: !!hand.hasDoubledDown,
+        };
+      });
+
+      return {
+        id: entry.id || `${entry.completedAt || 'hand'}-${index}`,
+        completedAt: entry.completedAt || null,
+        result: normalizeOutcome(entry.result),
+        net: typeof entry.net === 'number' ? entry.net : 0,
+        totalBet:
+          typeof entry.totalBet === 'number'
+            ? entry.totalBet
+            : playerHands.reduce((total, hand) => total + hand.bet, 0),
+        balance: typeof entry.balance === 'number' ? entry.balance : null,
+        dealerCards,
+        dealerTotal:
+          typeof entry.dealerTotal === 'number'
+            ? entry.dealerTotal
+            : calculateTotal(dealerCards),
+        playerHands,
+        actions: Array.isArray(entry.actions)
+          ? entry.actions.filter((action) => typeof action === 'string')
+          : [],
+        insurance: entry.insurance
+          ? {
+              bet:
+                typeof entry.insurance.bet === 'number'
+                  ? entry.insurance.bet
+                  : 0,
+              outcome: entry.insurance.outcome || null,
+            }
+          : null,
+      };
+    })
+    .slice(0, MAX_HAND_HISTORY);
+};
+
+const normalizeOutcome = (outcome) => {
+  if (!outcome) return 'UNKNOWN';
+  return `${outcome}`.toUpperCase();
+};
+
+const calculateOutcomeNet = (hands, insuranceBet, insuranceOutcome) => {
+  const handNet = hands.reduce((total, hand) => {
+    const bet = typeof hand.bet === 'number' ? hand.bet : 0;
+    const outcome = normalizeOutcome(hand.outcome);
+
+    if (outcome === 'WIN') return total + bet;
+    if (outcome === 'LOSS') return total - bet;
+    return total;
+  }, 0);
+
+  const insuranceAmount = typeof insuranceBet === 'number' ? insuranceBet : 0;
+  const normalizedInsuranceOutcome = normalizeOutcome(insuranceOutcome);
+
+  if (normalizedInsuranceOutcome === 'WIN') {
+    return handNet + insuranceAmount * 2;
+  }
+  if (normalizedInsuranceOutcome === 'LOSS') {
+    return handNet - insuranceAmount;
+  }
+
+  return handNet;
+};
+
+const getCombinedOutcome = (hands) => {
+  const outcomes = hands
+    .map((hand) => normalizeOutcome(hand.outcome))
+    .filter((outcome) => outcome !== 'UNKNOWN');
+
+  if (outcomes.length === 0) return 'UNKNOWN';
+  if (outcomes.every((outcome) => outcome === outcomes[0])) return outcomes[0];
+  return 'MIXED';
+};
+
+export const buildHandHistoryEntry = ({
+  data,
+  previousBalance,
+  actions = [],
+  completedAt = new Date().toISOString(),
+  id = `${completedAt}-${Math.random().toString(36).slice(2, 8)}`,
+}) => {
+  const playerHands = Array.isArray(data?.playerHands) ? data.playerHands : [];
+  if (!data?.gameOver || playerHands.length === 0) return null;
+
+  const dealerCards = ensureHand(data.dealerHand);
+  const hands = playerHands.map((hand) => {
+    const cards = ensureHand(hand.cards);
+    return {
+      cards,
+      total: calculateTotal(cards),
+      bet: typeof hand.bet === 'number' ? hand.bet : 0,
+      outcome: normalizeOutcome(hand.outcome),
+      isBusted: !!hand.isBusted,
+      hasDoubledDown: !!hand.hasDoubledDown,
+    };
+  });
+
+  const calculatedNet = calculateOutcomeNet(
+    hands,
+    data.insuranceBet,
+    data.insuranceOutcome
+  );
+  const net =
+    typeof previousBalance === 'number' && typeof data.balance === 'number'
+      ? data.balance - previousBalance
+      : calculatedNet;
+
+  return {
+    id,
+    completedAt,
+    result: getCombinedOutcome(hands),
+    net,
+    totalBet: hands.reduce((total, hand) => total + hand.bet, 0),
+    balance: typeof data.balance === 'number' ? data.balance : null,
+    dealerCards,
+    dealerTotal: calculateTotal(dealerCards),
+    playerHands: hands,
+    actions,
+    insurance:
+      data.insuranceBet > 0 || data.insuranceOutcome
+        ? {
+            bet: data.insuranceBet || 0,
+            outcome: data.insuranceOutcome || null,
+          }
+        : null,
+  };
 };
 
 export const createUpdateBalanceAndStats =
@@ -336,6 +504,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const [insuranceResolved, setInsuranceResolved] = useState(true);
   const [insuranceOutcome, setInsuranceOutcome] = useState(null);
   const [insuranceAmount, setInsuranceAmount] = useState(0);
+  const [handHistory, setHandHistory] = useState([]);
   const [showBasicStrategy, setShowBasicStrategy] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.strategyHints) === 'true';
   });
@@ -346,6 +515,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   });
 
   const mutedRef = useRef(muted);
+  const activeRoundStartBalanceRef = useRef(null);
+  const activeRoundActionsRef = useRef([]);
+
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
@@ -388,6 +560,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
   const persistStats = (statsToSave) => {
     safePersistStats(statsToSave);
+  };
+  const persistHandHistory = (historyToSave) => {
+    safePersistHandHistory(historyToSave);
   };
 
   const persistGameState = React.useCallback(() => {
@@ -503,6 +678,9 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     });
     setStats(storedStats);
 
+    const storedHandHistory = loadFromStorage(STORAGE_KEYS.handHistory, []);
+    setHandHistory(sanitizeHandHistory(storedHandHistory));
+
     const storedGameState = loadFromStorage(STORAGE_KEYS.gameState, null);
     fetchExistingState(storedGameState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -564,6 +742,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     const stateToUse = hasStoredHand(pendingState.server)
       ? pendingState.server
       : pendingState.local;
+    activeRoundStartBalanceRef.current = null;
+    activeRoundActionsRef.current = [];
     hydrateStateFromResponse(stateToUse, pendingState.local);
     setShowResumePrompt(false);
   };
@@ -589,6 +769,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       );
       setInsuranceOutcome(data.insuranceOutcome ?? null);
       setInsuranceAmount(0);
+      activeRoundStartBalanceRef.current = null;
+      activeRoundActionsRef.current = [];
       setStats((prev) => {
         const next = {
           ...prev,
@@ -613,11 +795,44 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     setStats(reset);
   };
 
+  const clearHandHistory = () => {
+    playClickSound();
+    activeRoundActionsRef.current = [];
+    setHandHistory([]);
+    persistHandHistory([]);
+  };
+
+  const recordRoundAction = (action) => {
+    if (!action) return activeRoundActionsRef.current;
+    const nextActions = [...activeRoundActionsRef.current, action];
+    activeRoundActionsRef.current = nextActions;
+    return nextActions;
+  };
+
+  const recordCompletedHand = (data, actions) => {
+    const entry = buildHandHistoryEntry({
+      data,
+      previousBalance: activeRoundStartBalanceRef.current,
+      actions,
+    });
+    if (!entry) return;
+
+    setHandHistory((prev) => {
+      const next = sanitizeHandHistory([entry, ...prev]);
+      persistHandHistory(next);
+      return next;
+    });
+    activeRoundStartBalanceRef.current = null;
+    activeRoundActionsRef.current = [];
+  };
+
   const handleStart = async () => {
     playClickSound();
     try {
       const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
       const data = response.data;
+      activeRoundStartBalanceRef.current = balance;
+      activeRoundActionsRef.current = [];
       setPlayerHands(data.playerHands || []);
       setDealerHand(ensureHand(data.dealerHand));
       setDeckSize(fallbackTo(data.deckSize, deckSize));
@@ -682,7 +897,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     }
   };
 
-  const updateGameState = (data) => {
+  const updateGameState = (data, action) => {
+    const actions = recordRoundAction(action);
     setPlayerHands(data.playerHands || []);
     setDealerHand(ensureHand(data.dealerHand));
     setDeckSize(fallbackTo(data.deckSize, deckSize));
@@ -699,6 +915,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     if (data.gameOver) {
       setRevealDealerCard(true);
       setCurrentBet(0);
+      recordCompletedHand(data, actions);
     }
   };
 
@@ -709,7 +926,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       setIsAnimating(true);
       setTimeout(() => {
         playCardSound();
-        updateGameState(response.data);
+        updateGameState(response.data, HISTORY_ACTIONS.hit);
         setIsAnimating(false);
       }, 750);
     } catch (error) {
@@ -724,7 +941,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       const response = await stand();
       setIsAnimating(true);
       setTimeout(() => {
-        updateGameState(response.data);
+        updateGameState(response.data, HISTORY_ACTIONS.stand);
         setIsAnimating(false);
       }, 750);
     } catch (error) {
@@ -741,7 +958,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       playChipSound();
       setTimeout(() => {
         playCardSound();
-        updateGameState(response.data);
+        updateGameState(response.data, HISTORY_ACTIONS.doubleDown);
         setIsAnimating(false);
       }, 750);
     } catch (error) {
@@ -761,7 +978,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       playChipSound();
       setTimeout(() => {
         playCardSound();
-        updateGameState(response.data);
+        updateGameState(response.data, HISTORY_ACTIONS.split);
         setIsAnimating(false);
       }, 750);
     } catch (error) {
@@ -779,7 +996,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       const response = await resolveInsurance(amount);
       setIsAnimating(true);
       setTimeout(() => {
-        updateGameState(response.data);
+        updateGameState(
+          response.data,
+          amount > 0 ? HISTORY_ACTIONS.insurance : HISTORY_ACTIONS.noInsurance
+        );
         setIsAnimating(false);
       }, 750);
     } catch (error) {
@@ -839,6 +1059,29 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const formatDollar = (value) => `$${(value || 0).toLocaleString()}`;
+  const formatNet = (value) => {
+    const amount = typeof value === 'number' ? value : 0;
+    if (amount === 0) return '$0';
+    return `${amount > 0 ? '+' : '-'}${formatDollar(Math.abs(amount))}`;
+  };
+  const formatOutcome = (outcome) => {
+    const labels = {
+      WIN: 'Win',
+      LOSS: 'Loss',
+      TIE: 'Push',
+      MIXED: 'Mixed',
+      UNKNOWN: 'Done',
+    };
+    return labels[normalizeOutcome(outcome)] || `${outcome}`;
+  };
+  const formatCardShort = (card) => {
+    if (!card) return '';
+    return `${card.value}${card.suit ? card.suit.charAt(0) : ''}`;
+  };
+  const formatCards = (cards) => {
+    if (!cards || cards.length === 0) return 'No cards';
+    return cards.map(formatCardShort).join(' ');
+  };
 
   const deckLabel = numberOfDecks === 1 ? '1 Deck' : `${numberOfDecks} Decks`;
   const dealerRuleLabel = dealerHitsOnSoft17
@@ -871,6 +1114,78 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         Reset Stats
       </button>
     </>
+  );
+  const visibleHandHistory = handHistory.slice(0, RECENT_HAND_HISTORY_COUNT);
+  const renderHandHistory = () => (
+    <section className="hand-history" aria-labelledby="hand-history-title">
+      <div className="history-heading">
+        <div>
+          <span className="panel-kicker">Recent hands</span>
+          <h3 id="hand-history-title" className="history-title">
+            Hand History
+          </h3>
+        </div>
+        {handHistory.length > 0 && (
+          <button
+            type="button"
+            className="history-clear"
+            onClick={clearHandHistory}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {visibleHandHistory.length === 0 ? (
+        <p className="history-empty">No completed hands yet.</p>
+      ) : (
+        <ol className="history-list">
+          {visibleHandHistory.map((entry) => (
+            <li
+              key={entry.id}
+              className={`history-item history-${normalizeOutcome(entry.result).toLowerCase()}`}
+            >
+              <div className="history-item-main">
+                <span>{formatOutcome(entry.result)}</span>
+                <strong>{formatNet(entry.net)}</strong>
+              </div>
+              <div className="history-meta">
+                <span>Bet {formatDollar(entry.totalBet)}</span>
+                {entry.balance !== null && (
+                  <span>Bank {formatDollar(entry.balance)}</span>
+                )}
+              </div>
+              <div className="history-cards">
+                <span>
+                  Dealer {entry.dealerTotal}: {formatCards(entry.dealerCards)}
+                </span>
+                <span>
+                  Player:{' '}
+                  {entry.playerHands
+                    .map(
+                      (hand) => `${hand.total} ${formatOutcome(hand.outcome)}`
+                    )
+                    .join(' / ')}
+                </span>
+              </div>
+              {entry.insurance && (
+                <div className="history-insurance">
+                  Insurance {formatDollar(entry.insurance.bet)}
+                  {entry.insurance.outcome
+                    ? ` ${formatOutcome(entry.insurance.outcome)}`
+                    : ''}
+                </div>
+              )}
+              {entry.actions.length > 0 && (
+                <div className="history-actions">
+                  {entry.actions.join(' -> ')}
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 
   const activeHandIndex = playerHands.findIndex((h) => h && h.isTurn);
@@ -1205,6 +1520,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span className="strategy-toggle-thumb" />
             </span>
           </label>
+          {renderHandHistory()}
         </aside>
 
         <div className="table-surface">

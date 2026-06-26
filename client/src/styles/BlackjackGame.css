@@ -376,6 +376,137 @@
   transform: translateX(16px);
 }
 
+.hand-history {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.history-title {
+  margin: 3px 0 0;
+  color: var(--cream);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.history-clear {
+  min-height: 30px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.history-clear:hover {
+  color: var(--gold-light);
+  border-color: rgba(211, 173, 98, 0.36);
+}
+
+.history-empty {
+  margin: 0;
+  color: rgba(245, 239, 226, 0.48);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.history-list {
+  max-height: 360px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  list-style: none;
+}
+
+.history-item {
+  padding: 10px;
+  border: 1px solid rgba(245, 239, 226, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.history-item-main,
+.history-meta,
+.history-cards {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-item-main {
+  align-items: baseline;
+}
+
+.history-item-main span {
+  color: var(--cream);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.history-item-main strong {
+  color: var(--gold-light);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.history-win .history-item-main strong {
+  color: #9fd1b0;
+}
+
+.history-loss .history-item-main strong {
+  color: #e39a93;
+}
+
+.history-meta,
+.history-cards,
+.history-actions,
+.history-insurance {
+  color: rgba(245, 239, 226, 0.58);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.history-meta {
+  margin-top: 5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.history-cards {
+  margin-top: 7px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-actions,
+.history-insurance {
+  margin-top: 7px;
+  color: rgba(239, 214, 150, 0.72);
+}
+
 .chip-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1102,6 +1233,17 @@
     margin: 0;
   }
 
+  .hand-history {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    padding-top: 12px;
+  }
+
+  .history-list {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    max-height: 220px;
+  }
+
   .action-bar-container {
     position: fixed;
     z-index: 500;
@@ -1149,7 +1291,7 @@
     font-size: 0.57rem;
   }
   .table-header h1 {
-    font-size: clamp(2.25rem, 13vw, 3.45rem);
+    font-size: clamp(2rem, 9vw, 2.85rem);
   }
   .table-info {
     font-size: 0.62rem;
@@ -1200,6 +1342,14 @@
 
   .strategy-toggle {
     grid-column: 1 / -1;
+  }
+
+  .history-heading {
+    align-items: center;
+  }
+
+  .history-list {
+    grid-template-columns: 1fr;
   }
 
   .table-surface {
