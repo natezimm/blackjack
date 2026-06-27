@@ -87,11 +87,43 @@ test.describe('blackjack client', () => {
     ).toBeVisible();
     await expect(page.locator('.betting-panel')).toBeVisible();
     await expect(page.getByText('Balance')).toBeVisible();
+    await expect(page.locator('.table-insights')).toBeVisible();
     await expect(
       page.locator('.bankroll-graph').getByText('No completed hands yet.')
     ).toBeVisible();
     await expect(page.getByAltText('$25 chip')).toBeVisible();
     await expect(page.getByRole('button', { name: 'DEAL' })).toBeDisabled();
+
+    const bettingPanelBox = await page.locator('.betting-panel').boundingBox();
+    const tableSurfaceBox = await page.locator('.table-surface').boundingBox();
+    expect(bettingPanelBox).not.toBeNull();
+    expect(tableSurfaceBox).not.toBeNull();
+    expect(bettingPanelBox.height).toBeLessThanOrEqual(
+      tableSurfaceBox.height + 24
+    );
+  });
+
+  test('fits the iPad Pro viewport without horizontal clipping', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 1366 });
+    await page.goto('/');
+
+    await expect(page.locator('.table-layout')).toBeVisible();
+    await expect(page.locator('.table-surface')).toBeVisible();
+
+    const overflow = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+
+    const layoutBox = await page.locator('.table-layout').boundingBox();
+    const surfaceBox = await page.locator('.table-surface').boundingBox();
+    expect(layoutBox).not.toBeNull();
+    expect(surfaceBox).not.toBeNull();
+    expect(layoutBox.x + layoutBox.width).toBeLessThanOrEqual(1024);
+    expect(surfaceBox.x + surfaceBox.width).toBeLessThanOrEqual(1024);
   });
 
   test('opens settings and stats panels', async ({ page }) => {

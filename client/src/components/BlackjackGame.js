@@ -1496,7 +1496,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             <span>Current Bet</span>
             <strong>{`$${currentBet}`}</strong>
           </div>
-          <BankrollGraph handHistory={handHistory} currentBalance={balance} />
           <div className="chip-picker-heading">
             <span>Select a chip</span>
           </div>
@@ -1549,183 +1548,189 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span className="strategy-toggle-thumb" />
             </span>
           </label>
-          {renderHandHistory()}
         </aside>
 
-        <div className="table-surface">
-          <div className="table-watermark" aria-hidden="true">
-            <span>Blackjack pays 3 to 2</span>
-          </div>
-          <DealerHand
-            hand={displayedDealerHand}
-            reveal={revealDealerCard}
-            cardBackColor={cardBackColor}
-          />
+        <div className="table-main-column">
+          <div className="table-surface">
+            <div className="table-watermark" aria-hidden="true">
+              <span>Blackjack pays 3 to 2</span>
+            </div>
+            <DealerHand
+              hand={displayedDealerHand}
+              reveal={revealDealerCard}
+              cardBackColor={cardBackColor}
+            />
 
-          {!isDealing && (insuranceDecisionPending || insuranceBet > 0) && (
-            <div
-              className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}
-            >
-              <div className="insurance-bar-header">
-                <span className="insurance-label">Insurance</span>
-                {insuranceDecisionPending ? (
-                  <span className="insurance-hint">
-                    Dealer shows an Ace • Up to ${maxInsurance}
-                  </span>
-                ) : (
-                  <span className="insurance-summary">
-                    {insuranceBet > 0 ? `Bet $${insuranceBet}` : 'No bet'}
-                    {insuranceOutcome && insuranceOutcome !== 'DECLINED'
-                      ? ` • ${insuranceOutcome}`
-                      : ''}
-                  </span>
+            {!isDealing && (insuranceDecisionPending || insuranceBet > 0) && (
+              <div
+                className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}
+              >
+                <div className="insurance-bar-header">
+                  <span className="insurance-label">Insurance</span>
+                  {insuranceDecisionPending ? (
+                    <span className="insurance-hint">
+                      Dealer shows an Ace • Up to ${maxInsurance}
+                    </span>
+                  ) : (
+                    <span className="insurance-summary">
+                      {insuranceBet > 0 ? `Bet $${insuranceBet}` : 'No bet'}
+                      {insuranceOutcome && insuranceOutcome !== 'DECLINED'
+                        ? ` • ${insuranceOutcome}`
+                        : ''}
+                    </span>
+                  )}
+                </div>
+
+                {insuranceDecisionPending && (
+                  <div className="insurance-bar-controls">
+                    {renderStrategyHint(
+                      insuranceStrategyRecommendation,
+                      'strategy-hint-inline'
+                    )}
+                    <input
+                      className="insurance-input"
+                      type="number"
+                      min={0}
+                      max={maxInsurance}
+                      step={5}
+                      value={insuranceAmount}
+                      onChange={(e) =>
+                        setInsuranceAmount(parseInt(e.target.value || '0', 10))
+                      }
+                      disabled={isAnimating}
+                      aria-label="Insurance amount"
+                    />
+                    <button
+                      className="action-btn secondary-btn"
+                      onClick={() => handleResolveInsurance(insuranceAmount)}
+                      disabled={
+                        insuranceAmount <= 0 ||
+                        insuranceAmount > maxInsurance ||
+                        isAnimating
+                      }
+                    >
+                      INSURE
+                    </button>
+                    <button
+                      className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.noInsurance)}`.trim()}
+                      onClick={() => handleResolveInsurance(0)}
+                      disabled={isAnimating}
+                    >
+                      NO INSURANCE
+                    </button>
+                  </div>
                 )}
               </div>
+            )}
 
-              {insuranceDecisionPending && (
-                <div className="insurance-bar-controls">
-                  {renderStrategyHint(
-                    insuranceStrategyRecommendation,
-                    'strategy-hint-inline'
-                  )}
-                  <input
-                    className="insurance-input"
-                    type="number"
-                    min={0}
-                    max={maxInsurance}
-                    step={5}
-                    value={insuranceAmount}
-                    onChange={(e) =>
-                      setInsuranceAmount(parseInt(e.target.value || '0', 10))
-                    }
-                    disabled={isAnimating}
-                    aria-label="Insurance amount"
-                  />
-                  <button
-                    className="action-btn secondary-btn"
-                    onClick={() => handleResolveInsurance(insuranceAmount)}
-                    disabled={
-                      insuranceAmount <= 0 ||
-                      insuranceAmount > maxInsurance ||
-                      isAnimating
-                    }
-                  >
-                    INSURE
-                  </button>
-                  <button
-                    className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.noInsurance)}`.trim()}
-                    onClick={() => handleResolveInsurance(0)}
-                    disabled={isAnimating}
-                  >
-                    NO INSURANCE
-                  </button>
-                </div>
+            <div className="player-hands-container">
+              {playerHands.length === 0 ? (
+                <PlayerHand
+                  hand={{ cards: [], bet: 0, outcome: null, isBusted: false }}
+                  isActive={false}
+                  showBet={false}
+                  isPlaceholder={true}
+                />
+              ) : (
+                playerHands.map((hand, index) => {
+                  if (!hand) return null;
+                  return (
+                    <PlayerHand
+                      key={index}
+                      hand={{
+                        ...hand,
+                        outcome: outcomeVisible ? hand.outcome : null,
+                      }}
+                      isActive={hand.isTurn}
+                      showBet={playerHands.length > 1}
+                    />
+                  );
+                })
               )}
             </div>
-          )}
 
-          <div className="player-hands-container">
-            {playerHands.length === 0 ? (
-              <PlayerHand
-                hand={{ cards: [], bet: 0, outcome: null, isBusted: false }}
-                isActive={false}
-                showBet={false}
-                isPlaceholder={true}
-              />
-            ) : (
-              playerHands.map((hand, index) => {
-                if (!hand) return null;
-                return (
-                  <PlayerHand
-                    key={index}
-                    hand={{
-                      ...hand,
-                      outcome: outcomeVisible ? hand.outcome : null,
-                    }}
-                    isActive={hand.isTurn}
-                    showBet={playerHands.length > 1}
-                  />
-                );
-              })
-            )}
-          </div>
-
-          <div className="action-bar-container">
-            {bettingOpen ? (
-              <div className="betting-controls">
-                <button
-                  className="action-btn deal-btn"
-                  onClick={handleStart}
-                  disabled={currentBet === 0 || isAnimating || isDealing}
-                >
-                  DEAL
-                </button>
-              </div>
-            ) : (
-              !gameOver && (
-                <div
-                  className="play-controls"
-                  aria-hidden={insuranceDecisionPending}
-                >
-                  {renderStrategyHint(handStrategyRecommendation)}
-                  <div className="primary-actions">
-                    <button
-                      className={`action-btn hit-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.hit)}`.trim()}
-                      onClick={handleHit}
-                      disabled={
-                        insuranceDecisionPending || !activeHand || isAnimating
-                      }
-                    >
-                      HIT
-                    </button>
-                    <button
-                      className={`action-btn stand-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.stand)}`.trim()}
-                      onClick={handleStand}
-                      disabled={
-                        insuranceDecisionPending || !activeHand || isAnimating
-                      }
-                    >
-                      STAND
-                    </button>
-                  </div>
-
-                  <div className="secondary-actions">
-                    {canSplit && (
+            <div className="action-bar-container">
+              {bettingOpen ? (
+                <div className="betting-controls">
+                  <button
+                    className="action-btn deal-btn"
+                    onClick={handleStart}
+                    disabled={currentBet === 0 || isAnimating || isDealing}
+                  >
+                    DEAL
+                  </button>
+                </div>
+              ) : (
+                !gameOver && (
+                  <div
+                    className="play-controls"
+                    aria-hidden={insuranceDecisionPending}
+                  >
+                    {renderStrategyHint(handStrategyRecommendation)}
+                    <div className="primary-actions">
                       <button
-                        className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
-                        onClick={handleSplit}
-                        disabled={insuranceDecisionPending || isAnimating}
-                      >
-                        SPLIT
-                      </button>
-                    )}
-
-                    {activeHand && activeHand.cards.length === 2 && (
-                      <button
-                        className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
-                        onClick={handleDoubleDown}
+                        className={`action-btn hit-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.hit)}`.trim()}
+                        onClick={handleHit}
                         disabled={
-                          insuranceDecisionPending ||
-                          balance < activeHand.bet ||
-                          isAnimating
+                          insuranceDecisionPending || !activeHand || isAnimating
                         }
                       >
-                        DOUBLE
+                        HIT
                       </button>
-                    )}
+                      <button
+                        className={`action-btn stand-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.stand)}`.trim()}
+                        onClick={handleStand}
+                        disabled={
+                          insuranceDecisionPending || !activeHand || isAnimating
+                        }
+                      >
+                        STAND
+                      </button>
+                    </div>
+
+                    <div className="secondary-actions">
+                      {canSplit && (
+                        <button
+                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
+                          onClick={handleSplit}
+                          disabled={insuranceDecisionPending || isAnimating}
+                        >
+                          SPLIT
+                        </button>
+                      )}
+
+                      {activeHand && activeHand.cards.length === 2 && (
+                        <button
+                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
+                          onClick={handleDoubleDown}
+                          disabled={
+                            insuranceDecisionPending ||
+                            balance < activeHand.bet ||
+                            isAnimating
+                          }
+                        >
+                          DOUBLE
+                        </button>
+                      )}
+                    </div>
                   </div>
+                )
+              )}
+            </div>
+
+            <div className="status-messages">
+              {balance === 0 && bettingOpen && gameOver && (
+                <div className="message-card game-over">
+                  Bankroll empty. Reset to reload the fun.
                 </div>
-              )
-            )}
+              )}
+              <Toast message={message} onClose={() => setMessage('')} />
+            </div>
           </div>
 
-          <div className="status-messages">
-            {balance === 0 && bettingOpen && gameOver && (
-              <div className="message-card game-over">
-                Bankroll empty. Reset to reload the fun.
-              </div>
-            )}
-            <Toast message={message} onClose={() => setMessage('')} />
+          <div className="table-insights">
+            <BankrollGraph handHistory={handHistory} currentBalance={balance} />
+            {renderHandHistory()}
           </div>
         </div>
       </div>

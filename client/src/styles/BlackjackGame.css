@@ -193,6 +193,12 @@
   gap: clamp(18px, 2.5vw, 34px);
 }
 
+.table-main-column {
+  min-width: 0;
+  display: grid;
+  gap: clamp(16px, 2vw, 24px);
+}
+
 .betting-panel {
   position: sticky;
   top: 24px;
@@ -466,6 +472,33 @@
   font-size: 0.72rem;
   font-weight: 650;
   line-height: 1.45;
+}
+
+.table-insights {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
+  align-items: stretch;
+  gap: clamp(14px, 1.8vw, 22px);
+}
+
+.table-insights .bankroll-graph,
+.table-insights .hand-history {
+  min-width: 0;
+  margin-top: 0;
+  border: 1px solid rgba(245, 239, 226, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.table-insights .hand-history {
+  min-height: 100%;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-insights .history-list {
+  max-height: 250px;
 }
 
 .chip-picker-heading {
@@ -1358,12 +1391,13 @@
   }
 }
 
-@media (max-width: 950px) {
-  .blackjack-game {
-    padding-bottom: 120px;
+@media (max-width: 1100px) {
+  .table-layout {
+    grid-template-columns: 1fr;
   }
 
-  .table-layout {
+  .table-main-column,
+  .table-insights {
     grid-template-columns: 1fr;
   }
 
@@ -1433,9 +1467,19 @@
     padding-top: 12px;
   }
 
+  .table-insights .hand-history {
+    padding: 12px;
+  }
+
   .history-list {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     max-height: 220px;
+  }
+}
+
+@media (max-width: 950px) {
+  .blackjack-game {
+    padding-bottom: 120px;
   }
 
   .action-bar-container {
