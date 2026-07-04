@@ -4,6 +4,8 @@
   --felt-800: #103829;
   --ink-950: #090d0b;
   --ink-900: #101713;
+  --mahogany-rgb: 48, 19, 15;
+  --mahogany-light-rgb: 110, 49, 39;
   --cream: #f5efe2;
   --muted: rgba(245, 239, 226, 0.62);
   --line: rgba(245, 239, 226, 0.12);
@@ -16,26 +18,57 @@
   min-height: 100dvh;
   padding: clamp(20px, 3vw, 42px) clamp(16px, 4vw, 64px) 32px;
   color: var(--cream);
-  background:
-    linear-gradient(180deg, rgba(4, 14, 10, 0.12), rgba(4, 14, 10, 0.82)),
-    radial-gradient(
-      circle at 50% 28%,
-      rgba(30, 111, 76, 0.28),
-      transparent 48%
-    ),
-    url('../assets/blackjack-felt-background.png') center / cover fixed;
+  background-color: #040806;
   background-image:
-    linear-gradient(180deg, rgba(4, 14, 10, 0.12), rgba(4, 14, 10, 0.82)),
+    linear-gradient(
+      180deg,
+      rgba(7, 7, 5, 0.18) 0%,
+      rgba(3, 12, 8, 0.48) 42%,
+      rgba(2, 5, 4, 0.92) 100%
+    ),
     radial-gradient(
-      circle at 50% 28%,
-      rgba(30, 111, 76, 0.28),
-      transparent 48%
+      ellipse at 50% 0%,
+      rgba(239, 214, 150, 0.22),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 16% 20%,
+      rgba(var(--mahogany-light-rgb), 0.26),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 86% 18%,
+      rgba(var(--mahogany-light-rgb), 0.2),
+      transparent 31%
+    ),
+    linear-gradient(
+      115deg,
+      rgba(var(--mahogany-rgb), 0.24),
+      transparent 26%,
+      transparent 72%,
+      rgba(var(--mahogany-rgb), 0.2)
     ),
     image-set(
       url('../assets/blackjack-felt-background.avif') type('image/avif'),
       url('../assets/blackjack-felt-background.webp') type('image/webp'),
       url('../assets/blackjack-felt-background.png') type('image/png')
     );
+  background-position:
+    center,
+    top center,
+    left top,
+    right top,
+    center,
+    center;
+  background-size:
+    cover,
+    100% 62%,
+    62% 54%,
+    58% 52%,
+    cover,
+    cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   font-family:
     Inter,
     ui-sans-serif,
@@ -44,6 +77,7 @@
     'Segoe UI',
     sans-serif;
   position: relative;
+  isolation: isolate;
   overflow-x: hidden;
 }
 
@@ -56,15 +90,63 @@
 .blackjack-game::before {
   content: '';
   position: fixed;
+  z-index: 0;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.22),
-    transparent 18%,
-    transparent 82%,
-    rgba(0, 0, 0, 0.22)
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.48),
+      transparent 19%,
+      transparent 81%,
+      rgba(0, 0, 0, 0.48)
+    ),
+    radial-gradient(
+      ellipse at 50% 8%,
+      rgba(255, 222, 154, 0.16),
+      transparent 33%
+    ),
+    linear-gradient(180deg, transparent 52%, rgba(0, 0, 0, 0.42));
+}
+
+.blackjack-game::after {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(
+      118deg,
+      transparent 0 46%,
+      rgba(239, 214, 150, 0.085) 46% 46.35%,
+      transparent 46.35% 100%
+    ),
+    linear-gradient(
+      242deg,
+      transparent 0 48%,
+      rgba(239, 214, 150, 0.06) 48% 48.32%,
+      transparent 48.32% 100%
+    );
+  background-position:
+    center top,
+    center 20px;
+  background-size:
+    330px 330px,
+    380px 380px;
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 38%,
+    #000 0%,
+    rgba(0, 0, 0, 0.72) 42%,
+    transparent 76%
   );
+  mask-image: radial-gradient(
+    ellipse at 50% 38%,
+    #000 0%,
+    rgba(0, 0, 0, 0.72) 42%,
+    transparent 76%
+  );
+  opacity: 0.34;
 }
 
 .table-header,
@@ -745,51 +827,96 @@
   align-items: center;
   overflow: hidden;
   border: 1px solid rgba(239, 214, 150, 0.3);
-  border-radius: 42px 42px 24px 24px;
+  border-radius: 24px 24px 56px 56px;
   background:
-    radial-gradient(
-      ellipse at 50% 42%,
-      rgba(34, 111, 78, 0.42),
-      transparent 60%
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.028) 0 1px,
+      transparent 1px 10px
     ),
-    linear-gradient(160deg, rgba(16, 56, 41, 0.92), rgba(6, 29, 20, 0.97));
+    linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02) 0 1px,
+      transparent 1px 12px
+    ),
+    radial-gradient(
+      ellipse at 50% 35%,
+      rgba(60, 150, 103, 0.32),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse at 50% 105%,
+      rgba(var(--mahogany-light-rgb), 0.26),
+      transparent 48%
+    ),
+    linear-gradient(
+      160deg,
+      rgba(19, 73, 51, 0.96),
+      rgba(8, 38, 26, 0.98) 52%,
+      rgba(5, 18, 12, 0.99)
+    ),
+    image-set(
+      url('../assets/blackjack-felt-background.avif') type('image/avif'),
+      url('../assets/blackjack-felt-background.webp') type('image/webp'),
+      url('../assets/blackjack-felt-background.png') type('image/png')
+    );
+  background-blend-mode:
+    soft-light, soft-light, screen, multiply, normal, overlay;
+  background-position: center, center, center, center, center, center;
+  background-size:
+    10px 10px,
+    12px 12px,
+    cover,
+    cover,
+    cover,
+    cover;
   box-shadow:
-    0 34px 90px rgba(0, 0, 0, 0.33),
-    inset 0 1px rgba(255, 255, 255, 0.08);
+    0 36px 98px rgba(0, 0, 0, 0.46),
+    0 0 0 10px rgba(var(--mahogany-rgb), 0.5),
+    0 0 0 11px rgba(239, 214, 150, 0.13),
+    inset 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 2px rgba(5, 17, 12, 0.38),
+    inset 0 -34px 86px rgba(0, 0, 0, 0.24);
 }
 
 .table-surface::before {
   content: '';
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   inset: 18px;
-  border: 1px solid rgba(239, 214, 150, 0.18);
-  border-radius: 32px 32px 18px 18px;
+  border: 1px solid rgba(239, 214, 150, 0.22);
+  border-radius: 14px 14px 42px 42px;
+  box-shadow:
+    inset 0 0 0 1px rgba(4, 13, 9, 0.52),
+    inset 0 18px 48px rgba(239, 214, 150, 0.035);
   pointer-events: none;
 }
 
 .table-surface::after {
   content: '';
   position: absolute;
-  z-index: -1;
-  width: 82%;
-  height: 66%;
-  left: 9%;
-  top: 17%;
-  border: 1px solid rgba(239, 214, 150, 0.15);
+  z-index: 0;
+  width: 78%;
+  height: 52%;
+  left: 11%;
+  top: 27%;
+  border: 1px solid rgba(239, 214, 150, 0.13);
   border-radius: 50%;
+  box-shadow:
+    inset 0 14px 24px rgba(239, 214, 150, 0.018),
+    inset 0 -18px 32px rgba(0, 0, 0, 0.08);
   pointer-events: none;
 }
 
 .table-watermark {
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   top: 42%;
   left: 50%;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: rgba(239, 214, 150, 0.19);
+  color: rgba(239, 214, 150, 0.16);
   font-family: Georgia, 'Times New Roman', serif;
   font-size: clamp(1rem, 2vw, 1.5rem);
   letter-spacing: 0.14em;
@@ -1513,10 +1640,33 @@
 @media (max-width: 680px) {
   .blackjack-game {
     padding: 18px 12px 112px;
+    background-attachment: scroll;
+    background-size:
+      cover,
+      140% 52%,
+      110% 44%,
+      105% 42%,
+      cover,
+      cover;
   }
 
   .blackjack-game::before {
-    display: none;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.36),
+        transparent 28%,
+        transparent 72%,
+        rgba(0, 0, 0, 0.36)
+      ),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.5));
+  }
+
+  .blackjack-game::after {
+    opacity: 0.18;
+    background-size:
+      240px 240px,
+      280px 280px;
   }
 
   .table-header {
@@ -1597,18 +1747,25 @@
   .table-surface {
     min-height: 525px;
     padding: 28px 10px 16px;
-    border-radius: 26px 26px 16px 16px;
+    border-radius: 18px 18px 34px 34px;
+    box-shadow:
+      0 26px 70px rgba(0, 0, 0, 0.42),
+      0 0 0 6px rgba(var(--mahogany-rgb), 0.48),
+      0 0 0 7px rgba(239, 214, 150, 0.12),
+      inset 0 1px rgba(255, 255, 255, 0.1),
+      inset 0 0 0 2px rgba(5, 17, 12, 0.38),
+      inset 0 -24px 64px rgba(0, 0, 0, 0.22);
   }
 
   .table-surface::before {
     inset: 10px;
-    border-radius: 20px 20px 12px 12px;
+    border-radius: 10px 10px 26px 26px;
   }
   .table-surface::after {
     width: 78%;
-    height: 42%;
+    height: 44%;
     left: 11%;
-    top: 16%;
+    top: 31%;
   }
   .dealer-hand {
     min-height: 190px;
