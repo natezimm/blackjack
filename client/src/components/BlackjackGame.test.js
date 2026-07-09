@@ -751,13 +751,16 @@ describe('BlackjackGame', () => {
           {
             cards: [
               { value: '10', suit: 'Hearts' },
-              { value: '10', suit: 'Spades' },
+              { value: '9', suit: 'Spades' },
             ],
             isTurn: true,
             bet: 10,
           },
         ],
-        dealerHand: [{ value: 'K', suit: 'Hearts' }],
+        dealerHand: [
+          { value: 'K', suit: 'Hearts' },
+          { value: '5', suit: 'Spades' },
+        ],
         currentBet: 10,
         gameOver: true,
         balance: 990,
@@ -772,7 +775,7 @@ describe('BlackjackGame', () => {
           {
             cards: [
               { value: '10', suit: 'Hearts' },
-              { value: '10', suit: 'Spades' },
+              { value: '9', suit: 'Spades' },
             ],
             isTurn: true,
             bet: 10,
@@ -786,7 +789,7 @@ describe('BlackjackGame', () => {
         ],
         playerWins: true,
         gameOver: true,
-        balance: 1020,
+        balance: 1010,
       },
     });
 
@@ -824,8 +827,20 @@ describe('BlackjackGame', () => {
 
     await waitFor(() => expect(stand).toHaveBeenCalled());
     expect(screen.getByText('Hand History')).toBeInTheDocument();
-    expect(screen.getByText('+$20')).toBeInTheDocument();
+    expect(screen.getByText('+$10')).toBeInTheDocument();
     expect(screen.getByText('Stand')).toBeInTheDocument();
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /Details/i }));
+    });
+
+    expect(screen.getByText('Dealer cards')).toBeInTheDocument();
+    expect(screen.getByText('Player hands')).toBeInTheDocument();
+    expect(screen.getByText('Decisions')).toBeInTheDocument();
+    expect(screen.getByText('Followed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Recommended Stand .* Hard 19 vs dealer 5/)
+    ).toBeInTheDocument();
 
     const storedHistory = JSON.parse(
       localStorage.getItem('blackjackHandHistory')
@@ -833,10 +848,22 @@ describe('BlackjackGame', () => {
     expect(storedHistory[0]).toEqual(
       expect.objectContaining({
         result: 'WIN',
-        net: 20,
+        net: 10,
         totalBet: 10,
-        balance: 1020,
-        actions: ['Stand'],
+        balance: 1010,
+        actions: [
+          expect.objectContaining({
+            label: 'Stand',
+            strategyAction: 'STAND',
+            handIndex: 1,
+            handTotal: 19,
+            followedStrategy: true,
+            recommendation: {
+              action: 'STAND',
+              summary: 'Hard 19 vs dealer 5',
+            },
+          }),
+        ],
       })
     );
   });
@@ -2257,10 +2284,20 @@ describe('BlackjackGame', () => {
       id: index,
       playerHands: [{ cards: [], bet: 0 }],
     }));
+    const legacyHistory = sanitizeHandHistory([
+      {
+        id: 'legacy',
+        playerHands: [{ cards: [], bet: 0 }],
+        actions: ['Stand'],
+      },
+    ]);
 
     expect(sanitizeHandHistory(history)).toHaveLength(50);
     expect(sanitizeHandHistory(null)).toEqual([]);
     expect(sanitizeHandHistory([{ id: 'broken' }])).toEqual([]);
+    expect(legacyHistory[0].actions[0]).toEqual(
+      expect.objectContaining({ label: 'Stand', followedStrategy: null })
+    );
   });
 
   it('builds hand history entries with split outcomes and insurance net', () => {
@@ -2307,7 +2344,10 @@ describe('BlackjackGame', () => {
         net: -5,
         totalBet: 20,
         dealerTotal: 21,
-        actions: ['Split', 'Stand'],
+        actions: [
+          expect.objectContaining({ label: 'Split' }),
+          expect.objectContaining({ label: 'Stand' }),
+        ],
         insurance: { bet: 5, outcome: 'LOSS' },
       })
     );

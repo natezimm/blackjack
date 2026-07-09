@@ -740,11 +740,36 @@
   list-style: none;
 }
 
+.history-list.has-expanded-item,
+.table-insights .history-list.has-expanded-item {
+  max-height: none;
+}
+
 .history-item {
-  padding: 10px;
+  overflow: hidden;
   border: 1px solid rgba(245, 239, 226, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
+}
+
+.history-summary {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-summary:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.history-summary:focus-visible {
+  position: relative;
+  z-index: 1;
 }
 
 .history-item-main,
@@ -808,6 +833,126 @@
 .history-insurance {
   margin-top: 7px;
   color: rgba(239, 214, 150, 0.72);
+}
+
+.history-detail {
+  padding: 0 10px 10px;
+  border-top: 1px solid rgba(245, 239, 226, 0.08);
+}
+
+.history-detail-grid {
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.history-detail-grid div,
+.history-hand-detail,
+.history-decision,
+.history-insurance-detail {
+  padding: 9px;
+  border: 1px solid rgba(245, 239, 226, 0.08);
+  border-radius: 8px;
+  background: rgba(5, 17, 12, 0.42);
+}
+
+.history-detail-grid span,
+.history-detail-label,
+.history-hand-heading span,
+.history-decision-main span {
+  color: rgba(245, 239, 226, 0.54);
+  font-size: 0.59rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-detail-grid strong,
+.history-hand-heading strong,
+.history-decision-main strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--cream);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.history-detail-section {
+  margin-top: 11px;
+}
+
+.history-detail-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+}
+
+.history-hand-list,
+.history-decision-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  list-style: none;
+}
+
+.history-hand-heading,
+.history-decision-main,
+.history-insurance-detail {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-hand-heading strong,
+.history-decision-main strong {
+  margin-top: 0;
+  font-size: 0.82rem;
+}
+
+.history-hand-meta,
+.history-decision-context,
+.history-recommendation,
+.history-insurance-detail {
+  color: rgba(245, 239, 226, 0.58);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.history-hand-meta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+}
+
+.history-decision.is-followed {
+  border-color: rgba(121, 184, 146, 0.36);
+}
+
+.history-decision.is-followed .history-decision-main strong {
+  color: #9fd1b0;
+}
+
+.history-decision.is-missed {
+  border-color: rgba(215, 123, 114, 0.36);
+}
+
+.history-decision.is-missed .history-decision-main strong {
+  color: #e39a93;
+}
+
+.history-decision-context {
+  margin-top: 5px;
+}
+
+.history-recommendation {
+  margin-top: 4px;
+  color: rgba(239, 214, 150, 0.74);
 }
 
 .chip-row {

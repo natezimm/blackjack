@@ -146,12 +146,24 @@ export const DEALER_CARD_REVEAL_DELAY_MS = 1500;
 export const OUTCOME_REVEAL_DELAY_MS = 1200;
 
 const HISTORY_ACTIONS = {
-  hit: 'Hit',
-  stand: 'Stand',
-  doubleDown: 'Double',
-  split: 'Split',
-  insurance: 'Insurance',
-  noInsurance: 'No insurance',
+  hit: { label: 'Hit', strategyAction: STRATEGY_ACTIONS.hit },
+  stand: { label: 'Stand', strategyAction: STRATEGY_ACTIONS.stand },
+  doubleDown: { label: 'Double', strategyAction: STRATEGY_ACTIONS.double },
+  split: { label: 'Split', strategyAction: STRATEGY_ACTIONS.split },
+  insurance: { label: 'Insurance', strategyAction: 'INSURANCE' },
+  noInsurance: {
+    label: 'No insurance',
+    strategyAction: STRATEGY_ACTIONS.noInsurance,
+  },
+};
+
+const STRATEGY_ACTION_LABELS = {
+  [STRATEGY_ACTIONS.hit]: 'Hit',
+  [STRATEGY_ACTIONS.stand]: 'Stand',
+  [STRATEGY_ACTIONS.double]: 'Double',
+  [STRATEGY_ACTIONS.split]: 'Split',
+  [STRATEGY_ACTIONS.noInsurance]: 'No insurance',
+  INSURANCE: 'Insurance',
 };
 
 export const safePersistStats = (statsToSave, storage = localStorage) => {
@@ -179,6 +191,63 @@ export const safePersistHandHistory = (
   } catch (error) {
     console.error('Unable to persist hand history', error);
   }
+};
+
+const normalizeStrategyRecommendation = (recommendation) => {
+  if (
+    !recommendation ||
+    typeof recommendation !== 'object' ||
+    typeof recommendation.action !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    action: recommendation.action,
+    summary:
+      typeof recommendation.summary === 'string' ? recommendation.summary : '',
+  };
+};
+
+const normalizeHistoryAction = (action, index) => {
+  if (typeof action === 'string') {
+    return {
+      id: `action-${index}`,
+      label: action,
+      strategyAction: null,
+      handIndex: null,
+      handTotal: null,
+      handCards: [],
+      dealerUpcard: null,
+      recommendation: null,
+      followedStrategy: null,
+      insuranceAmount: null,
+    };
+  }
+
+  if (!action || typeof action !== 'object') return null;
+
+  const recommendation = normalizeStrategyRecommendation(action.recommendation);
+
+  return {
+    id: action.id || `action-${index}`,
+    label: typeof action.label === 'string' ? action.label : 'Action',
+    strategyAction:
+      typeof action.strategyAction === 'string' ? action.strategyAction : null,
+    handIndex: typeof action.handIndex === 'number' ? action.handIndex : null,
+    handTotal: typeof action.handTotal === 'number' ? action.handTotal : null,
+    handCards: ensureHand(action.handCards),
+    dealerUpcard: action.dealerUpcard || null,
+    recommendation,
+    followedStrategy:
+      typeof action.followedStrategy === 'boolean'
+        ? action.followedStrategy
+        : null,
+    insuranceAmount:
+      typeof action.insuranceAmount === 'number'
+        ? action.insuranceAmount
+        : null,
+  };
 };
 
 export const sanitizeHandHistory = (history) => {
@@ -217,7 +286,11 @@ export const sanitizeHandHistory = (history) => {
             : calculateTotal(dealerCards),
         playerHands,
         actions: Array.isArray(entry.actions)
-          ? entry.actions.filter((action) => typeof action === 'string')
+          ? entry.actions
+              .map((action, actionIndex) =>
+                normalizeHistoryAction(action, actionIndex)
+              )
+              .filter(Boolean)
           : [],
         insurance: entry.insurance
           ? {
@@ -259,6 +332,15 @@ const calculateOutcomeNet = (hands, insuranceBet, insuranceOutcome) => {
   }
 
   return handNet;
+};
+
+const calculateHandNet = (hand) => {
+  const bet = typeof hand?.bet === 'number' ? hand.bet : 0;
+  const outcome = normalizeOutcome(hand?.outcome);
+
+  if (outcome === 'WIN') return bet;
+  if (outcome === 'LOSS') return -bet;
+  return 0;
 };
 
 const getCombinedOutcome = (hands) => {
@@ -314,7 +396,13 @@ export const buildHandHistoryEntry = ({
     dealerCards,
     dealerTotal: calculateTotal(dealerCards),
     playerHands: hands,
-    actions,
+    actions: Array.isArray(actions)
+      ? actions
+          .map((action, actionIndex) =>
+            normalizeHistoryAction(action, actionIndex)
+          )
+          .filter(Boolean)
+      : [],
     insurance:
       data.insuranceBet > 0 || data.insuranceOutcome
         ? {
@@ -509,6 +597,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const [insuranceOutcome, setInsuranceOutcome] = useState(null);
   const [insuranceAmount, setInsuranceAmount] = useState(0);
   const [handHistory, setHandHistory] = useState([]);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState([]);
   const [showBasicStrategy, setShowBasicStrategy] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.strategyHints) === 'true';
   });
@@ -827,12 +916,94 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     playClickSound();
     activeRoundActionsRef.current = [];
     setHandHistory([]);
+    setExpandedHistoryIds([]);
     persistHandHistory([]);
   };
 
-  const recordRoundAction = (action) => {
+  const activeHandIndex = playerHands.findIndex((h) => h && h.isTurn);
+  const activeHand = activeHandIndex >= 0 ? playerHands[activeHandIndex] : null;
+
+  const canSplit =
+    !gameOver &&
+    activeHand &&
+    activeHand.cards.length === 2 &&
+    calculateTotal([activeHand.cards[0]]) ===
+      calculateTotal([activeHand.cards[1]]) &&
+    balance >= activeHand.bet;
+  const canDouble =
+    !gameOver &&
+    activeHand &&
+    activeHand.cards.length === 2 &&
+    balance >= activeHand.bet;
+  const insuranceDecisionPending =
+    !bettingOpen && !gameOver && insuranceOffered && !insuranceResolved;
+  const maxInsurance = Math.max(
+    0,
+    Math.min(Math.floor(currentBet / 2), balance)
+  );
+  const baseHandStrategyRecommendation =
+    !bettingOpen && !gameOver && activeHand
+      ? getBasicStrategyRecommendation({
+          playerHand: activeHand,
+          dealerHand,
+          canDouble,
+          canSplit,
+          dealerHitsOnSoft17,
+        })
+      : null;
+  const baseInsuranceStrategyRecommendation =
+    getInsuranceStrategyRecommendation(insuranceDecisionPending);
+  const handStrategyRecommendation = showBasicStrategy
+    ? baseHandStrategyRecommendation
+    : null;
+  const insuranceStrategyRecommendation = showBasicStrategy
+    ? baseInsuranceStrategyRecommendation
+    : null;
+  const strategyRecommendation =
+    insuranceStrategyRecommendation || handStrategyRecommendation;
+
+  const buildRoundActionRecord = (action, options = {}) => {
+    const actionConfig =
+      typeof action === 'string'
+        ? { label: action, strategyAction: null }
+        : action;
+    if (!actionConfig) return null;
+
+    const recommendation =
+      options.recommendation === undefined
+        ? baseHandStrategyRecommendation
+        : options.recommendation;
+    const strategyAction =
+      options.strategyAction ?? actionConfig.strategyAction ?? null;
+    const normalizedRecommendation =
+      normalizeStrategyRecommendation(recommendation);
+    const handCards = activeHand ? ensureHand(activeHand.cards) : [];
+
+    return {
+      id: `action-${activeRoundActionsRef.current.length}`,
+      label: actionConfig.label || 'Action',
+      strategyAction,
+      handIndex: activeHandIndex >= 0 ? activeHandIndex + 1 : null,
+      handTotal: activeHand ? calculateTotal(handCards) : null,
+      handCards,
+      dealerUpcard: dealerHand[1] || null,
+      recommendation: normalizedRecommendation,
+      followedStrategy:
+        normalizedRecommendation && strategyAction
+          ? normalizedRecommendation.action === strategyAction
+          : null,
+      insuranceAmount:
+        typeof options.insuranceAmount === 'number'
+          ? options.insuranceAmount
+          : null,
+    };
+  };
+
+  const recordRoundAction = (action, options = {}) => {
     if (!action) return activeRoundActionsRef.current;
-    const nextActions = [...activeRoundActionsRef.current, action];
+    const actionRecord = buildRoundActionRecord(action, options);
+    if (!actionRecord) return activeRoundActionsRef.current;
+    const nextActions = [...activeRoundActionsRef.current, actionRecord];
     activeRoundActionsRef.current = nextActions;
     return nextActions;
   };
@@ -925,8 +1096,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     }
   };
 
-  const updateGameState = (data, action) => {
-    const actions = recordRoundAction(action);
+  const updateGameState = (data, action, actionOptions = {}) => {
+    const actions = recordRoundAction(action, actionOptions);
     setPlayerHands(data.playerHands || []);
     setDealerHand(ensureHand(data.dealerHand));
     setDeckSize(fallbackTo(data.deckSize, deckSize));
@@ -1026,7 +1197,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       setTimeout(() => {
         updateGameState(
           response.data,
-          amount > 0 ? HISTORY_ACTIONS.insurance : HISTORY_ACTIONS.noInsurance
+          amount > 0 ? HISTORY_ACTIONS.insurance : HISTORY_ACTIONS.noInsurance,
+          {
+            recommendation: baseInsuranceStrategyRecommendation,
+            insuranceAmount: amount,
+          }
         );
         setIsAnimating(false);
       }, ACTION_RESOLUTION_DELAY_MS);
@@ -1110,6 +1285,53 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     if (!cards || cards.length === 0) return 'No cards';
     return cards.map(formatCardShort).join(' ');
   };
+  const formatStrategyAction = (action) => {
+    if (!action) return 'No recommendation';
+    if (STRATEGY_ACTION_LABELS[action]) return STRATEGY_ACTION_LABELS[action];
+    const normalized = `${action}`.replace(/_/g, ' ').toLowerCase();
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+  const getActionLabel = (action) =>
+    typeof action === 'string' ? action : action?.label || 'Action';
+  const getActionTrail = (actions) =>
+    Array.isArray(actions) && actions.length > 0
+      ? actions.map(getActionLabel).join(' -> ')
+      : 'No actions recorded';
+  const getStrategyStatusLabel = (action) => {
+    if (action?.followedStrategy === true) return 'Followed';
+    if (action?.followedStrategy === false) return 'Missed';
+    if (action?.recommendation) return 'Reviewed';
+    return 'Unavailable';
+  };
+  const getStrategyStatusClass = (action) => {
+    if (action?.followedStrategy === true) return 'is-followed';
+    if (action?.followedStrategy === false) return 'is-missed';
+    return 'is-untracked';
+  };
+  const formatActionContext = (action) => {
+    if (typeof action === 'string') return 'Legacy action';
+    if (typeof action?.insuranceAmount === 'number') {
+      return `Insurance amount ${formatDollar(action.insuranceAmount)}`;
+    }
+    const parts = [];
+    if (typeof action?.handIndex === 'number') {
+      parts.push(`Hand ${action.handIndex}`);
+    }
+    if (typeof action?.handTotal === 'number') {
+      parts.push(`Total ${action.handTotal}`);
+    }
+    if (action?.dealerUpcard) {
+      parts.push(`Dealer upcard ${formatCardShort(action.dealerUpcard)}`);
+    }
+    return parts.length > 0 ? parts.join(' • ') : 'Table decision';
+  };
+  const toggleHistoryEntry = (entryId) => {
+    setExpandedHistoryIds((prev) =>
+      prev.includes(entryId)
+        ? prev.filter((id) => id !== entryId)
+        : [...prev, entryId]
+    );
+  };
 
   const deckLabel = numberOfDecks === 1 ? '1 Deck' : `${numberOfDecks} Decks`;
   const dealerRuleLabel = dealerHitsOnSoft17
@@ -1167,91 +1389,178 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       {visibleHandHistory.length === 0 ? (
         <p className="history-empty">No completed hands yet.</p>
       ) : (
-        <ol className="history-list">
-          {visibleHandHistory.map((entry) => (
-            <li
-              key={entry.id}
-              className={`history-item history-${normalizeOutcome(entry.result).toLowerCase()}`}
-            >
-              <div className="history-item-main">
-                <span>{formatOutcome(entry.result)}</span>
-                <strong>{formatNet(entry.net)}</strong>
-              </div>
-              <div className="history-meta">
-                <span>Bet {formatDollar(entry.totalBet)}</span>
-                {entry.balance !== null && (
-                  <span>Bank {formatDollar(entry.balance)}</span>
+        <ol
+          className={`history-list ${
+            visibleHandHistory.some((entry) =>
+              expandedHistoryIds.includes(entry.id)
+            )
+              ? 'has-expanded-item'
+              : ''
+          }`.trim()}
+        >
+          {visibleHandHistory.map((entry) => {
+            const isExpanded = expandedHistoryIds.includes(entry.id);
+            const detailId = `history-detail-${entry.id}`;
+            const actionTrail = getActionTrail(entry.actions);
+
+            return (
+              <li
+                key={entry.id}
+                className={`history-item history-${normalizeOutcome(entry.result).toLowerCase()} ${
+                  isExpanded ? 'is-expanded' : ''
+                }`.trim()}
+              >
+                <button
+                  type="button"
+                  className="history-summary"
+                  aria-expanded={isExpanded}
+                  aria-controls={detailId}
+                  onClick={() => toggleHistoryEntry(entry.id)}
+                >
+                  <div className="history-item-main">
+                    <span>{formatOutcome(entry.result)}</span>
+                    <strong>{formatNet(entry.net)}</strong>
+                  </div>
+                  <div className="history-meta">
+                    <span>Bet {formatDollar(entry.totalBet)}</span>
+                    {entry.balance !== null && (
+                      <span>Bank {formatDollar(entry.balance)}</span>
+                    )}
+                    <span>{isExpanded ? 'Hide details' : 'Details'}</span>
+                  </div>
+                  <div className="history-cards">
+                    <span>
+                      Dealer {entry.dealerTotal}:{' '}
+                      {formatCards(entry.dealerCards)}
+                    </span>
+                    <span>
+                      Player:{' '}
+                      {entry.playerHands
+                        .map(
+                          (hand) =>
+                            `${hand.total} ${formatOutcome(hand.outcome)}`
+                        )
+                        .join(' / ')}
+                    </span>
+                  </div>
+                  <div className="history-actions">{actionTrail}</div>
+                </button>
+
+                {isExpanded && (
+                  <div id={detailId} className="history-detail">
+                    <div className="history-detail-grid">
+                      <div>
+                        <span>Dealer cards</span>
+                        <strong>{formatCards(entry.dealerCards)}</strong>
+                      </div>
+                      <div>
+                        <span>Dealer total</span>
+                        <strong>{entry.dealerTotal}</strong>
+                      </div>
+                      <div>
+                        <span>Total bet</span>
+                        <strong>{formatDollar(entry.totalBet)}</strong>
+                      </div>
+                      <div>
+                        <span>Round payout</span>
+                        <strong>{formatNet(entry.net)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="history-detail-section">
+                      <span className="history-detail-label">Player hands</span>
+                      <div className="history-hand-list">
+                        {entry.playerHands.map((hand, handIndex) => (
+                          <div
+                            className="history-hand-detail"
+                            key={`${entry.id}-hand-${handIndex}`}
+                          >
+                            <div className="history-hand-heading">
+                              <span>Hand {handIndex + 1}</span>
+                              <strong>{formatOutcome(hand.outcome)}</strong>
+                            </div>
+                            <div className="history-hand-meta">
+                              <span>Cards {formatCards(hand.cards)}</span>
+                              <span>Total {hand.total}</span>
+                              <span>Bet {formatDollar(hand.bet)}</span>
+                              <span>
+                                Payout {formatNet(calculateHandNet(hand))}
+                              </span>
+                              {hand.hasDoubledDown && <span>Doubled</span>}
+                              {hand.isBusted && <span>Busted</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {entry.insurance && (
+                      <div className="history-detail-section">
+                        <span className="history-detail-label">Insurance</span>
+                        <div className="history-insurance-detail">
+                          <span>Bet {formatDollar(entry.insurance.bet)}</span>
+                          <span>
+                            Outcome{' '}
+                            {entry.insurance.outcome
+                              ? formatOutcome(entry.insurance.outcome)
+                              : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="history-detail-section">
+                      <span className="history-detail-label">Decisions</span>
+                      {entry.actions.length === 0 ? (
+                        <p className="history-empty">
+                          No player decisions recorded.
+                        </p>
+                      ) : (
+                        <ol className="history-decision-list">
+                          {entry.actions.map((action, actionIndex) => (
+                            <li
+                              className={`history-decision ${getStrategyStatusClass(
+                                action
+                              )}`}
+                              key={action.id || `${entry.id}-${actionIndex}`}
+                            >
+                              <div className="history-decision-main">
+                                <span>{getActionLabel(action)}</span>
+                                <strong>
+                                  {getStrategyStatusLabel(action)}
+                                </strong>
+                              </div>
+                              <div className="history-decision-context">
+                                {formatActionContext(action)}
+                              </div>
+                              {action.recommendation ? (
+                                <div className="history-recommendation">
+                                  Recommended{' '}
+                                  {formatStrategyAction(
+                                    action.recommendation.action
+                                  )}{' '}
+                                  • {action.recommendation.summary}
+                                </div>
+                              ) : (
+                                <div className="history-recommendation">
+                                  Basic strategy was not available.
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-              <div className="history-cards">
-                <span>
-                  Dealer {entry.dealerTotal}: {formatCards(entry.dealerCards)}
-                </span>
-                <span>
-                  Player:{' '}
-                  {entry.playerHands
-                    .map(
-                      (hand) => `${hand.total} ${formatOutcome(hand.outcome)}`
-                    )
-                    .join(' / ')}
-                </span>
-              </div>
-              {entry.insurance && (
-                <div className="history-insurance">
-                  Insurance {formatDollar(entry.insurance.bet)}
-                  {entry.insurance.outcome
-                    ? ` ${formatOutcome(entry.insurance.outcome)}`
-                    : ''}
-                </div>
-              )}
-              {entry.actions.length > 0 && (
-                <div className="history-actions">
-                  {entry.actions.join(' -> ')}
-                </div>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       )}
     </section>
   );
 
-  const activeHandIndex = playerHands.findIndex((h) => h && h.isTurn);
-  const activeHand = activeHandIndex >= 0 ? playerHands[activeHandIndex] : null;
-
-  const canSplit =
-    !gameOver &&
-    activeHand &&
-    activeHand.cards.length === 2 &&
-    calculateTotal([activeHand.cards[0]]) ===
-      calculateTotal([activeHand.cards[1]]) &&
-    balance >= activeHand.bet;
-  const canDouble =
-    !gameOver &&
-    activeHand &&
-    activeHand.cards.length === 2 &&
-    balance >= activeHand.bet;
-  const insuranceDecisionPending =
-    !bettingOpen && !gameOver && insuranceOffered && !insuranceResolved;
-  const maxInsurance = Math.max(
-    0,
-    Math.min(Math.floor(currentBet / 2), balance)
-  );
-  const handStrategyRecommendation =
-    showBasicStrategy && !bettingOpen && !gameOver && activeHand
-      ? getBasicStrategyRecommendation({
-          playerHand: activeHand,
-          dealerHand,
-          canDouble,
-          canSplit,
-          dealerHitsOnSoft17,
-        })
-      : null;
-  const insuranceStrategyRecommendation = showBasicStrategy
-    ? getInsuranceStrategyRecommendation(insuranceDecisionPending)
-    : null;
-  const strategyRecommendation =
-    insuranceStrategyRecommendation || handStrategyRecommendation;
   const getRecommendedActionClass = (action) =>
     getStrategyButtonClass(strategyRecommendation, action);
   const renderStrategyHint = (recommendation, className = '') => {
