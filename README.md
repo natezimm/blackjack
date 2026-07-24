@@ -27,6 +27,7 @@ See [`docs/architecture.md`](docs/architecture.md) for runtime boundaries, quali
 - **Security Headers**: CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy
 - **Input Validation**: Server-side validation with Jakarta Bean Validation (`@Valid`, `@Min`, `@Max`)
 - **CORS Hardening**: Environment-based configuration; production restricts to specific origins
+- **Rate Limiting**: Every `/api/**` endpoint is limited to 120 requests per minute per client IP
 - **Session Security**: HTTP-only, SameSite cookies with configurable secure flag
 - **HTTPS Enforcement**: Client-side URL validation enforces HTTPS in production
 - **Prototype Pollution Protection**: Safe JSON parsing utilities
@@ -56,6 +57,9 @@ Copy the example environment files before running services locally:
 3. API listens on `http://localhost:8080`
 
 The backend enables CORS for `/api/**` with credentials. Allowed origins are configured via `app.cors.allowed-origins` in `application.properties` (defaults to localhost for development). For production, use `application-prod.properties` or set the environment variable.
+
+All API endpoints are rate limited. Override the defaults with
+`APP_RATE_LIMIT_PERMIT_LIMIT` and `APP_RATE_LIMIT_WINDOW_SECONDS` when needed.
 
 Health checks are available at `GET /api/health`; production deploy checks use the routed alias `GET /api/blackjack/health`.
 

@@ -5,9 +5,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.lang.NonNull;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,7 +38,14 @@ public class BlackjackApplication {
     }
 
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
+    public ApiRateLimitInterceptor apiRateLimitInterceptor(
+            @Value("${app.rate-limit.permit-limit:120}") int permitLimit,
+            @Value("${app.rate-limit.window-seconds:60}") long windowSeconds) {
+        return new ApiRateLimitInterceptor(permitLimit, Duration.ofSeconds(windowSeconds));
+    }
+
+    @Bean
+    public WebMvcConfigurer corsConfigurer(ApiRateLimitInterceptor apiRateLimitInterceptor) {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
@@ -46,9 +55,21 @@ public class BlackjackApplication {
                     .allowedOrigins(allowedOrigins)
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("Content-Type", "Accept", "X-Requested-With")
-                    .exposedHeaders("Content-Type")
+                    .exposedHeaders(
+                        "Content-Type",
+                        "RateLimit-Policy",
+                        "RateLimit-Limit",
+                        "RateLimit-Remaining",
+                        "RateLimit-Reset",
+                        "Retry-After")
                     .allowCredentials(allowCredentials)
                     .maxAge(maxAge);
+            }
+
+            @Override
+            public void addInterceptors(@NonNull InterceptorRegistry registry) {
+                registry.addInterceptor(apiRateLimitInterceptor)
+                    .addPathPatterns("/api/**");
             }
         };
     }

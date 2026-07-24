@@ -17,7 +17,7 @@ flowchart LR
   Controller --> Session["HTTP session<br/>per-browser game state"]
   Session --> Engine["BlackjackGame engine<br/>rules, deck, balance, hands"]
   Engine --> DTOs["DTO responses<br/>GameResponse + HandResponse"]
-  Controller --> Security["Spring Security<br/>CORS + headers"]
+  Controller --> Security["Spring Security<br/>CORS + headers + rate limits"]
   Controller --> Health["Health endpoints<br/>/api/health + /api/blackjack/health"]
   Repo["Repo quality gate<br/>npm run quality"] --> Builds["React build<br/>Gradle tests + JaCoCo"]
   Builds --> Deploy["GitHub Actions<br/>Lightsail deploy script"]
@@ -39,7 +39,7 @@ flowchart LR
 
 ## Source Boundaries
 
-The client owns rendering, browser persistence, audio/asset presentation, and API request shaping. The server owns Blackjack rules, balance changes, hand transitions, validation, security headers, CORS, and the session-backed game snapshot returned to the UI.
+The client owns rendering, browser persistence, audio/asset presentation, and API request shaping. The server owns Blackjack rules, balance changes, hand transitions, validation, security headers, CORS, per-client API rate limiting, and the session-backed game snapshot returned to the UI.
 
 ## Quality Gates
 
