@@ -73,6 +73,30 @@ class BlackjackControllerTests {
         }
 
         @Test
+        void placeBet_zeroAmount_clearsCurrentBet() throws Exception {
+                placeBet(100);
+
+                mockMvc.perform(post("/api/blackjack/bet")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("amount", 0)))
+                                .session(session))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.balance").value(1000));
+
+                assertEquals(0, getSessionGame().getCurrentBet());
+        }
+
+        @Test
+        void placeBet_negativeAmount_returnsBadRequest() throws Exception {
+                mockMvc.perform(post("/api/blackjack/bet")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("amount", -1)))
+                                .session(session))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").value("Bet cannot be negative"));
+        }
+
+        @Test
         void placeBet_missingAmount_returnsBadRequest() throws Exception {
                 mockMvc.perform(post("/api/blackjack/bet")
                                 .contentType(MediaType.APPLICATION_JSON)

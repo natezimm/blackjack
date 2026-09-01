@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 public class BetRequest {
 
     @NotNull(message = "Bet amount is required")
-    @Min(value = 1, message = "Bet must be at least $1")
+    @Min(value = 0, message = "Bet cannot be negative")
     @Max(value = 100000, message = "Bet cannot exceed $100,000")
     private Integer amount;
 

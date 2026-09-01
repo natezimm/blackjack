@@ -76,7 +76,7 @@ The client reads `REACT_APP_API_URL` (see `client/.env`) and sends requests with
 
 Base path: `/api/blackjack` (responses are JSON; most endpoints return the full `GameResponse` snapshot).
 
-- `POST /bet` – body `{ "amount": <int> }` sets the **total** bet for the next deal (only while betting is open).
+- `POST /bet` – body `{ "amount": <int> }` sets the **total** bet for the next deal (only while betting is open); use `0` to clear it.
 - `GET /start?decks=<1|2|4|6|8>&dealerHitsOnSoft17=<true|false>` – shuffles/configures and deals the round.
 - `POST /hit` – hit the active player hand.
 - `POST /stand` – stand the active player hand; moves to next hand or dealer play.
