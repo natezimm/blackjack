@@ -1,19 +1,192 @@
 @import './Card.css';
 
 .hand {
-  min-width: 210px;
-  min-height: 145px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
+  min-width: 0;
+  min-height: 134px;
+  max-width: 100%;
+}
+
+.dealer-hand,
+.player-hand {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  max-width: 100%;
+  color: #f6efe1;
+}
+
+.dealer-hand {
+  padding: 0 12px;
+}
+
+.player-hand {
+  flex: 0 1 330px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.player-hand.is-active {
+  border-color: rgba(198, 165, 119, 0.58);
+  background: rgba(255, 248, 232, 0.045);
+}
+
+.hand-header {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 29px;
+  margin-bottom: 13px;
+}
+
+.player-hand .hand-header {
+  margin: 10px 0 0;
+}
+
+.player-hand h2,
+.dealer-hand h2 {
+  margin: 0;
+  color: #e2cbb6;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hand-total {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid rgba(198, 165, 119, 0.36);
+  border-radius: 50%;
+  color: #f8efdf;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: rgba(43, 15, 20, 0.22);
+}
+
+.hand-bet {
+  color: #e4c9a3;
+  font-size: 0.67rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hand-turn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #e7c997;
+  font-size: 0.59rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hand-turn::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.empty-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  text-align: center;
+}
+
+.hand:has(.empty-card-pair) {
+  min-height: 111px;
+}
+
+.empty-hand p {
+  margin: 0;
+  color: #d9bfb1;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.outcome-badge {
+  width: fit-content;
+  max-width: 100%;
+  margin: 10px auto 0;
+  padding: 5px 13px;
+  border: 1px solid rgba(198, 165, 119, 0.4);
+  border-radius: 3px;
+  color: #f1d9ad;
+  background: rgba(39, 12, 17, 0.34);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.badge-win,
+.badge-blackjack {
+  color: #d2e4c7;
+  border-color: rgba(187, 211, 170, 0.5);
+}
+
+.badge-loss,
+.badge-bust,
+.badge-busted {
+  color: #f5c1b5;
+  border-color: rgba(245, 193, 181, 0.36);
 }
 
 @media (max-width: 680px) {
   .hand {
-    min-width: 170px;
-    min-height: 116px;
-    gap: 5px;
+    min-height: 105px;
+    gap: 7px;
+  }
+
+  .player-hand {
+    flex-basis: 270px;
+    padding: 6px 10px;
+  }
+
+  .hand-header {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .player-hand .hand-header {
+    margin-top: 8px;
+  }
+
+  .empty-hand {
+    gap: 6px;
+  }
+
+  .hand:has(.empty-card-pair) {
+    min-height: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-hand {
+    transition: none;
   }
 }

@@ -2,7 +2,12 @@ import React from 'react';
 import '../styles/PlayerHand.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
 
-const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
+const PlayerHand = ({
+  hand,
+  showBet = false,
+  isPlaceholder = false,
+  isActive = false,
+}) => {
   const cards = hand.cards || hand;
   const bet = hand.bet || 0;
   const outcome = hand.outcome;
@@ -11,15 +16,8 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
 
   return (
     <div
-      className={`player-hand ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`}
+      className={`player-hand ${isActive ? 'is-active' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`.trim()}
     >
-      {(outcome || hand.isBusted) && (
-        <div
-          className={`outcome-badge badge-${hand.isBusted ? 'busted' : outcome.toLowerCase()}`}
-        >
-          {hand.isBusted ? 'BUSTED' : outcome}
-        </div>
-      )}
       <div className="hand">
         {cards.map((card, index) => (
           <img
@@ -29,8 +27,16 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
             className="card"
           />
         ))}
-        {isPlaceholder && (
+        {isPlaceholder && cards.length === 0 && (
           <div className="empty-hand" aria-live="polite">
+            <div className="empty-card-pair" aria-hidden="true">
+              <span className="empty-card">
+                <span>♠</span>
+              </span>
+              <span className="empty-card">
+                <span>♠</span>
+              </span>
+            </div>
             <p>Choose your wager, then deal.</p>
           </div>
         )}
@@ -41,7 +47,15 @@ const PlayerHand = ({ hand, showBet = false, isPlaceholder = false }) => {
         {(cards.length > 0 || isPlaceholder) && (
           <span className="hand-total">{cards.length > 0 ? total : 0}</span>
         )}
+        {isActive && <span className="hand-turn">Your turn</span>}
       </div>
+      {(outcome || hand.isBusted) && (
+        <div
+          className={`outcome-badge badge-${hand.isBusted ? 'busted' : outcome.toLowerCase()}`}
+        >
+          {hand.isBusted ? 'BUSTED' : outcome}
+        </div>
+      )}
     </div>
   );
 };

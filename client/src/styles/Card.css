@@ -1,26 +1,25 @@
-.card {
-  width: 100px;
-  height: auto;
+.card,
+.card-container,
+.empty-card {
+  flex: 0 0 auto;
+  width: 92px;
+  max-width: 100%;
   aspect-ratio: 500 / 726;
-  object-fit: contain;
-  display: block;
-  border-radius: 7px;
-  box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease;
-  animation: dealCard 0.5s ease-out;
+  border-radius: 5px;
 }
 
-.card:hover {
-  transform: translateY(-3px);
+.card {
+  display: block;
+  height: auto;
+  object-fit: contain;
+  box-shadow:
+    0 8px 16px rgba(24, 4, 9, 0.24),
+    0 0 0 1px rgba(25, 9, 12, 0.05);
+  animation: dealCard 300ms ease-out;
 }
 
 .card-container {
   perspective: 1000px;
-  width: 100px;
-  aspect-ratio: 500 / 726;
-  margin: 0 5px;
 }
 
 .card-inner {
@@ -28,7 +27,7 @@
   width: 100%;
   height: 100%;
   text-align: center;
-  transition: transform 0.6s;
+  transition: transform 450ms ease;
   transform-style: preserve-3d;
 }
 
@@ -47,7 +46,7 @@
   height: 100%;
   backface-visibility: hidden;
   border-radius: 5px;
-  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 16px rgba(24, 4, 9, 0.24);
 }
 
 .card-front {
@@ -60,30 +59,93 @@
 
 .card-front img,
 .card-back img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  display: block;
-  border-radius: 5px;
+  border-radius: inherit;
+}
+
+.empty-card-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  max-width: 100%;
+}
+
+.empty-card {
+  position: relative;
+  width: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(210, 177, 136, 0.23);
+  color: rgba(218, 186, 145, 0.4);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.empty-card--back {
+  border-color: rgba(210, 177, 136, 0.35);
+  background: rgba(244, 223, 189, 0.025);
+}
+
+.empty-card--back::before {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(210, 177, 136, 0.15);
+  border-radius: 2px;
+  content: '';
+}
+
+.empty-card--back span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 45px;
+  border: 1px solid rgba(210, 177, 136, 0.22);
+  border-radius: 50%;
+  font-size: 0.95rem;
+  font-style: italic;
 }
 
 @keyframes dealCard {
   from {
     opacity: 0;
-    transform: translateY(-50px) scale(0.5);
+    transform: translateY(-12px) rotate(-2deg);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) rotate(0);
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 680px) {
   .card,
-  .card-container {
-    width: 80px;
-    height: auto;
-    aspect-ratio: 500 / 726;
+  .card-container,
+  .empty-card {
+    width: 72px;
+  }
+
+  .empty-card {
+    width: 56px;
+  }
+
+  .empty-card-pair {
+    gap: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
+  .card-inner {
+    transition: none;
   }
 }

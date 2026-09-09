@@ -13,6 +13,16 @@ const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
         <span className="hand-total">{total}</span>
       </div>
       <div className="hand">
+        {hand.length === 0 && (
+          <div className="empty-card-pair" aria-hidden="true">
+            <span className="empty-card empty-card--back">
+              <span>21</span>
+            </span>
+            <span className="empty-card empty-card--back">
+              <span>21</span>
+            </span>
+          </div>
+        )}
         {hand.map((card, index) => {
           if (index === 0) {
             return (
@@ -21,25 +31,12 @@ const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
                   className={`card-inner ${reveal ? 'flipped' : ''} ${!reveal ? 'no-flip-transition' : ''}`}
                 >
                   <div className="card-back">
-                    <img
-                      src={cardBackSrc}
-                      alt="Card Back"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '5px',
-                      }}
-                    />
+                    <img src={cardBackSrc} alt="Card Back" />
                   </div>
                   <div className="card-front">
                     <img
                       src={getCardImage(card.value, card.suit)}
                       alt={`${card.value} of ${card.suit}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '5px',
-                      }}
                     />
                   </div>
                 </div>

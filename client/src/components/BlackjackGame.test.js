@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { act } from 'react';
 import userEvent from '@testing-library/user-event';
 import BlackjackGame, {
@@ -75,6 +81,185 @@ describe('BlackjackGame', () => {
       jest.advanceTimersByTime(ms);
     });
   };
+
+  describe('completed-hand statistics', () => {
+    const cards = [
+      { value: '10', suit: 'Hearts' },
+      { value: '9', suit: 'Spades' },
+    ];
+    const playingState = (balance = 975) => ({
+      playerHands: [{ cards, bet: 25, isTurn: true }],
+      dealerHand: cards,
+      currentBet: 25,
+      balance,
+      gameOver: false,
+      bettingOpen: false,
+    });
+    const readStats = () => JSON.parse(localStorage.getItem('blackjackStats'));
+    const click = async (name) => {
+      await act(async () => {
+        await userEvent.click(
+          screen.getByRole('button', { name, exact: true })
+        );
+      });
+    };
+    const deal = async (balance = 1000) => {
+      startGame.mockResolvedValue({ data: playingState(balance - 25) });
+      await click('Add $25 to wager');
+      await click('DEAL');
+      await advanceTimers(2500);
+    };
+    const assertStatRow = (label, value) => {
+      expect(
+        screen.getByText(label).closest('.stat-row').querySelector('strong')
+      ).toHaveTextContent(value);
+    };
+
+    it('updates and persists wins, streaks, and single-hand winnings across rounds', async () => {
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+      let balance = 1000;
+      const outcomes = ['WIN', 'WIN', 'LOSS', 'WIN', 'TIE', 'WIN'];
+      const streaks = [1, 2, 0, 1, 0, 1];
+      const wins = [1, 2, 2, 3, 3, 4];
+      for (const [index, outcome] of outcomes.entries()) {
+        await deal(balance);
+        const doubled = index === 3;
+        const bet = doubled ? 50 : 25;
+        balance += outcome === 'WIN' ? bet : outcome === 'LOSS' ? -bet : 0;
+        (doubled ? doubleDown : stand).mockResolvedValue({
+          data: {
+            ...playingState(),
+            balance,
+            gameOver: true,
+            bettingOpen: true,
+            playerHands: [
+              { cards, bet, outcome, isTurn: false, hasDoubledDown: doubled },
+            ],
+          },
+        });
+        await click(doubled ? 'DOUBLE' : 'STAND');
+        await advanceTimers(ACTION_RESOLUTION_DELAY_MS);
+        expect(readStats()).toEqual(
+          expect.objectContaining({
+            sessionHandsWon: wins[index],
+            currentWinStreak: streaks[index],
+            longestWinStreak: Math.min(index + 1, 2),
+            bestPayout: index < 3 ? 25 : 50,
+          })
+        );
+      }
+      await click('Show stats');
+      assertStatRow('Longest Win Streak', '2');
+      assertStatRow('Hands Won This Game', '4');
+      assertStatRow('Best Single-Hand Payout', '$50');
+    });
+
+    it('counts settled split hands individually, only once, and excludes insurance from best payout', async () => {
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+      await deal();
+      const hands = [
+        { cards, bet: 25, outcome: 'WIN', isTurn: false },
+        { cards, bet: 100, outcome: null, isTurn: true },
+        { cards, bet: 50, outcome: null, isTurn: false },
+      ];
+      stand.mockResolvedValueOnce({
+        data: { ...playingState(), playerHands: hands },
+      });
+      await click('STAND');
+      await advanceTimers(ACTION_RESOLUTION_DELAY_MS);
+      expect(readStats().sessionHandsWon).toBe(0);
+      stand.mockResolvedValue({
+        data: {
+          ...playingState(),
+          gameOver: true,
+          bettingOpen: true,
+          balance: 1175,
+          insuranceBet: 100,
+          insuranceOutcome: 'WIN',
+          playerHands: [
+            hands[0],
+            { ...hands[1], outcome: 'LOSS', isTurn: false },
+            { ...hands[2], outcome: 'WIN' },
+          ],
+        },
+      });
+      // Two pending requests returning the same settlement must not count twice.
+      const standButton = screen.getByRole('button', {
+        name: 'STAND',
+        exact: true,
+      });
+      await act(async () => {
+        fireEvent.click(standButton);
+        fireEvent.click(standButton);
+      });
+      await advanceTimers(ACTION_RESOLUTION_DELAY_MS);
+      expect(readStats()).toEqual(
+        expect.objectContaining({
+          sessionHandsWon: 2,
+          longestWinStreak: 1,
+          currentWinStreak: 1,
+          bestPayout: 50,
+        })
+      );
+      expect(
+        JSON.parse(localStorage.getItem('blackjackHandHistory'))
+      ).toHaveLength(1);
+    });
+
+    it('shows current-game wins and does not recount a completed hand on resume', async () => {
+      const storedStats = {
+        highestBankroll: 1200,
+        longestWinStreak: 4,
+        mostHandsWon: 9,
+        bestPayout: 100,
+        currentWinStreak: 1,
+        sessionHandsWon: 2,
+      };
+      localStorage.setItem('blackjackStats', JSON.stringify(storedStats));
+      getState.mockResolvedValue({
+        data: {
+          ...playingState(),
+          balance: 1100,
+          gameOver: true,
+          bettingOpen: true,
+          playerHands: [{ cards, bet: 25, outcome: 'WIN', isTurn: false }],
+        },
+      });
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+      await click('Resume');
+      await click('Show stats');
+      assertStatRow('Hands Won This Game', '2');
+      expect(readStats()).toEqual(storedStats);
+      await click('Reset Stats');
+      assertStatRow('Hands Won This Game', '0');
+      await click('Close');
+      await deal(1100);
+      stand.mockResolvedValue({
+        data: {
+          ...playingState(),
+          balance: 1125,
+          gameOver: true,
+          bettingOpen: true,
+          playerHands: [{ cards, bet: 25, outcome: 'WIN', isTurn: false }],
+        },
+      });
+      await click('STAND');
+      await advanceTimers(ACTION_RESOLUTION_DELAY_MS);
+      expect(readStats()).toEqual(
+        expect.objectContaining({
+          sessionHandsWon: 1,
+          longestWinStreak: 1,
+          bestPayout: 25,
+        })
+      );
+    });
+  });
 
   it('shows the resume prompt when a saved hand exists', async () => {
     localStorage.setItem(

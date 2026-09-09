@@ -49,6 +49,7 @@ import chipSoundAsset from '../assets/sounds/chip.mp3';
 import clickSoundAsset from '../assets/sounds/click.mp3';
 
 import '../styles/BlackjackGame.css';
+import '../styles/TableInsights.css';
 import { MESSAGES } from '../constants/messages';
 import { calculateTotal } from '../utils/cardUtils';
 import {
@@ -610,6 +611,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const mutedRef = useRef(muted);
   const activeRoundStartBalanceRef = useRef(null);
   const activeRoundActionsRef = useRef([]);
+  const completedRoundRecordedRef = useRef(false);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -699,6 +701,10 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
   const updateBalanceAndStats = createUpdateBalanceAndStats({
     setBalance,
+    setStats,
+    persistStats,
+  });
+  const updateStatsWithOutcome = createUpdateStatsWithOutcome({
     setStats,
     persistStats,
   });
@@ -1009,12 +1015,24 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const recordCompletedHand = (data, actions) => {
+    if (completedRoundRecordedRef.current) return;
     const entry = buildHandHistoryEntry({
       data,
       previousBalance: activeRoundStartBalanceRef.current,
       actions,
     });
     if (!entry) return;
+    completedRoundRecordedRef.current = true;
+
+    // Count each settled split hand, using its net payout rather than the
+    // round's combined balance change (which can also include insurance).
+    entry.playerHands.forEach((hand) => {
+      updateStatsWithOutcome(
+        hand.outcome.toLowerCase(),
+        calculateHandNet(hand),
+        data.balance
+      );
+    });
 
     setHandHistory((prev) => {
       const next = sanitizeHandHistory([entry, ...prev]);
@@ -1032,6 +1050,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       const data = response.data;
       activeRoundStartBalanceRef.current = balance;
       activeRoundActionsRef.current = [];
+      completedRoundRecordedRef.current = false;
       setPlayerHands(data.playerHands || []);
       setDealerHand(ensureHand(data.dealerHand));
       setDeckSize(fallbackTo(data.deckSize, deckSize));
@@ -1354,7 +1373,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       </div>
       <div className="stat-row">
         <span>Hands Won This Game</span>
-        <strong>{stats.mostHandsWon}</strong>
+        <strong>{stats.sessionHandsWon}</strong>
       </div>
       <div className="stat-row">
         <span>Best Single-Hand Payout</span>
@@ -1594,41 +1613,63 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
   return (
     <div className="blackjack-game">
-      <div className="fab-cluster">
-        <button
-          className="sound-fab"
-          onClick={toggleMute}
-          aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
-          title={muted ? 'Unmute sounds' : 'Mute sounds'}
+      <nav className="card-room-nav" aria-label="Main navigation">
+        <a
+          className="card-room-brand"
+          href="#main-content"
+          aria-label="Blackjack home"
         >
-          <InterfaceIcon name={muted ? 'muted' : 'sound'} />
-        </button>
+          <span className="brand-monogram" aria-hidden="true">
+            21<span>♠</span>
+          </span>
+          <span className="brand-name">
+            THE CARD ROOM<small>BY NATHAN ZIMMERMAN</small>
+          </span>
+        </a>
+        <div className="nav-links">
+          <a className="nav-link is-current" href="#game-table">
+            The table
+          </a>
+          <a className="nav-link" href="#session-insights">
+            Your session
+          </a>
+        </div>
+        <div className="fab-cluster">
+          <button
+            className="sound-fab"
+            onClick={toggleMute}
+            aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+            title={muted ? 'Unmute sounds' : 'Mute sounds'}
+          >
+            <InterfaceIcon name={muted ? 'muted' : 'sound'} />
+          </button>
 
-        <button
-          className="stats-fab"
-          onClick={() => {
-            playClickSound();
-            setShowStatsModal(true);
-          }}
-          aria-label="Show stats"
-          title="Show stats"
-        >
-          <InterfaceIcon name="stats" />
-        </button>
+          <button
+            className="stats-fab"
+            onClick={() => {
+              playClickSound();
+              setShowStatsModal(true);
+            }}
+            aria-label="Show stats"
+            title="Show stats"
+          >
+            <InterfaceIcon name="stats" />
+          </button>
 
-        <button
-          className="settings-fab"
-          onClick={() => {
-            playClickSound();
-            setShowSettings(true);
-          }}
-          disabled={!bettingOpen}
-          aria-label="Game settings"
-          title="Game settings"
-        >
-          <InterfaceIcon name="settings" />
-        </button>
-      </div>
+          <button
+            className="settings-fab"
+            onClick={() => {
+              playClickSound();
+              setShowSettings(true);
+            }}
+            disabled={!bettingOpen}
+            aria-label="Game settings"
+            title="Game settings"
+          >
+            <InterfaceIcon name="settings" />
+          </button>
+        </div>
+      </nav>
 
       {showResumePrompt && (
         <div className="resume-modal-overlay">
@@ -1671,6 +1712,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 <span>Decks in Play</span>
               </div>
               <select
+                aria-label="Decks in play"
                 value={numberOfDecks}
                 onChange={handleDeckCountChange}
                 disabled={!bettingOpen}
@@ -1690,6 +1732,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <label className="toggle-label">
                 <input
                   type="checkbox"
+                  aria-label="Dealer hits on soft 17"
                   checked={dealerHitsOnSoft17}
                   onChange={(e) => setDealerHitsOnSoft17(e.target.checked)}
                   disabled={!bettingOpen}
@@ -1775,38 +1818,44 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       )}
 
       <header className="table-header">
-        <span className="brand-kicker">Private table / No. 21</span>
-        <h1 aria-label="Blackjack">
-          <span>Black</span>
-          <span>jack</span>
-        </h1>
-        <p className="table-info">
-          {deckLabel} • {dealerRuleLabel}
-          {deckRemainingLabel}
+        <div>
+          <span className="brand-kicker">A classic, well played.</span>
+          <h1 aria-label="Blackjack">
+            Blackjack
+            <span className="title-suit" aria-hidden="true">
+              ♠
+            </span>
+          </h1>
+        </div>
+        <p className="table-introduction">
+          A little luck. A little instinct.
+          <br />
+          <span>Take a seat. Make your next move.</span>
         </p>
       </header>
 
-      <div className="table-layout">
-        <aside className="betting-panel">
+      <div className="table-layout" id="game-table">
+        <aside className="betting-panel" aria-label="Wager controls">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">At the table</span>
-              <h2 className="panel-title">Bank & Wager</h2>
+              <span className="panel-kicker">Make it interesting</span>
+              <h2 className="panel-title">Your wager.</h2>
             </div>
             <span className={`table-status ${bettingOpen ? 'is-open' : ''}`}>
               {bettingOpen ? 'Bets open' : 'In play'}
             </span>
           </div>
-          <div className="betting-summary">
+          <div className="betting-summary balance-summary">
             <span>Balance</span>
             <strong>{`$${balance}`}</strong>
           </div>
-          <div className="betting-summary">
+          <div className="betting-summary wager-summary">
             <span>Current Bet</span>
             <strong>{`$${currentBet}`}</strong>
           </div>
           <div className="chip-picker-heading">
             <span>Select a chip</span>
+            <span className="chip-picker-note">Click to add</span>
           </div>
           <div className="chip-row">
             <Chip
@@ -1857,12 +1906,41 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span className="strategy-toggle-thumb" />
             </span>
           </label>
+          <p className="strategy-caption">
+            A second opinion on your next move.
+          </p>
+          <div className="table-rules">
+            <span className="panel-kicker">The house rules</span>
+            <p>
+              <span>Blackjack pays</span>
+              <strong>3 : 2</strong>
+            </p>
+            <p>
+              <span>Decks in play</span>
+              <strong>{numberOfDecks}</strong>
+            </p>
+            <p>
+              <span>Dealer on soft 17</span>
+              <strong>{dealerHitsOnSoft17 ? 'Hits' : 'Stands'}</strong>
+            </p>
+          </div>
+          <div className="practice-note">
+            <span aria-hidden="true">♧</span> Play chips. Real practice.
+          </div>
         </aside>
 
         <div className="table-main-column">
           <div className="table-surface">
+            <div className="table-topline">
+              <span>THE CARD ROOM</span>
+              <span>TABLE № 21</span>
+            </div>
             <div className="table-watermark" aria-hidden="true">
+              <span className="watermark-suits">
+                ♠ <i>♥</i> ♣ <i>♦</i>
+              </span>
               <span>Blackjack pays 3 to 2</span>
+              <small>{dealerRuleLabel}</small>
             </div>
             <DealerHand
               hand={displayedDealerHand}
@@ -1963,6 +2041,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 <div className="betting-controls">
                   <button
                     className="action-btn deal-btn"
+                    aria-label="DEAL"
                     onClick={handleStart}
                     disabled={currentBet === 0 || isAnimating || isDealing}
                   >
@@ -2037,7 +2116,18 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             </div>
           </div>
 
-          <div className="table-insights">
+          <div className="table-caption">
+            <span>
+              <span className="live-dot" />
+              {bettingOpen ? 'Ready when you are' : 'A hand in progress'}
+            </span>
+            <span>
+              {deckLabel}
+              {deckRemainingLabel}
+            </span>
+          </div>
+
+          <div className="table-insights" id="session-insights">
             <BankrollGraph handHistory={handHistory} currentBalance={balance} />
             {renderHandHistory()}
           </div>
@@ -2045,14 +2135,19 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       </div>
 
       <footer className="site-footer">
-        <span>Made by </span>
-        <a
-          href="https://nathanzimmerman.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Nathan Zimmerman
-        </a>
+        <span className="footer-signoff">
+          A good hand is just the beginning.
+        </span>
+        <div>
+          <span>Made by </span>
+          <a
+            href="https://nathanzimmerman.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Nathan Zimmerman
+          </a>
+        </div>
       </footer>
     </div>
   );
