@@ -11,6 +11,7 @@ const Chip = ({ amount, images, disabled, onClick }) => {
       className={`chip-img ${disabled ? 'disabled' : ''}`}
       onClick={() => onClick(amount)}
       disabled={disabled}
+      data-chip-amount={amount}
       aria-label={`Add $${amount} to wager`}
     >
       {hasImages ? (

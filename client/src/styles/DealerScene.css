@@ -1,0 +1,293 @@
+.table-surface:has(.dealer-scene) {
+  padding-top: 30px;
+  padding-bottom: 18px;
+  border: 8px solid #35252b;
+  border-radius: 24px 24px 64px 64px;
+  background-image:
+    radial-gradient(ellipse at 48% 28%, #95545b38 0, transparent 68%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23ffffff' opacity='.035' filter='url(%23grain)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+  box-shadow:
+    inset 0 2px 4px #0d071975,
+    inset 0 0 76px #210d1947,
+    0 0 0 1px #a58a63,
+    0 2px 0 2px #251d23,
+    0 15px 26px -18px #3221279c;
+}
+
+.table-surface:has(.dealer-scene)::before {
+  inset: 8px;
+  border-radius: 11px 11px 47px 47px;
+  border-color: #d4b98442;
+}
+
+.table-surface:has(.dealer-scene) .table-topline {
+  top: 18px;
+  left: 22px;
+  right: 22px;
+  font-size: 7px;
+  z-index: 1;
+}
+
+.dealer-scene {
+  position: relative;
+  flex: 0 0 96px;
+  order: 0;
+  align-self: center;
+  width: min(100%, 480px);
+  height: 96px;
+  margin-top: -27px;
+  margin-bottom: 2px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 8;
+}
+
+.dealer-scene svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.table-surface:has(.dealer-scene) .table-watermark {
+  min-height: 60px;
+  margin-top: 10px;
+  padding-top: 10px;
+  gap: 5px;
+}
+
+.table-surface:has(.dealer-scene) .dealer-hand .hand {
+  min-height: 112px;
+}
+
+.table-surface:has(.dealer-scene) .dealer-hand .card-motion {
+  width: 76px;
+}
+
+.table-surface:has(.dealer-scene) .dealer-hand .hand-header {
+  margin-bottom: 7px;
+}
+
+.table-surface:has(.dealer-scene) .player-hand {
+  padding-block: 6px;
+}
+
+.table-surface:has(.dealer-scene) .player-hand .hand {
+  min-height: 120px;
+}
+
+.table-surface:has(.dealer-scene) .player-hand .card-motion {
+  width: 82px;
+}
+
+.table-surface:has(.dealer-scene) .player-hand .hand-header {
+  margin-top: 6px;
+}
+
+.dealer-scene .dealer-hands {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 118px;
+  overflow: visible;
+  clip-path: inset(0 -100vw -100vh -100vw);
+  z-index: 5;
+}
+
+.dealer-resting-arm,
+.dealer-dealing-arm {
+  position: absolute;
+  /* Keep the props in proportion to the scene's available width (up to 480px). */
+  width: calc(100% * 84 / 480);
+  height: auto;
+  aspect-ratio: 2 / 3;
+  top: 0;
+  transform-origin: 50% 12%;
+  filter: drop-shadow(1px 3px 1px #1b0b1640);
+}
+
+.dealer-resting-arm {
+  left: calc(50% - 100% * 142 / 480);
+  transform-origin: 65.5% 86%;
+}
+
+.dealer-dealing-arm {
+  left: calc(50% + 100% * 57 / 480);
+  transform-origin: 34.5% 86%;
+}
+
+.dealer-resting-arm::before,
+.dealer-dealing-arm::before {
+  content: '';
+  position: absolute;
+  left: 18.5%;
+  bottom: calc(100% - 4px);
+  width: 50%;
+  height: 260px;
+  z-index: -1;
+  box-sizing: border-box;
+  border-inline: 0.65px solid #282526;
+  background: linear-gradient(
+    90deg,
+    #2c2b2d 0 14%,
+    #363537 14% 85%,
+    #2c2b2d 85% 100%
+  );
+}
+
+.dealer-dealing-arm::before {
+  left: 31.5%;
+}
+
+.dealer-flip-contact,
+.dealer-deal-contact {
+  position: absolute;
+  left: 65.5%;
+  top: 86%;
+  width: 2px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+}
+
+.dealer-deal-contact {
+  left: 34.5%;
+}
+
+.dealer-hands img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-mask-image: var(--dealer-hand-mask);
+  mask-image: var(--dealer-hand-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.dealer-dealing-arm img {
+  transform: scaleX(-1);
+}
+
+.dealer-chip-tray {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: calc(100% * 105 / 480);
+  aspect-ratio: 105 / 34;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 5px 3px #200f1533);
+}
+
+.dealer-card-shoe {
+  position: absolute;
+  top: 3px;
+  right: 3%;
+  width: calc(100% * 76 / 480);
+  aspect-ratio: 76 / 96;
+}
+
+.dealer-collection-point {
+  position: absolute;
+  left: 50%;
+  top: -35px;
+  width: 1px;
+  height: 1px;
+}
+
+.dealer-dealing-arm.is-dealing {
+  animation: dealer-deal-gesture var(--dealer-deal-duration, 1200ms) ease-in-out;
+}
+
+.dealer-scene.is-collecting .dealer-resting-arm {
+  animation: dealer-collect-gesture var(--dealer-sweep-duration, 850ms)
+    ease-in-out;
+}
+
+@keyframes dealer-deal-gesture {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  12% {
+    transform: translate(
+        var(--dealer-pickup-x, 0px),
+        var(--dealer-pickup-y, 0px)
+      )
+      rotate(-5deg);
+  }
+  30% {
+    transform: translate(
+        var(--dealer-handoff-x, 0px),
+        var(--dealer-handoff-y, 0px)
+      )
+      rotate(-5deg);
+  }
+  65% {
+    transform: translate(12px, 18px) rotate(3deg);
+  }
+}
+
+@keyframes dealer-collect-gesture {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  45% {
+    transform: translate(16px, 12px) rotate(-8deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .table-surface:has(.dealer-scene) {
+    border-width: 6px;
+    border-radius: 20px 20px 40px 40px;
+    padding-top: 27px;
+    padding-bottom: 24px;
+  }
+
+  .table-surface:has(.dealer-scene)::before {
+    inset: 7px;
+    border-radius: 10px 10px 29px 29px;
+  }
+
+  .table-surface:has(.dealer-scene) .table-topline {
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    font-size: 6px;
+    letter-spacing: 0.12em;
+  }
+
+  .dealer-scene {
+    height: 96px;
+    flex-basis: 96px;
+    margin-top: -25px;
+    margin-bottom: 2px;
+  }
+
+  .table-surface:has(.dealer-scene) .dealer-hand .card-motion,
+  .table-surface:has(.dealer-scene) .player-hand .card-motion {
+    width: 72px;
+  }
+
+  .table-surface:has(.dealer-scene) .dealer-hand .hand,
+  .table-surface:has(.dealer-scene) .player-hand .hand {
+    min-height: 105px;
+  }
+
+  .dealer-scene .dealer-hands {
+    height: 103px;
+  }
+}
+
+.motion-reduced .dealer-scene *,
+.motion-reduced.dealer-scene * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dealer-scene * {
+    animation: none !important;
+  }
+}

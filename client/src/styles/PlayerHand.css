@@ -11,6 +11,10 @@
   max-width: 100%;
 }
 
+.hand > .card-motion + .card-motion {
+  margin-left: -5px;
+}
+
 .dealer-hand,
 .player-hand {
   position: relative;
@@ -37,6 +41,21 @@
 .player-hand.is-active {
   border-color: rgba(198, 165, 119, 0.58);
   background: rgba(255, 248, 232, 0.045);
+}
+
+.player-hand.is-split {
+  animation: splitHandArrival 380ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.player-hand.outcome-win,
+.player-hand.outcome-blackjack {
+  border-color: rgba(232, 193, 119, 0.48);
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    rgba(232, 193, 119, 0.11),
+    rgba(232, 193, 119, 0.015) 75%
+  );
+  box-shadow: 0 0 24px rgba(225, 180, 95, 0.08);
 }
 
 .hand-header {
@@ -145,8 +164,15 @@
 
 .badge-win,
 .badge-blackjack {
-  color: #d2e4c7;
-  border-color: rgba(187, 211, 170, 0.5);
+  color: #ffe5ae;
+  border-color: rgba(230, 190, 112, 0.64);
+  background: linear-gradient(
+    120deg,
+    rgba(183, 137, 62, 0.17),
+    rgba(238, 206, 147, 0.08)
+  );
+  box-shadow: 0 0 16px rgba(230, 184, 95, 0.1);
+  animation: winningHandGlow 850ms ease-out;
 }
 
 .badge-loss,
@@ -154,6 +180,37 @@
 .badge-busted {
   color: #f5c1b5;
   border-color: rgba(245, 193, 181, 0.36);
+}
+
+@keyframes splitHandArrival {
+  from {
+    opacity: 0.6;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes winningHandGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(230, 184, 95, 0.1);
+  }
+
+  40% {
+    box-shadow:
+      0 0 0 4px rgba(230, 184, 95, 0.07),
+      0 0 26px rgba(230, 184, 95, 0.3);
+  }
+}
+
+.player-hand[data-reduced-motion='true'],
+.player-hand[data-reduced-motion='true'] .outcome-badge {
+  animation: none;
+  transition: none;
 }
 
 @media (max-width: 680px) {
@@ -188,5 +245,11 @@
 @media (prefers-reduced-motion: reduce) {
   .player-hand {
     transition: none;
+  }
+
+  .player-hand.is-split,
+  .badge-win,
+  .badge-blackjack {
+    animation: none;
   }
 }

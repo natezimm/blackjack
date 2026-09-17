@@ -1,9 +1,16 @@
 import React from 'react';
 import '../styles/Card.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
+import CardMotion from './CardMotion';
+import { CARD_FLIP_DURATION_MS } from '../constants/motionTiming';
 
-const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
-  const total = reveal ? calculateTotal(hand) : '?';
+const DealerHand = ({
+  hand,
+  reveal,
+  showTotal = reveal,
+  cardBackColor = 'red',
+}) => {
+  const total = showTotal ? calculateTotal(hand) : '?';
   const cardBackSrc = `/card-images/card_back_${cardBackColor}.png`;
 
   return (
@@ -26,30 +33,39 @@ const DealerHand = ({ hand, reveal, cardBackColor = 'red' }) => {
         {hand.map((card, index) => {
           if (index === 0) {
             return (
-              <div className="card-container" key={index}>
+              <CardMotion key={index}>
                 <div
-                  className={`card-inner ${reveal ? 'flipped' : ''} ${!reveal ? 'no-flip-transition' : ''}`}
+                  className="card-container"
+                  data-dealer-hole-card=""
+                  style={{
+                    '--card-flip-duration': `${CARD_FLIP_DURATION_MS}ms`,
+                  }}
                 >
-                  <div className="card-back">
-                    <img src={cardBackSrc} alt="Card Back" />
-                  </div>
-                  <div className="card-front">
-                    <img
-                      src={getCardImage(card.value, card.suit)}
-                      alt={`${card.value} of ${card.suit}`}
-                    />
+                  <div
+                    className={`card-inner ${reveal ? 'flipped' : ''} ${!reveal ? 'no-flip-transition' : ''}`}
+                  >
+                    <div className="card-back" aria-hidden={reveal}>
+                      <img src={cardBackSrc} alt="Card Back" />
+                    </div>
+                    <div className="card-front" aria-hidden={!reveal}>
+                      <img
+                        src={getCardImage(card.value, card.suit)}
+                        alt={`${card.value} of ${card.suit}`}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </CardMotion>
             );
           } else {
             return (
-              <img
-                key={index}
-                src={getCardImage(card.value, card.suit)}
-                alt={`${card.value} of ${card.suit}`}
-                className="card"
-              />
+              <CardMotion key={index}>
+                <img
+                  src={getCardImage(card.value, card.suit)}
+                  alt={`${card.value} of ${card.suit}`}
+                  className="card"
+                />
+              </CardMotion>
             );
           }
         })}

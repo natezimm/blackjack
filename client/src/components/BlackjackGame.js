@@ -15,6 +15,23 @@ import DealerHand from './DealerHand';
 import Chip from './Chip';
 import Toast from './Toast';
 import BankrollGraph from './BankrollGraph';
+import AnimatedBalance from './AnimatedBalance';
+import DealerScene from './DealerScene';
+import TableWager from './TableWager';
+import CardSweep, { captureCardsForCollection } from './CardSweep';
+import { CARD_DEAL_DURATION_MS, TableMotionProvider } from './CardMotion';
+import {
+  ACTION_RESOLUTION_DELAY_MS,
+  CARD_SWEEP_DURATION_MS,
+  INITIAL_DEAL_DELAY_MS,
+  INITIAL_DEAL_INTERVAL_MS,
+  DEALER_REVEAL_PAUSE_MS,
+  DEALER_REACH_MS,
+  DEALER_FLIP_GESTURE_MS,
+  DEALER_AFTER_FLIP_PAUSE_MS,
+  DEALER_CARD_REVEAL_DELAY_MS,
+  OUTCOME_REVEAL_DELAY_MS,
+} from '../constants/motionTiming';
 
 import chip5Png from '../assets/chips/chip-5.png';
 import chip5Webp from '../assets/chips/chip-5.webp';
@@ -133,6 +150,12 @@ const InterfaceIcon = ({ name }) => {
 
 export { calculateTotal };
 
+export {
+  ACTION_RESOLUTION_DELAY_MS,
+  DEALER_CARD_REVEAL_DELAY_MS,
+  OUTCOME_REVEAL_DELAY_MS,
+} from '../constants/motionTiming';
+
 const STORAGE_KEYS = {
   stats: 'blackjackStats',
   gameState: 'blackjackGameState',
@@ -142,9 +165,6 @@ const STORAGE_KEYS = {
 
 const MAX_HAND_HISTORY = 50;
 const RECENT_HAND_HISTORY_COUNT = 5;
-export const ACTION_RESOLUTION_DELAY_MS = 1000;
-export const DEALER_CARD_REVEAL_DELAY_MS = 1500;
-export const OUTCOME_REVEAL_DELAY_MS = 1200;
 
 const HISTORY_ACTIONS = {
   hit: { label: 'Hit', strategyAction: STRATEGY_ACTIONS.hit },
@@ -604,6 +624,76 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   });
 
   const [isDealing, setIsDealing] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(
+    () =>
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false
+  );
+  const skipMotion = initialSkipAnimations || reducedMotion;
+  const [roundId, setRoundId] = useState(0);
+  const [dealPulse, setDealPulse] = useState(0);
+  const [revealPulse, setRevealPulse] = useState(0);
+  const [holeCardRevealed, setHoleCardRevealed] = useState(false);
+  const [dealerRevealReady, setDealerRevealReady] = useState(false);
+  const [deposit, setDeposit] = useState(null);
+  const [wagerForNextRound, setWagerForNextRound] = useState(false);
+  const [sweptCards, setSweptCards] = useState([]);
+  const [requestPending, setRequestPending] = useState(false);
+  const [cardsInFlight, setCardsInFlight] = useState(false);
+  const requestPendingRef = useRef(false);
+  const presentationTimersRef = useRef(new Set());
+  const tableRef = useRef(null);
+  const depositIdRef = useRef(0);
+  const cardLandingTimerRef = useRef(null);
+  const cardLandingDeadlineRef = useRef(0);
+  const notifyCardDealt = useCallback(() => {
+    setDealPulse((pulse) => pulse + 1);
+    setCardsInFlight(true);
+    cardLandingDeadlineRef.current = performance.now() + CARD_DEAL_DURATION_MS;
+    clearTimeout(cardLandingTimerRef.current);
+    presentationTimersRef.current.delete(cardLandingTimerRef.current);
+    const timer = setTimeout(() => {
+      setCardsInFlight(false);
+      presentationTimersRef.current.delete(timer);
+    }, CARD_DEAL_DURATION_MS);
+    cardLandingTimerRef.current = timer;
+    presentationTimersRef.current.add(timer);
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!query) return;
+    const update = () => setReducedMotion(query.matches);
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+
+  useEffect(() => {
+    const timers = presentationTimersRef.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const schedulePresentation = (callback, delay) => {
+    if (skipMotion) {
+      callback();
+      return;
+    }
+    const timer = setTimeout(() => {
+      presentationTimersRef.current.delete(timer);
+      callback();
+    }, delay);
+    presentationTimersRef.current.add(timer);
+  };
+
+  const beginRequest = () => {
+    if (requestPendingRef.current) return false;
+    requestPendingRef.current = true;
+    setRequestPending(true);
+    return true;
+  };
+  const endRequest = () => {
+    requestPendingRef.current = false;
+    setRequestPending(false);
+  };
   const [muted, setMuted] = useState(() => {
     return localStorage.getItem('blackjack_muted') === 'true';
   });
@@ -708,7 +798,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     setStats,
     persistStats,
   });
-  const hydrateStateFromResponse = createHydrateStateFromResponse({
+  const hydrateGameState = createHydrateStateFromResponse({
     balance,
     updateBalanceAndStats,
     setPlayerHands,
@@ -728,6 +818,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     setInsuranceOutcome,
     setCanPersistState,
   });
+  const hydrateStateFromResponse = (state, fallback) => {
+    hydrateGameState(state, fallback);
+    setWagerForNextRound(state?.bettingOpen !== false && state?.currentBet > 0);
+    setDeposit(null);
+  };
 
   const hasStoredHand = (state) => {
     if (!state) return false;
@@ -787,8 +882,49 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
   const [outcomeVisible, setOutcomeVisible] = useState(false);
 
+  const skipDealerPresentation = skipMotion || (gameOver && wagerForNextRound);
+
   useEffect(() => {
-    if (initialSkipAnimations) {
+    if (!revealDealerCard) {
+      setHoleCardRevealed(false);
+      setDealerRevealReady(false);
+      return;
+    }
+    if (skipDealerPresentation) {
+      setHoleCardRevealed(true);
+      setDealerRevealReady(true);
+      return;
+    }
+
+    setDealerRevealReady(false);
+    // A final player hit must land before the dealer reaches for the hole card.
+    const pause = Math.max(
+      DEALER_REVEAL_PAUSE_MS,
+      cardLandingDeadlineRef.current -
+        performance.now() +
+        DEALER_AFTER_FLIP_PAUSE_MS
+    );
+    const reachTimer = setTimeout(
+      () => setRevealPulse((pulse) => pulse + 1),
+      pause
+    );
+    const flipTimer = setTimeout(() => {
+      setHoleCardRevealed(true);
+      playCardSound();
+    }, pause + DEALER_REACH_MS);
+    const readyTimer = setTimeout(
+      () => setDealerRevealReady(true),
+      pause + DEALER_FLIP_GESTURE_MS
+    );
+    return () => {
+      clearTimeout(reachTimer);
+      clearTimeout(flipTimer);
+      clearTimeout(readyTimer);
+    };
+  }, [revealDealerCard, skipDealerPresentation, playCardSound]);
+
+  useEffect(() => {
+    if (skipDealerPresentation) {
       setDisplayedDealerHand(dealerHand);
       setOutcomeVisible(revealDealerCard);
       setIsAnimating(false);
@@ -801,14 +937,28 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       return;
     }
 
+    if (!dealerRevealReady) {
+      setIsAnimating(true);
+      // Restored rounds still need the original pair on the felt for the reach.
+      if (displayedDealerHand.length < Math.min(2, dealerHand.length)) {
+        setDisplayedDealerHand(dealerHand.slice(0, 2));
+      }
+      return;
+    }
+
     if (displayedDealerHand.length < dealerHand.length) {
       setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setDisplayedDealerHand(
-          dealerHand.slice(0, displayedDealerHand.length + 1)
-        );
-        playCardSound();
-      }, DEALER_CARD_REVEAL_DELAY_MS);
+      const timer = setTimeout(
+        () => {
+          setDisplayedDealerHand(
+            dealerHand.slice(0, displayedDealerHand.length + 1)
+          );
+          playCardSound();
+        },
+        displayedDealerHand.length <= 2
+          ? DEALER_AFTER_FLIP_PAUSE_MS
+          : DEALER_CARD_REVEAL_DELAY_MS
+      );
       return () => clearTimeout(timer);
     } else {
       setIsAnimating(false);
@@ -821,7 +971,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     dealerHand,
     revealDealerCard,
     displayedDealerHand.length,
-    initialSkipAnimations,
+    dealerRevealReady,
+    skipDealerPresentation,
     playCardSound,
   ]);
 
@@ -848,9 +999,19 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleFreshStart = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await resetGame(numberOfDecks, dealerHitsOnSoft17);
+      presentationTimersRef.current.forEach(clearTimeout);
+      presentationTimersRef.current.clear();
+      setIsDealing(false);
+      setIsAnimating(false);
+      setCardsInFlight(false);
+      setWagerForNextRound(false);
+      setDeposit(null);
+      setSweptCards([]);
+      setOutcomeVisible(false);
       const data = response.data;
       const resetBalance = fallbackTo(data.balance, 1000);
       const resetPlayerHands = data.playerHands || [];
@@ -908,6 +1069,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       setCanPersistState(true);
     } catch (error) {
       console.error('Error resetting game:', error);
+    } finally {
+      endRequest();
     }
   };
 
@@ -1044,10 +1207,25 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleStart = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await startGame(numberOfDecks, dealerHitsOnSoft17);
       const data = response.data;
+      const cardsToCollect = skipMotion
+        ? []
+        : captureCardsForCollection(tableRef.current);
+      setSweptCards(cardsToCollect);
+      const openingDelay =
+        cardsToCollect.length > 0
+          ? CARD_SWEEP_DURATION_MS + 250
+          : INITIAL_DEAL_DELAY_MS;
+      schedulePresentation(() => setSweptCards([]), CARD_SWEEP_DURATION_MS);
+      setRoundId((id) => id + 1);
+      setDisplayedDealerHand([]);
+      setWagerForNextRound(false);
+      setDeposit(null);
+      setOutcomeVisible(false);
       activeRoundStartBalanceRef.current = balance;
       activeRoundActionsRef.current = [];
       completedRoundRecordedRef.current = false;
@@ -1056,6 +1234,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       setDeckSize(fallbackTo(data.deckSize, deckSize));
       setGameOver(false);
       setRevealDealerCard(false);
+      setHoleCardRevealed(false);
+      setDealerRevealReady(false);
       setMessage('');
       setBettingOpen(false);
       setCurrentBet(fallbackTo(data.currentBet, currentBet));
@@ -1081,7 +1261,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       const finalPlayerHand = (data.playerHands || [])[0];
       const finalDealerHand = ensureHand(data.dealerHand);
 
-      setTimeout(() => {
+      schedulePresentation(() => {
         if (
           finalPlayerHand &&
           finalPlayerHand.cards &&
@@ -1092,26 +1272,40 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           ]);
           playCardSound();
         }
-      }, 625);
+      }, openingDelay);
 
-      setTimeout(() => {
-        setDealerHand([finalDealerHand[0]]);
+      schedulePresentation(() => {
+        setDealerHand(finalDealerHand.slice(0, 1));
         playCardSound();
-      }, 1250);
+      }, openingDelay + INITIAL_DEAL_INTERVAL_MS);
 
-      setTimeout(() => {
-        setPlayerHands([finalPlayerHand]);
-        playCardSound();
-      }, 1875);
+      schedulePresentation(
+        () => {
+          setPlayerHands(finalPlayerHand ? [finalPlayerHand] : []);
+          playCardSound();
+        },
+        openingDelay + 2 * INITIAL_DEAL_INTERVAL_MS
+      );
 
-      setTimeout(() => {
-        setDealerHand(finalDealerHand);
-        playCardSound();
-        setIsDealing(false);
-      }, 2500);
+      schedulePresentation(
+        () => {
+          setDealerHand(finalDealerHand);
+          playCardSound();
+        },
+        openingDelay + 3 * INITIAL_DEAL_INTERVAL_MS
+      );
+
+      schedulePresentation(
+        () => {
+          setIsDealing(false);
+        },
+        openingDelay + 3 * INITIAL_DEAL_INTERVAL_MS + CARD_DEAL_DURATION_MS
+      );
     } catch (error) {
       console.error('Error starting game:', error);
       setIsDealing(false);
+    } finally {
+      endRequest();
     }
   };
 
@@ -1138,11 +1332,12 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleHit = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await hit();
       setIsAnimating(true);
-      setTimeout(() => {
+      schedulePresentation(() => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.hit);
         setIsAnimating(false);
@@ -1150,31 +1345,37 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     } catch (error) {
       console.error('Error hitting:', error);
       setIsAnimating(false);
+    } finally {
+      endRequest();
     }
   };
 
   const handleStand = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await stand();
       setIsAnimating(true);
-      setTimeout(() => {
+      schedulePresentation(() => {
         updateGameState(response.data, HISTORY_ACTIONS.stand);
         setIsAnimating(false);
       }, ACTION_RESOLUTION_DELAY_MS);
     } catch (error) {
       console.error('Error standing:', error);
       setIsAnimating(false);
+    } finally {
+      endRequest();
     }
   };
 
   const handleDoubleDown = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await doubleDown();
       setIsAnimating(true);
       playChipSound();
-      setTimeout(() => {
+      schedulePresentation(() => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.doubleDown);
         setIsAnimating(false);
@@ -1185,16 +1386,19 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       if (error.response && error.response.data && error.response.data.error) {
         setMessage(error.response.data.error);
       }
+    } finally {
+      endRequest();
     }
   };
 
   const handleSplit = async () => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await split();
       setIsAnimating(true);
       playChipSound();
-      setTimeout(() => {
+      schedulePresentation(() => {
         playCardSound();
         updateGameState(response.data, HISTORY_ACTIONS.split);
         setIsAnimating(false);
@@ -1205,15 +1409,18 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       if (error.response && error.response.data && error.response.data.error) {
         setMessage(error.response.data.error);
       }
+    } finally {
+      endRequest();
     }
   };
 
   const handleResolveInsurance = async (amount) => {
+    if (!beginRequest()) return;
     playClickSound();
     try {
       const response = await resolveInsurance(amount);
       setIsAnimating(true);
-      setTimeout(() => {
+      schedulePresentation(() => {
         updateGameState(
           response.data,
           amount > 0 ? HISTORY_ACTIONS.insurance : HISTORY_ACTIONS.noInsurance,
@@ -1230,6 +1437,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       if (error.response && error.response.data && error.response.data.error) {
         setMessage(error.response.data.error);
       }
+    } finally {
+      endRequest();
     }
   };
 
@@ -1255,28 +1464,40 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleBet = async (amount) => {
-    await handleBetLogic(
-      {
-        bettingOpen,
-        currentBet,
-        balance,
-        setMessage,
-        setCurrentBet,
-        placeBet,
-        onSuccess: playChipSound,
-      },
-      amount
-    );
+    if (!beginRequest()) return;
+    try {
+      await handleBetLogic(
+        {
+          bettingOpen,
+          currentBet,
+          balance,
+          setMessage,
+          setCurrentBet,
+          placeBet,
+          onSuccess: () => {
+            playChipSound();
+            setWagerForNextRound(true);
+            setDeposit({ id: ++depositIdRef.current, amount });
+          },
+        },
+        amount
+      );
+    } finally {
+      endRequest();
+    }
   };
 
   const handleClearBet = async () => {
-    if (!bettingOpen || currentBet === 0) return;
+    if (!bettingOpen || currentBet === 0 || !beginRequest()) return;
     playClickSound();
     try {
       await placeBet(0);
       setCurrentBet(0);
+      setDeposit(null);
     } catch (error) {
       console.error('Error clearing bet:', error);
+    } finally {
+      endRequest();
     }
   };
 
@@ -1351,6 +1572,36 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         : [...prev, entryId]
     );
   };
+
+  const tableBusy =
+    isAnimating ||
+    isDealing ||
+    cardsInFlight ||
+    requestPending ||
+    (gameOver && !outcomeVisible);
+  const handWager = playerHands.reduce(
+    (total, hand) => total + (hand?.bet || 0),
+    0
+  );
+  const feltWager =
+    wagerForNextRound || (!gameOver && bettingOpen)
+      ? currentBet
+      : handWager || currentBet;
+  const settlement =
+    gameOver && outcomeVisible && !wagerForNextRound && handWager > 0
+      ? {
+          id: roundId,
+          wager: handWager,
+          payout: playerHands.reduce(
+            (total, hand) => total + (hand?.bet || 0) + calculateHandNet(hand),
+            0
+          ),
+          result:
+            { WIN: 'win', LOSS: 'loss', TIE: 'push', MIXED: 'mixed' }[
+              getCombinedOutcome(playerHands)
+            ] || 'push',
+        }
+      : null;
 
   const deckLabel = numberOfDecks === 1 ? '1 Deck' : `${numberOfDecks} Decks`;
   const dealerRuleLabel = dealerHitsOnSoft17
@@ -1612,7 +1863,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   }, [insuranceDecisionPending, maxInsurance]);
 
   return (
-    <div className="blackjack-game">
+    <div className={`blackjack-game ${skipMotion ? 'motion-reduced' : ''}`}>
       <nav className="card-room-nav" aria-label="Main navigation">
         <a
           className="card-room-brand"
@@ -1662,7 +1913,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               playClickSound();
               setShowSettings(true);
             }}
-            disabled={!bettingOpen}
+            disabled={!bettingOpen || tableBusy}
             aria-label="Game settings"
             title="Game settings"
           >
@@ -1715,7 +1966,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                 aria-label="Decks in play"
                 value={numberOfDecks}
                 onChange={handleDeckCountChange}
-                disabled={!bettingOpen}
+                disabled={!bettingOpen || tableBusy}
                 className="modern-select"
               >
                 <option value={1}>1</option>
@@ -1735,7 +1986,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                   aria-label="Dealer hits on soft 17"
                   checked={dealerHitsOnSoft17}
                   onChange={(e) => setDealerHitsOnSoft17(e.target.checked)}
-                  disabled={!bettingOpen}
+                  disabled={!bettingOpen || tableBusy}
                 />
                 <span className="toggle-text">
                   {dealerHitsOnSoft17 ? 'On' : 'Off'}
@@ -1847,7 +2098,11 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           </div>
           <div className="betting-summary balance-summary">
             <span>Balance</span>
-            <strong>{`$${balance}`}</strong>
+            <AnimatedBalance
+              value={balance}
+              paused={gameOver && !outcomeVisible}
+              reducedMotion={skipMotion}
+            />
           </div>
           <div className="betting-summary wager-summary">
             <span>Current Bet</span>
@@ -1861,25 +2116,25 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             <Chip
               amount={5}
               images={chip5Images}
-              disabled={!bettingOpen}
+              disabled={!bettingOpen || tableBusy}
               onClick={handleBet}
             />
             <Chip
               amount={10}
               images={chip10Images}
-              disabled={!bettingOpen}
+              disabled={!bettingOpen || tableBusy}
               onClick={handleBet}
             />
             <Chip
               amount={25}
               images={chip25Images}
-              disabled={!bettingOpen}
+              disabled={!bettingOpen || tableBusy}
               onClick={handleBet}
             />
             <Chip
               amount={100}
               images={chip100Images}
-              disabled={!bettingOpen}
+              disabled={!bettingOpen || tableBusy}
               onClick={handleBet}
             />
           </div>
@@ -1887,7 +2142,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             type="button"
             className="clear-bet"
             onClick={handleClearBet}
-            disabled={!bettingOpen || currentBet === 0}
+            disabled={!bettingOpen || currentBet === 0 || tableBusy}
           >
             Clear wager
           </button>
@@ -1930,192 +2185,215 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         </aside>
 
         <div className="table-main-column">
-          <div className="table-surface">
-            <div className="table-topline">
-              <span>THE CARD ROOM</span>
-              <span>TABLE № 21</span>
-            </div>
-            <div className="table-watermark" aria-hidden="true">
-              <span className="watermark-suits">
-                ♠ <i>♥</i> ♣ <i>♦</i>
-              </span>
-              <span>Blackjack pays 3 to 2</span>
-              <small>{dealerRuleLabel}</small>
-            </div>
-            <DealerHand
-              hand={displayedDealerHand}
-              reveal={revealDealerCard}
-              cardBackColor={cardBackColor}
-            />
+          <TableMotionProvider
+            onDeal={notifyCardDealt}
+            reducedMotion={skipMotion || (gameOver && wagerForNextRound)}
+          >
+            <div className="table-surface" ref={tableRef}>
+              <DealerScene
+                dealPulse={dealPulse}
+                revealPulse={revealPulse}
+                collecting={sweptCards.length > 0 || Boolean(settlement)}
+                cardBackColor={cardBackColor}
+              />
+              <CardSweep cards={sweptCards} />
+              <div className="table-topline">
+                <span>THE CARD ROOM</span>
+                <span>TABLE № 21</span>
+              </div>
+              <div className="table-watermark" aria-hidden="true">
+                <span className="watermark-suits">
+                  ♠ <i>♥</i> ♣ <i>♦</i>
+                </span>
+                <span>Blackjack pays 3 to 2</span>
+                <small>{dealerRuleLabel}</small>
+              </div>
+              <DealerHand
+                key={`dealer-${roundId}`}
+                hand={displayedDealerHand}
+                reveal={revealDealerCard && holeCardRevealed}
+                showTotal={revealDealerCard && dealerRevealReady}
+                cardBackColor={cardBackColor}
+              />
 
-            {!isDealing && (insuranceDecisionPending || insuranceBet > 0) && (
-              <div
-                className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}
-              >
-                <div className="insurance-bar-header">
-                  <span className="insurance-label">Insurance</span>
-                  {insuranceDecisionPending ? (
-                    <span className="insurance-hint">
-                      Dealer shows an Ace • Up to ${maxInsurance}
-                    </span>
-                  ) : (
-                    <span className="insurance-summary">
-                      {insuranceBet > 0 ? `Bet $${insuranceBet}` : 'No bet'}
-                      {insuranceOutcome && insuranceOutcome !== 'DECLINED'
-                        ? ` • ${insuranceOutcome}`
-                        : ''}
-                    </span>
+              {!isDealing && (insuranceDecisionPending || insuranceBet > 0) && (
+                <div
+                  className={`insurance-bar ${insuranceOutcome ? `insurance-${insuranceOutcome.toLowerCase()}` : ''}`}
+                >
+                  <div className="insurance-bar-header">
+                    <span className="insurance-label">Insurance</span>
+                    {insuranceDecisionPending ? (
+                      <span className="insurance-hint">
+                        Dealer shows an Ace • Up to ${maxInsurance}
+                      </span>
+                    ) : (
+                      <span className="insurance-summary">
+                        {insuranceBet > 0 ? `Bet $${insuranceBet}` : 'No bet'}
+                        {insuranceOutcome && insuranceOutcome !== 'DECLINED'
+                          ? ` • ${insuranceOutcome}`
+                          : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {insuranceDecisionPending && (
+                    <div className="insurance-bar-controls">
+                      {renderStrategyHint(
+                        insuranceStrategyRecommendation,
+                        'strategy-hint-inline'
+                      )}
+                      <input
+                        className="insurance-input"
+                        type="number"
+                        min={0}
+                        max={maxInsurance}
+                        step={5}
+                        value={insuranceAmount}
+                        onChange={(e) =>
+                          setInsuranceAmount(
+                            parseInt(e.target.value || '0', 10)
+                          )
+                        }
+                        disabled={tableBusy}
+                        aria-label="Insurance amount"
+                      />
+                      <button
+                        className="action-btn secondary-btn"
+                        onClick={() => handleResolveInsurance(insuranceAmount)}
+                        disabled={
+                          insuranceAmount <= 0 ||
+                          insuranceAmount > maxInsurance ||
+                          tableBusy
+                        }
+                      >
+                        INSURE
+                      </button>
+                      <button
+                        className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.noInsurance)}`.trim()}
+                        onClick={() => handleResolveInsurance(0)}
+                        disabled={tableBusy}
+                      >
+                        NO INSURANCE
+                      </button>
+                    </div>
                   )}
                 </div>
+              )}
 
-                {insuranceDecisionPending && (
-                  <div className="insurance-bar-controls">
-                    {renderStrategyHint(
-                      insuranceStrategyRecommendation,
-                      'strategy-hint-inline'
-                    )}
-                    <input
-                      className="insurance-input"
-                      type="number"
-                      min={0}
-                      max={maxInsurance}
-                      step={5}
-                      value={insuranceAmount}
-                      onChange={(e) =>
-                        setInsuranceAmount(parseInt(e.target.value || '0', 10))
-                      }
-                      disabled={isAnimating}
-                      aria-label="Insurance amount"
-                    />
-                    <button
-                      className="action-btn secondary-btn"
-                      onClick={() => handleResolveInsurance(insuranceAmount)}
-                      disabled={
-                        insuranceAmount <= 0 ||
-                        insuranceAmount > maxInsurance ||
-                        isAnimating
-                      }
-                    >
-                      INSURE
-                    </button>
-                    <button
-                      className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.noInsurance)}`.trim()}
-                      onClick={() => handleResolveInsurance(0)}
-                      disabled={isAnimating}
-                    >
-                      NO INSURANCE
-                    </button>
-                  </div>
+              <TableWager
+                amount={feltWager}
+                settlement={settlement}
+                deposit={deposit}
+                reducedMotion={skipMotion}
+              />
+              <div className="player-hands-container">
+                {playerHands.length === 0 ? (
+                  <PlayerHand
+                    hand={{ cards: [], bet: 0, outcome: null, isBusted: false }}
+                    isActive={false}
+                    showBet={false}
+                    isPlaceholder={true}
+                  />
+                ) : (
+                  playerHands.map((hand, index) => {
+                    if (!hand) return null;
+                    return (
+                      <PlayerHand
+                        key={`${roundId}-${index}`}
+                        isSplit={playerHands.length > 1}
+                        replacementDealDelay={index * CARD_DEAL_DURATION_MS}
+                        hand={{
+                          ...hand,
+                          outcome: outcomeVisible ? hand.outcome : null,
+                        }}
+                        isActive={hand.isTurn}
+                        showBet={playerHands.length > 1}
+                      />
+                    );
+                  })
                 )}
               </div>
-            )}
 
-            <div className="player-hands-container">
-              {playerHands.length === 0 ? (
-                <PlayerHand
-                  hand={{ cards: [], bet: 0, outcome: null, isBusted: false }}
-                  isActive={false}
-                  showBet={false}
-                  isPlaceholder={true}
-                />
-              ) : (
-                playerHands.map((hand, index) => {
-                  if (!hand) return null;
-                  return (
-                    <PlayerHand
-                      key={index}
-                      hand={{
-                        ...hand,
-                        outcome: outcomeVisible ? hand.outcome : null,
-                      }}
-                      isActive={hand.isTurn}
-                      showBet={playerHands.length > 1}
-                    />
-                  );
-                })
-              )}
-            </div>
-
-            <div className="action-bar-container">
-              {bettingOpen ? (
-                <div className="betting-controls">
-                  <button
-                    className="action-btn deal-btn"
-                    aria-label="DEAL"
-                    onClick={handleStart}
-                    disabled={currentBet === 0 || isAnimating || isDealing}
-                  >
-                    DEAL
-                  </button>
-                </div>
-              ) : (
-                !gameOver && (
-                  <div
-                    className="play-controls"
-                    aria-hidden={insuranceDecisionPending}
-                  >
-                    {renderStrategyHint(handStrategyRecommendation)}
-                    <div className="primary-actions">
-                      <button
-                        className={`action-btn hit-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.hit)}`.trim()}
-                        onClick={handleHit}
-                        disabled={
-                          insuranceDecisionPending || !activeHand || isAnimating
-                        }
-                      >
-                        HIT
-                      </button>
-                      <button
-                        className={`action-btn stand-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.stand)}`.trim()}
-                        onClick={handleStand}
-                        disabled={
-                          insuranceDecisionPending || !activeHand || isAnimating
-                        }
-                      >
-                        STAND
-                      </button>
-                    </div>
-
-                    <div className="secondary-actions">
-                      {canSplit && (
+              <div className="action-bar-container">
+                {bettingOpen ? (
+                  <div className="betting-controls">
+                    <button
+                      className="action-btn deal-btn"
+                      aria-label="DEAL"
+                      onClick={handleStart}
+                      disabled={currentBet === 0 || tableBusy}
+                    >
+                      DEAL
+                    </button>
+                  </div>
+                ) : (
+                  !gameOver && (
+                    <div
+                      className="play-controls"
+                      aria-hidden={insuranceDecisionPending}
+                    >
+                      {renderStrategyHint(handStrategyRecommendation)}
+                      <div className="primary-actions">
                         <button
-                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
-                          onClick={handleSplit}
-                          disabled={insuranceDecisionPending || isAnimating}
-                        >
-                          SPLIT
-                        </button>
-                      )}
-
-                      {activeHand && activeHand.cards.length === 2 && (
-                        <button
-                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
-                          onClick={handleDoubleDown}
+                          className={`action-btn hit-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.hit)}`.trim()}
+                          onClick={handleHit}
                           disabled={
-                            insuranceDecisionPending ||
-                            balance < activeHand.bet ||
-                            isAnimating
+                            insuranceDecisionPending || !activeHand || tableBusy
                           }
                         >
-                          DOUBLE
+                          HIT
                         </button>
-                      )}
+                        <button
+                          className={`action-btn stand-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.stand)}`.trim()}
+                          onClick={handleStand}
+                          disabled={
+                            insuranceDecisionPending || !activeHand || tableBusy
+                          }
+                        >
+                          STAND
+                        </button>
+                      </div>
+
+                      <div className="secondary-actions">
+                        {canSplit && (
+                          <button
+                            className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
+                            onClick={handleSplit}
+                            disabled={insuranceDecisionPending || tableBusy}
+                          >
+                            SPLIT
+                          </button>
+                        )}
+
+                        {activeHand && activeHand.cards.length === 2 && (
+                          <button
+                            className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
+                            onClick={handleDoubleDown}
+                            disabled={
+                              insuranceDecisionPending ||
+                              balance < activeHand.bet ||
+                              tableBusy
+                            }
+                          >
+                            DOUBLE
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  )
+                )}
+              </div>
+
+              <div className="status-messages">
+                {balance === 0 && bettingOpen && gameOver && (
+                  <div className="message-card game-over">
+                    Bankroll empty. Reset to reload the fun.
                   </div>
-                )
-              )}
+                )}
+                <Toast message={message} onClose={() => setMessage('')} />
+              </div>
             </div>
-
-            <div className="status-messages">
-              {balance === 0 && bettingOpen && gameOver && (
-                <div className="message-card game-over">
-                  Bankroll empty. Reset to reload the fun.
-                </div>
-              )}
-              <Toast message={message} onClose={() => setMessage('')} />
-            </div>
-          </div>
-
+          </TableMotionProvider>
           <div className="table-caption">
             <span>
               <span className="live-dot" />

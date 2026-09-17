@@ -18,6 +18,12 @@ The seed contained `494`, `XX`, `RK`, and `JK`. These were subjective creative c
 - Georgia display typography, a small arched 21 monogram, quiet sans-serif controls, and fine editorial dividers.
 - The table is the main visual element. Betting sits beside it on desktop and compacts above it on phones. Session history and bankroll trend sit below.
 - Existing card and chip art remains in use. Empty card outlines, subtle felt grain, and the identity are rendered with CSS and vector details.
+- Cartoon dealer hands with warm cel shading and dark outlines, a card shoe, and a chip tray sit inside a padded table rail. Visible charcoal sleeves and ivory cuffs connect the hands to the table edge. Dealer gestures follow individual card draws. The shoe uses the selected card-back artwork, layered paper edges, walnut rails, and brass hardware.
+- Cards extract from the shoe for 360ms, then travel from its measured exit into straight, level rows over the remaining 840ms. Initial draws are spaced 1.4 seconds apart. The dealer reaches for the hidden card for 550ms, turns it over for 850ms, and withdraws before drawing again. Splits move the original cards into separate hands and draw replacements one at a time; the next deal sweeps the previous cards toward the dealer beyond the table edge.
+- Wagers form chip stacks on the felt. Chips travel from the selected denomination into the wager, and settlement collects the stake and returns the payout after the dealer finishes. The caption shows the full amount even when a large stack is visually condensed.
+- The visible balance counts to its new value, holding a settlement update until the dealer reveal finishes. Chip movement, card collection, payouts, and balance counting use a slower pace as well. Presentation durations are centralized in `client/src/constants/motionTiming.js`.
 - Active hands display a visible turn marker. Reduced-motion preferences disable animation. Focus outlines and explicitly labeled settings support keyboard and assistive-technology use.
+
+Presentation remains separate from the server's game state. Play controls wait for card arrivals, pending API calls cannot be submitted twice, and reduced-motion mode skips dealing and action delays.
 
 The game engine, API, persistence, wagering rules, and strategy calculations are preserved.

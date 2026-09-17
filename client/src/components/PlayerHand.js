@@ -1,13 +1,17 @@
 import React from 'react';
 import '../styles/PlayerHand.css';
 import { calculateTotal, getCardImage } from '../utils/cardUtils';
+import CardMotion, { useTableReducedMotion } from './CardMotion';
 
 const PlayerHand = ({
   hand,
   showBet = false,
   isPlaceholder = false,
   isActive = false,
+  isSplit = false,
+  replacementDealDelay = 0,
 }) => {
+  const reducedMotion = useTableReducedMotion();
   const cards = hand.cards || hand;
   const bet = hand.bet || 0;
   const outcome = hand.outcome;
@@ -16,16 +20,22 @@ const PlayerHand = ({
 
   return (
     <div
-      className={`player-hand ${isActive ? 'is-active' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`.trim()}
+      className={`player-hand ${isActive ? 'is-active' : ''} ${isSplit ? 'is-split' : ''} ${outcome ? `outcome-${outcome.toLowerCase()}` : ''}`.trim()}
+      data-reduced-motion={reducedMotion}
     >
       <div className="hand">
         {cards.map((card, index) => (
-          <img
-            key={index}
-            src={getCardImage(card.value, card.suit)}
-            alt={`${card.value} of ${card.suit}`}
-            className="card"
-          />
+          <CardMotion
+            key={`${index}-${card.value}-${card.suit}`}
+            skipEntrance={isSplit && index === 0}
+            entranceDelay={isSplit && index === 1 ? replacementDealDelay : 0}
+          >
+            <img
+              src={getCardImage(card.value, card.suit)}
+              alt={`${card.value} of ${card.suit}`}
+              className="card"
+            />
+          </CardMotion>
         ))}
         {isPlaceholder && cards.length === 0 && (
           <div className="empty-hand" aria-live="polite">
