@@ -196,7 +196,9 @@
 }
 
 .dealer-dealing-arm.is-dealing {
-  animation: dealer-deal-gesture var(--dealer-deal-duration, 1200ms) ease-in-out;
+  /* Resolve the shared push easing here; other phases override it below. */
+  animation: dealer-deal-gesture var(--dealer-deal-duration, 1200ms)
+    var(--dealer-push-easing);
 }
 
 .dealer-scene.is-collecting .dealer-resting-arm {
@@ -207,7 +209,9 @@
 @keyframes dealer-deal-gesture {
   0%,
   100% {
-    transform: translate(0, 0);
+    transform: translate(0, 0) rotate(0deg);
+    filter: drop-shadow(1px 3px 1px #1b0b1640);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
   }
   12% {
     transform: translate(
@@ -215,6 +219,8 @@
         var(--dealer-pickup-y, 0px)
       )
       rotate(-5deg);
+    filter: drop-shadow(1px 2px 1px #1b0b1659);
+    animation-timing-function: ease-in-out;
   }
   30% {
     transform: translate(
@@ -222,9 +228,30 @@
         var(--dealer-handoff-y, 0px)
       )
       rotate(-5deg);
+    filter: drop-shadow(1px 2px 1px #1b0b1659);
   }
-  65% {
-    transform: translate(12px, 18px) rotate(3deg);
+  42% {
+    transform: translate(
+        var(--dealer-release-x, 0px),
+        var(--dealer-release-y, 0px)
+      )
+      rotate(-7deg);
+    filter: drop-shadow(1px 2px 1px #1b0b1659);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.25, 1);
+  }
+  64% {
+    transform: translate(
+        calc(var(--dealer-release-x, 0px) * 0.55),
+        calc(var(--dealer-release-y, 0px) * 0.45 - 8px)
+      )
+      rotate(-3deg);
+    filter: drop-shadow(2px 7px 4px #1b0b163b);
+    animation-timing-function: ease-out;
+  }
+  86% {
+    transform: translate(-1%, -2%) rotate(0.7deg);
+    filter: drop-shadow(1px 3px 1px #1b0b1640);
+    animation-timing-function: ease-in-out;
   }
 }
 

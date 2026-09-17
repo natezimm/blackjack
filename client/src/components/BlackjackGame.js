@@ -2187,6 +2187,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
         <div className="table-main-column">
           <TableMotionProvider
             onDeal={notifyCardDealt}
+            cardBackColor={cardBackColor}
             reducedMotion={skipMotion || (gameOver && wagerForNextRound)}
           >
             <div className="table-surface" ref={tableRef}>

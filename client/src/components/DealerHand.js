@@ -59,7 +59,7 @@ const DealerHand = ({
             );
           } else {
             return (
-              <CardMotion key={index}>
+              <CardMotion key={index} turnFaceUp>
                 <img
                   src={getCardImage(card.value, card.suit)}
                   alt={`${card.value} of ${card.suit}`}

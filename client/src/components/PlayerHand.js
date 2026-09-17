@@ -27,6 +27,7 @@ const PlayerHand = ({
         {cards.map((card, index) => (
           <CardMotion
             key={`${index}-${card.value}-${card.suit}`}
+            turnFaceUp
             skipEntrance={isSplit && index === 0}
             entranceDelay={isSplit && index === 1 ? replacementDealDelay : 0}
           >

@@ -339,6 +339,7 @@ test.describe('blackjack client', () => {
   }) => {
     await page.addInitScript(() => {
       window.dealtCardFlights = [];
+      window.dealtCardTurnovers = [];
       window.shoeExtractions = [];
       document.addEventListener('animationstart', (event) => {
         if (event.target.matches('.shoe-extracted-card')) {
@@ -349,6 +350,7 @@ test.describe('blackjack client', () => {
           window.shoeExtractions.push({
             name: event.animationName,
             duration: animation?.effect.getTiming().duration,
+            delay: animation?.effect.getTiming().delay,
             startedAt: performance.now(),
             transforms: frames.map((frame) => frame.transform).filter(Boolean),
           });
@@ -356,6 +358,11 @@ test.describe('blackjack client', () => {
       });
       const animate = Element.prototype.animate;
       Element.prototype.animate = function (keyframes, options) {
+        if (this.matches('[data-card-turnover]')) {
+          const animation = animate.call(this, keyframes, options);
+          window.dealtCardTurnovers.push({ element: this, animation });
+          return animation;
+        }
         if (this.matches('[data-card-deal]')) {
           const shoe = document.querySelector('[data-card-shoe-exit]');
           const origin = shoe?.getBoundingClientRect();
@@ -461,10 +468,58 @@ test.describe('blackjack client', () => {
       expect(flight.widthError).not.toBeNull();
       expect(flight.widthError).toBeLessThan(1);
     }
+    const turnovers = await page.evaluate(() =>
+      window.dealtCardTurnovers.map(({ element, animation }) => {
+        const timing = animation.effect.getTiming();
+        const originalTime = animation.currentTime;
+        const originalState = animation.playState;
+        animation.pause();
+        const faces = [0, 0.5, 1].map((progress) => {
+          animation.currentTime = timing.delay + timing.duration * progress;
+          const rotation = new DOMMatrix(getComputedStyle(element).transform);
+          const face = element.querySelector('.card-turnover-front');
+          return {
+            rotation: rotation.m11,
+            faceWidth: face.getBoundingClientRect().width,
+          };
+        });
+        animation.currentTime = originalTime;
+        if (originalState === 'finished') animation.finish();
+        else if (originalState === 'running') animation.play();
+        return {
+          delay: timing.delay,
+          duration: timing.duration,
+          back: element
+            .querySelector('.card-turnover-back')
+            .getAttribute('src'),
+          containsHoleCard: Boolean(
+            element.querySelector('[data-dealer-hole-card]')
+          ),
+          faces,
+        };
+      })
+    );
+    // Two player cards, one dealer upcard, and the hit turn over; the hole stays down.
+    expect(turnovers).toHaveLength(4);
+    for (const turnover of turnovers) {
+      expect(turnover.delay).toBe(360);
+      expect(turnover.duration).toBe(300);
+      expect(turnover.back).toBe('/card-images/card_back_red.png');
+      expect(turnover.containsHoleCard).toBe(false);
+      expect(turnover.faces[0].rotation).toBeCloseTo(-1);
+      expect(turnover.faces[1].rotation).toBeCloseTo(0);
+      expect(turnover.faces[2].rotation).toBeCloseTo(1);
+      expect(turnover.faces[1].faceWidth).toBeLessThan(1);
+      expect(turnover.faces[2].faceWidth).toBeGreaterThan(50);
+    }
+    await expect(
+      page.locator('[data-dealer-hole-card] .card-inner')
+    ).not.toHaveClass(/flipped/);
     const extractions = await page.evaluate(() => window.shoeExtractions);
     for (const extraction of extractions) {
       expect(extraction.name).toBe('shoe-card-extract');
-      expect(extraction.duration).toBe(360);
+      expect(extraction.delay).toBe(144);
+      expect(extraction.delay + extraction.duration).toBe(360);
       expect(new Set(extraction.transforms).size).toBeGreaterThan(1);
     }
     for (let index = 1; index < 4; index += 1) {
@@ -493,7 +548,7 @@ test.describe('blackjack client', () => {
     await expect(page.locator('.dealer-discard')).toBeHidden();
   });
 
-  test('rests clear of the shoe and reaches it when hitting after responsive resizes', async ({
+  test('rests clear of the shoe and follows each card through release after responsive resizes', async ({
     page,
   }) => {
     const cards = [
@@ -508,28 +563,83 @@ test.describe('blackjack client', () => {
     await mockBlackjackApi(page, responses);
     await page.addInitScript(() => {
       window.dealerDealContacts = [];
+      const flights = [];
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (keyframes, options) {
+        const animation = animate.call(this, keyframes, options);
+        if (this.matches('[data-card-deal]')) {
+          flights.push({ element: this, animation });
+        }
+        return animation;
+      };
       document.addEventListener('animationstart', (event) => {
         if (event.animationName !== 'dealer-deal-gesture') return;
         const arm = event.target;
-        const animation = arm
-          .getAnimations()
-          .find((entry) => entry.animationName === event.animationName);
-        animation.pause();
-        animation.currentTime = 360;
-        const contact = arm
-          .querySelector('[data-dealer-deal-contact]')
-          .getBoundingClientRect();
-        const exit = arm
-          .closest('.dealer-scene')
-          .querySelector('[data-card-shoe-exit]')
-          .getBoundingClientRect();
-        window.dealerDealContacts.push(
-          Math.hypot(
-            contact.x + contact.width / 2 - exit.x - exit.width / 2,
-            contact.y + contact.height / 2 - exit.y - exit.height / 2
-          )
-        );
-        animation.play();
+        const table = arm.closest('.table-surface');
+        const flight = flights.findLast(({ element, animation }) => {
+          const timing = animation.effect.getTiming();
+          const elapsed = animation.currentTime - timing.delay;
+          return (
+            element.isConnected &&
+            element.closest('.table-surface') === table &&
+            animation.playState === 'running' &&
+            elapsed >= 0 &&
+            elapsed < timing.duration
+          );
+        });
+        const animations = table
+          .getAnimations({ subtree: true })
+          .filter((animation) =>
+            ['dealer-deal-gesture', 'shoe-card-extract'].includes(
+              animation.animationName
+            )
+          );
+        if (flight) animations.push(flight.animation);
+        const originalStates = animations.map((animation) => ({
+          animation,
+          time: animation.currentTime,
+          playState: animation.playState,
+        }));
+        const samples = [];
+        try {
+          for (const animation of animations) animation.pause();
+          for (const time of [144, 252, 359, 360, 432, 504]) {
+            for (const animation of animations) {
+              animation.currentTime =
+                time +
+                (animation === flight?.animation
+                  ? animation.effect.getTiming().delay
+                  : 0);
+            }
+            const contact = arm
+              .querySelector('[data-dealer-deal-contact]')
+              .getBoundingClientRect();
+            const card =
+              time < 360
+                ? table.querySelector('.shoe-extracted-card')
+                : flight?.element;
+            const bounds = card?.getBoundingClientRect();
+            samples.push({
+              time,
+              opacity: card ? Number(getComputedStyle(card).opacity) : null,
+              error: bounds
+                ? Math.hypot(
+                    contact.x + contact.width / 2 - bounds.x - bounds.width / 2,
+                    contact.y +
+                      contact.height / 2 -
+                      bounds.y -
+                      bounds.height / 2
+                  )
+                : null,
+            });
+          }
+        } finally {
+          for (const { animation, time, playState } of originalStates) {
+            animation.currentTime = time;
+            if (playState === 'running') animation.play();
+          }
+        }
+        window.dealerDealContacts.push(samples);
       });
     });
     await page.goto('/');
@@ -560,10 +670,15 @@ test.describe('blackjack client', () => {
       await expect
         .poll(() => page.evaluate(() => window.dealerDealContacts.length))
         .toBe(previousContacts + 1);
-      const contactError = await page.evaluate(() =>
+      const samples = await page.evaluate(() =>
         window.dealerDealContacts.at(-1)
       );
-      expect(contactError, `shoe contact at ${width}px`).toBeLessThan(1);
+      for (const sample of samples) {
+        const context = `card contact at ${width}px, ${sample.time}ms`;
+        expect(sample.opacity, context).toBe(1);
+        expect(sample.error, context).not.toBeNull();
+        expect(sample.error, context).toBeLessThan(1);
+      }
     }
   });
 

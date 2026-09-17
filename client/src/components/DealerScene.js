@@ -1,9 +1,10 @@
 import React, { useId, useLayoutEffect, useRef } from 'react';
 import CardShoe from './CardShoe';
-import { useTableReducedMotion } from './CardMotion';
+import { useTableDealMotion, useTableReducedMotion } from './CardMotion';
 import {
   CARD_DEAL_DURATION_MS,
   CARD_FLIP_DURATION_MS,
+  CARD_PUSH_EASING,
   CARD_SWEEP_DURATION_MS,
   DEALER_FLIP_GESTURE_MS,
   DEALER_REACH_MS,
@@ -24,6 +25,7 @@ const DealerScene = ({
   const dealingArmRef = useRef(null);
   const lastRevealPulseRef = useRef(revealPulse);
   const reducedMotion = useTableReducedMotion();
+  const latestDealRef = useTableDealMotion();
 
   useLayoutEffect(() => {
     const arm = dealingArmRef.current;
@@ -38,18 +40,22 @@ const DealerScene = ({
     // Each keyed arm starts at rest. Measure again on every draw so the reach
     // follows the shoe after responsive layout changes, including a resize.
     const fingertip = contact.getBoundingClientRect();
-    const setTarget = (name, marker) => {
-      const target = marker.getBoundingClientRect();
-      const x =
-        target.left + target.width / 2 - fingertip.left - fingertip.width / 2;
-      const y =
-        target.top + target.height / 2 - fingertip.top - fingertip.height / 2;
+    const setTarget = (name, target) => {
+      const x = target.x - fingertip.left - fingertip.width / 2;
+      const y = target.y - fingertip.top - fingertip.height / 2;
       arm.style.setProperty(`--dealer-${name}-x`, `${x.toFixed(2)}px`);
       arm.style.setProperty(`--dealer-${name}-y`, `${y.toFixed(2)}px`);
     };
-    setTarget('pickup', pickup);
-    setTarget('handoff', exit);
-  }, [dealPulse]);
+    const center = (marker) => {
+      const rect = marker.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    };
+    const pickupPoint = center(pickup);
+    const handoffPoint = center(exit);
+    setTarget('pickup', pickupPoint);
+    setTarget('handoff', handoffPoint);
+    setTarget('release', latestDealRef?.current?.release || handoffPoint);
+  }, [dealPulse, latestDealRef]);
 
   useLayoutEffect(() => {
     const newReveal = revealPulse !== lastRevealPulseRef.current;
@@ -84,16 +90,19 @@ const DealerScene = ({
       [
         {
           transform: pose(0, 0),
+          filter: 'drop-shadow(1px 3px 1px #1b0b1640)',
           offset: 0,
           easing: 'cubic-bezier(0.22, 0.68, 0.28, 1)',
         },
         {
           transform: pose(x, y),
+          filter: 'drop-shadow(1px 2px 1px #1b0b1659)',
           offset: DEALER_REACH_MS / DEALER_FLIP_GESTURE_MS,
           easing: 'ease-in-out',
         },
         {
           transform: pose(x + target.width * 0.44, y - 6, -8),
+          filter: 'drop-shadow(2px 6px 3px #1b0b163b)',
           offset:
             (DEALER_REACH_MS + CARD_FLIP_DURATION_MS / 2) /
             DEALER_FLIP_GESTURE_MS,
@@ -101,11 +110,16 @@ const DealerScene = ({
         },
         {
           transform: pose(x + target.width * 0.62, y + 2, 5),
+          filter: 'drop-shadow(1px 2px 1px #1b0b1659)',
           offset:
             (DEALER_REACH_MS + CARD_FLIP_DURATION_MS) / DEALER_FLIP_GESTURE_MS,
           easing: 'cubic-bezier(0.4, 0, 0.25, 1)',
         },
-        { transform: pose(0, 0), offset: 1 },
+        {
+          transform: pose(0, 0),
+          filter: 'drop-shadow(1px 3px 1px #1b0b1640)',
+          offset: 1,
+        },
       ],
       { duration: DEALER_FLIP_GESTURE_MS, easing: 'linear' }
     );
@@ -129,6 +143,7 @@ const DealerScene = ({
       style={{
         '--dealer-hand-mask': `url(${dealerHandMask})`,
         '--dealer-deal-duration': `${CARD_DEAL_DURATION_MS}ms`,
+        '--dealer-push-easing': CARD_PUSH_EASING,
         '--dealer-sweep-duration': `${CARD_SWEEP_DURATION_MS}ms`,
       }}
     >
@@ -158,36 +173,35 @@ const DealerScene = ({
             fill={paint('tray')}
             stroke="#9b815a"
           />
-          {['#bd9c68', '#748776', '#ddd1b9', '#95535b', '#454f67'].map(
-            (color, index) => (
-              <g key={color} transform={`translate(${10 + index * 25} 7)`}>
-                <rect width="22" height="24" rx="4" fill="#080a0c" />
-                {[0, 1, 2, 3, 4].map((chip) => (
-                  <g key={chip} transform={`translate(0 ${chip * 4})`}>
-                    <path
-                      d="M1 3Q11-2 21 3V6Q11 10 1 6Z"
-                      fill={color}
-                      stroke="#151516"
-                      strokeWidth=".7"
-                    />
-                    <path
-                      d="M5 3V6M17 3V6"
-                      stroke="#fff4d8"
-                      strokeWidth="2"
-                      opacity=".7"
-                    />
-                    <path
-                      d="M3 3Q11 0 19 3"
-                      fill="none"
-                      stroke="#fff4d8"
-                      strokeWidth=".6"
-                      opacity=".45"
-                    />
-                  </g>
-                ))}
-              </g>
-            )
-          )}
+          {/* Match the player's $5, $10, $25, and $100 chips, in that order. */}
+          {['#b53620', '#286bac', '#218342', '#292826'].map((color, index) => (
+            <g key={color} transform={`translate(${15 + index * 30} 7)`}>
+              <rect width="22" height="24" rx="4" fill="#080a0c" />
+              {[0, 1, 2, 3, 4].map((chip) => (
+                <g key={chip} transform={`translate(0 ${chip * 4})`}>
+                  <path
+                    d="M1 3Q11-2 21 3V6Q11 10 1 6Z"
+                    fill={color}
+                    stroke="#151516"
+                    strokeWidth=".7"
+                  />
+                  <path
+                    d="M5 3V6M17 3V6"
+                    stroke="#fff4d8"
+                    strokeWidth="2"
+                    opacity=".7"
+                  />
+                  <path
+                    d="M3 3Q11 0 19 3"
+                    fill="none"
+                    stroke="#fff4d8"
+                    strokeWidth=".6"
+                    opacity=".45"
+                  />
+                </g>
+              ))}
+            </g>
+          ))}
           <path d="M7 34H135" stroke="#b79a6e" strokeOpacity=".45" />
         </svg>
       </div>

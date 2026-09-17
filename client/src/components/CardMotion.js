@@ -8,6 +8,10 @@ import React, {
 } from 'react';
 import {
   CARD_DEAL_DURATION_MS,
+  CARD_GLIDE_EASING,
+  CARD_PUSH_EASING,
+  CARD_RELEASE_MS,
+  CARD_TURNOVER_DURATION_MS,
   SHOE_EXTRACTION_MS,
 } from '../constants/motionTiming';
 
@@ -15,24 +19,34 @@ export { CARD_DEAL_DURATION_MS, SHOE_EXTRACTION_MS };
 
 const TableMotionContext = createContext({
   notifyDeal: () => {},
+  latestDealRef: { current: null },
+  cardBackColor: 'red',
   reducedMotion: false,
 });
 
 export const useTableReducedMotion = () =>
   useContext(TableMotionContext).reducedMotion;
 
+export const useTableDealMotion = () =>
+  useContext(TableMotionContext).latestDealRef;
+
 export const TableMotionProvider = ({
   children,
   onDeal,
   reducedMotion = false,
+  cardBackColor = 'red',
 }) => {
   const onDealRef = useRef(onDeal);
+  const latestDealRef = useRef(null);
   onDealRef.current = onDeal;
 
-  const notifyDeal = useCallback(() => onDealRef.current?.(), []);
+  const notifyDeal = useCallback((motion) => {
+    latestDealRef.current = motion;
+    onDealRef.current?.();
+  }, []);
   const value = useMemo(
-    () => ({ notifyDeal, reducedMotion }),
-    [notifyDeal, reducedMotion]
+    () => ({ notifyDeal, latestDealRef, reducedMotion, cardBackColor }),
+    [notifyDeal, reducedMotion, cardBackColor]
   );
 
   return (
@@ -42,10 +56,18 @@ export const TableMotionProvider = ({
   );
 };
 
-const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
-  const { notifyDeal, reducedMotion } = useContext(TableMotionContext);
+const CardMotion = ({
+  children,
+  skipEntrance = false,
+  entranceDelay = 0,
+  turnFaceUp = false,
+}) => {
+  const { notifyDeal, reducedMotion, cardBackColor } =
+    useContext(TableMotionContext);
   const elementRef = useRef(null);
   const animationRef = useRef(null);
+  const turnoverRef = useRef(null);
+  const turnoverAnimationRef = useRef(null);
   const notifiedRef = useRef(false);
   const entranceDelayRef = useRef(entranceDelay);
   const dealTimerRef = useRef(null);
@@ -91,9 +113,23 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
         : 1;
     const handoffTransform = `translate(${fromX}px, ${fromY}px) scale(${sourceScale})`;
     const handoffOffset = SHOE_EXTRACTION_MS / CARD_DEAL_DURATION_MS;
+    const armWidth =
+      table?.querySelector('.dealer-dealing-arm')?.getBoundingClientRect()
+        .width || 84;
+    const travelDistance = Math.hypot(fromX, fromY);
+    const pushDistance = Math.min(travelDistance * 0.22, armWidth * 0.85);
+    const pushProgress = travelDistance > 0 ? pushDistance / travelDistance : 0;
+    const releaseX = fromX * (1 - pushProgress);
+    const releaseY = fromY * (1 - pushProgress);
+    const releaseScale = sourceScale + (1 - sourceScale) * pushProgress;
+    const release = {
+      x: destination.left + destination.width / 2 + releaseX,
+      y: destination.top + destination.height / 2 + releaseY,
+    };
 
     // The shoe extracts its small card first. This card takes over at the same
-    // bounds, then travels on the outer wrapper so the inner card can still flip.
+    // bounds, shares a short push with the dealer, then glides to its recipient.
+    // Motion stays on the outer wrapper so the inner card can still flip.
     const animation = element.animate(
       [
         {
@@ -113,7 +149,14 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
           opacity: 1,
           zIndex: 12,
           offset: handoffOffset,
-          easing: 'cubic-bezier(0.18, 0.72, 0.3, 1)',
+          easing: CARD_PUSH_EASING,
+        },
+        {
+          transform: `translate(${releaseX}px, ${releaseY}px) scale(${releaseScale})`,
+          opacity: 1,
+          zIndex: 12,
+          offset: CARD_RELEASE_MS / CARD_DEAL_DURATION_MS,
+          easing: CARD_GLIDE_EASING,
         },
         {
           transform: 'translate(0, 0) scale(1)',
@@ -132,10 +175,23 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
     );
     animationRef.current = animation;
 
+    // Match the shoe's back at handoff, then turn only the card surface.
+    // The outer flight and its shared fingertip contact stay on the same path.
+    const turnoverAnimation = turnoverRef.current?.animate(
+      [{ transform: 'rotateY(180deg)' }, { transform: 'rotateY(0deg)' }],
+      {
+        duration: CARD_TURNOVER_DURATION_MS,
+        delay: entranceDelayRef.current + SHOE_EXTRACTION_MS,
+        easing: 'ease-in-out',
+        fill: 'backwards',
+      }
+    );
+    turnoverAnimationRef.current = turnoverAnimation;
+
     const beginDeal = () => {
       if (!notifiedRef.current) {
         notifiedRef.current = true;
-        notifyDeal();
+        notifyDeal({ release });
       }
     };
     if (entranceDelayRef.current > 0) {
@@ -147,6 +203,7 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
     const stopForReducedMotion = () => {
       if (motionPreference.matches) {
         animation.cancel();
+        turnoverAnimation?.cancel();
         clearTimeout(dealTimerRef.current);
       }
     };
@@ -154,6 +211,7 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
 
     return () => {
       animation.cancel();
+      turnoverAnimation?.cancel();
       clearTimeout(dealTimerRef.current);
       motionPreference?.removeEventListener?.('change', stopForReducedMotion);
     };
@@ -162,6 +220,7 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
   useLayoutEffect(() => {
     if (reducedMotion) {
       animationRef.current?.cancel();
+      turnoverAnimationRef.current?.cancel();
       clearTimeout(dealTimerRef.current);
     }
   }, [reducedMotion]);
@@ -173,7 +232,28 @@ const CardMotion = ({ children, skipEntrance = false, entranceDelay = 0 }) => {
       data-card-deal=""
       data-reduced-motion={reducedMotion}
     >
-      <div className="card-motion-surface">{children}</div>
+      <div
+        className={`card-motion-surface${turnFaceUp ? ' has-turnover' : ''}`}
+      >
+        {turnFaceUp ? (
+          <div
+            className="card-turnover"
+            data-card-turnover=""
+            ref={turnoverRef}
+          >
+            <div className="card-turnover-front">{children}</div>
+            <img
+              className="card-turnover-back"
+              src={`/card-images/card_back_${cardBackColor}.png`}
+              alt=""
+              aria-hidden="true"
+              draggable="false"
+            />
+          </div>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   );
 };

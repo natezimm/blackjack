@@ -1,5 +1,8 @@
 import React from 'react';
-import { SHOE_EXTRACTION_MS } from '../constants/motionTiming';
+import {
+  DEALER_PICKUP_MS,
+  SHOE_EXTRACTION_MS,
+} from '../constants/motionTiming';
 import '../styles/CardShoe.css';
 
 const CardShoe = ({ dealPulse = 0, cardBackColor = 'red' }) => {
@@ -10,7 +13,10 @@ const CardShoe = ({ dealPulse = 0, cardBackColor = 'red' }) => {
       className="card-shoe"
       data-shoe-pulse={dealPulse}
       aria-hidden="true"
-      style={{ '--shoe-extraction-duration': `${SHOE_EXTRACTION_MS}ms` }}
+      style={{
+        '--shoe-pickup-delay': `${DEALER_PICKUP_MS}ms`,
+        '--shoe-extraction-duration': `${SHOE_EXTRACTION_MS - DEALER_PICKUP_MS}ms`,
+      }}
     >
       <div className="shoe-body" />
       <div className="shoe-card-well" />
