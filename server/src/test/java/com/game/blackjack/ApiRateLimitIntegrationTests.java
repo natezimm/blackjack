@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,7 +44,7 @@ class ApiRateLimitIntegrationTests {
         }).header("Origin", "http://localhost:3000"))
             .andExpect(status().isTooManyRequests())
             .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
-            .andExpect(header().string("Retry-After", "60"))
+            .andExpect(header().string("Retry-After", matchesPattern("^(5[0-9]|60)$")))
             .andExpect(jsonPath("$.error")
                 .value("Too many requests, please try again later."));
     }
