@@ -43,7 +43,7 @@ The client owns rendering, browser persistence, audio/asset presentation, and AP
 
 ## Quality Gates
 
-Run `npm run quality` from the repo root after installing root and client npm dependencies. The gate checks Prettier formatting, client Jest coverage, the client production build, and Gradle/JUnit tests with JaCoCo coverage verification.
+Run `npm run quality` from the repo root after installing root and client npm dependencies. The gate checks Prettier formatting, client Vitest coverage, the client Vite production build, Gradle/JUnit tests with JaCoCo coverage verification, and Playwright end-to-end tests.
 
 ## Deployment Flow
 
@@ -99,4 +99,4 @@ flowchart LR
 
 ## Deferred Architecture Follow-Ups
 
-Keep CRA-to-Vite migration separate from this consistency pass. If the app grows, consider introducing a typed API contract between React and Spring Boot and a Java formatter in a later dedicated change.
+The Create React App (CRA) to Vite and Vitest migration is complete. If the app grows in the future, consider introducing a typed API contract between React and Spring Boot and a Java formatter in a dedicated change.

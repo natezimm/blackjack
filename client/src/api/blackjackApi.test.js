@@ -1,28 +1,21 @@
-jest.mock('axios', () => {
-  const mockInterceptors = {
-    response: {
-      use: jest.fn(),
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import axios from 'axios';
+
+vi.mock('axios', () => {
+  const create = vi.fn();
+  return {
+    default: {
+      create,
     },
-    request: {
-      use: jest.fn(),
-    },
+    create,
   };
-  const create = jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    interceptors: mockInterceptors,
-  }));
-  const mockAxios = { create };
-  mockAxios.default = mockAxios;
-  return mockAxios;
 });
 
-const axios = require('axios');
-const mockGet = jest.fn();
-const mockPost = jest.fn();
+const mockGet = vi.fn();
+const mockPost = vi.fn();
 const mockInterceptors = {
-  response: { use: jest.fn() },
-  request: { use: jest.fn() },
+  response: { use: vi.fn() },
+  request: { use: vi.fn() },
 };
 
 describe('blackjackApi', () => {
@@ -36,33 +29,33 @@ describe('blackjackApi', () => {
   let getState;
   let resetGame;
 
-  const reloadApi = () => {
-    jest.isolateModules(() => {
-      ({
-        startGame,
-        hit,
-        stand,
-        placeBet,
-        doubleDown,
-        split,
-        resolveInsurance,
-        getState,
-        resetGame,
-      } = require('./blackjackApi'));
-    });
+  const reloadApi = async () => {
+    vi.resetModules();
+    const api = await import('./blackjackApi');
+    startGame = api.startGame;
+    hit = api.hit;
+    stand = api.stand;
+    placeBet = api.placeBet;
+    doubleDown = api.doubleDown;
+    split = api.split;
+    resolveInsurance = api.resolveInsurance;
+    getState = api.getState;
+    resetGame = api.resetGame;
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  beforeEach(async () => {
+    vi.clearAllMocks();
     mockGet.mockReset();
     mockPost.mockReset();
+    mockInterceptors.response.use.mockReset();
+    mockInterceptors.request.use.mockReset();
     axios.create.mockReturnValue({
       get: mockGet,
       post: mockPost,
       interceptors: mockInterceptors,
     });
     process.env.REACT_APP_API_URL = 'https://example.com';
-    reloadApi();
+    await reloadApi();
   });
 
   it('configures the axios client with the API base url', () => {
@@ -135,45 +128,47 @@ describe('blackjackApi', () => {
     expect(successHandler(testResponse)).toBe(testResponse);
   });
 
-  it('handles response interceptor for errors with response', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+  it('handles response interceptor for errors with response', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation();
     const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
 
     const errorWithResponse = { response: { status: 500 } };
-    expect(() => errorHandler(errorWithResponse)).rejects.toEqual(
+    await expect(() => errorHandler(errorWithResponse)).rejects.toEqual(
       errorWithResponse
     );
 
     errorSpy.mockRestore();
   });
 
-  it('handles response interceptor for network errors', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+  it('handles response interceptor for network errors', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation();
     const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
 
     const networkError = { request: {} };
-    expect(() => errorHandler(networkError)).rejects.toEqual(networkError);
+    await expect(() => errorHandler(networkError)).rejects.toEqual(
+      networkError
+    );
 
     errorSpy.mockRestore();
   });
 
-  it('handles response interceptor for request setup errors', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+  it('handles response interceptor for request setup errors', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation();
     const errorHandler = mockInterceptors.response.use.mock.calls[0][1];
 
     const setupError = { message: 'Request setup failed' };
-    expect(() => errorHandler(setupError)).rejects.toEqual(setupError);
+    await expect(() => errorHandler(setupError)).rejects.toEqual(setupError);
 
     errorSpy.mockRestore();
   });
 
-  it('falls back to localhost in development when API URL validation fails', () => {
+  it('falls back to localhost in development when API URL validation fails', async () => {
     process.env.NODE_ENV = 'development';
     process.env.REACT_APP_API_URL = '';
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation();
 
-    reloadApi();
+    await reloadApi();
 
     expect(axios.create).toHaveBeenCalled();
     errorSpy.mockRestore();

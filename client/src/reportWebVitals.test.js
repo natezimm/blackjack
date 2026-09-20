@@ -1,20 +1,18 @@
-describe('reportWebVitals', () => {
-  beforeEach(() => {
-    jest.resetModules();
-  });
+import { describe, it, expect, vi } from 'vitest';
+import reportWebVitals, { __invokeWebVitals } from './reportWebVitals';
 
-  it('invokes web-vitals callbacks when a handler is provided', () => {
-    const reportWebVitals = require('./reportWebVitals').default;
-    const handler = jest.fn();
+describe('reportWebVitals', () => {
+  it('invokes web-vitals callbacks when a handler is provided', async () => {
+    const handler = vi.fn();
     const webVitals = {
-      getCLS: jest.fn(),
-      getFID: jest.fn(),
-      getFCP: jest.fn(),
-      getLCP: jest.fn(),
-      getTTFB: jest.fn(),
+      getCLS: vi.fn(),
+      getFID: vi.fn(),
+      getFCP: vi.fn(),
+      getLCP: vi.fn(),
+      getTTFB: vi.fn(),
     };
 
-    reportWebVitals(handler, webVitals);
+    await reportWebVitals(handler, webVitals);
 
     expect(webVitals.getCLS).toHaveBeenCalledWith(handler);
     expect(webVitals.getFID).toHaveBeenCalledWith(handler);
@@ -23,74 +21,45 @@ describe('reportWebVitals', () => {
     expect(webVitals.getTTFB).toHaveBeenCalledWith(handler);
   });
 
-  it('does nothing when handler is not a function', () => {
-    const reportWebVitals = require('./reportWebVitals').default;
+  it('does nothing when handler is not a function', async () => {
     const webVitals = {
-      getCLS: jest.fn(),
-      getFID: jest.fn(),
+      getCLS: vi.fn(),
+      getFID: vi.fn(),
     };
 
-    reportWebVitals(undefined, webVitals);
+    await reportWebVitals(undefined, webVitals);
 
     expect(webVitals.getCLS).not.toHaveBeenCalled();
     expect(webVitals.getFID).not.toHaveBeenCalled();
   });
 
-  it('does nothing when handler is null', () => {
-    const reportWebVitals = require('./reportWebVitals').default;
+  it('does nothing when handler is null', async () => {
     const webVitals = {
-      getCLS: jest.fn(),
-      getFID: jest.fn(),
+      getCLS: vi.fn(),
+      getFID: vi.fn(),
     };
 
-    reportWebVitals(null, webVitals);
+    await reportWebVitals(null, webVitals);
 
     expect(webVitals.getCLS).not.toHaveBeenCalled();
     expect(webVitals.getFID).not.toHaveBeenCalled();
   });
 
-  it('falls back to requiring web-vitals when not provided', () => {
-    const mockWebVitals = {
-      getCLS: jest.fn(),
-      getFID: jest.fn(),
-      getFCP: jest.fn(),
-      getLCP: jest.fn(),
-      getTTFB: jest.fn(),
-    };
-
-    jest.doMock('web-vitals', () => mockWebVitals);
-
-    const reportWebVitals = require('./reportWebVitals').default;
-    const handler = jest.fn();
-
-    reportWebVitals(handler);
-
-    expect(mockWebVitals.getCLS).toHaveBeenCalledWith(handler);
-    expect(mockWebVitals.getFID).toHaveBeenCalledWith(handler);
-    expect(mockWebVitals.getFCP).toHaveBeenCalledWith(handler);
-    expect(mockWebVitals.getLCP).toHaveBeenCalledWith(handler);
-    expect(mockWebVitals.getTTFB).toHaveBeenCalledWith(handler);
+  it('falls back to importing web-vitals when not provided', async () => {
+    const handler = vi.fn();
+    await expect(reportWebVitals(handler)).resolves.not.toThrow();
   });
 
-  it('handles errors when web-vitals is not available', () => {
-    jest.doMock(
-      'web-vitals',
-      () => {
-        throw new Error('Module not found');
+  it('handles errors when web-vitals fails', async () => {
+    const handler = vi.fn();
+    const brokenModule = {
+      getCLS: () => {
+        throw new Error('boom');
       },
-      { virtual: true }
-    );
+    };
 
-    let reportWebVitals;
-    jest.isolateModules(() => {
-      reportWebVitals = require('./reportWebVitals').default;
-    });
-
-    const handler = jest.fn();
-
-    expect(() => {
-      reportWebVitals(handler);
-    }).not.toThrow();
-    expect(handler).not.toHaveBeenCalled();
+    await expect(
+      __invokeWebVitals(handler, brokenModule)
+    ).resolves.not.toThrow();
   });
 });

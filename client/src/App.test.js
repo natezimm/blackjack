@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-jest.mock('./components/BlackjackGame', () => () => (
-  <div>Blackjack Game Component</div>
-));
+vi.mock('./components/BlackjackGame', () => ({
+  default: () => <div>Blackjack Game Component</div>,
+}));
 
 test('renders the blackjack game container', () => {
   render(<App />);

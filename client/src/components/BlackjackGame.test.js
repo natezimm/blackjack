@@ -47,16 +47,16 @@ import {
   resetGame,
 } from '../api/blackjackApi';
 
-jest.mock('../api/blackjackApi', () => ({
-  startGame: jest.fn(),
-  hit: jest.fn(),
-  stand: jest.fn(),
-  placeBet: jest.fn(),
-  doubleDown: jest.fn(),
-  split: jest.fn(),
-  resolveInsurance: jest.fn(),
-  getState: jest.fn(),
-  resetGame: jest.fn(),
+vi.mock('../api/blackjackApi', () => ({
+  startGame: vi.fn(),
+  hit: vi.fn(),
+  stand: vi.fn(),
+  placeBet: vi.fn(),
+  doubleDown: vi.fn(),
+  split: vi.fn(),
+  resolveInsurance: vi.fn(),
+  getState: vi.fn(),
+  resetGame: vi.fn(),
 }));
 
 jest.useFakeTimers();

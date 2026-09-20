@@ -1,35 +1,35 @@
-jest.mock('react-dom/client', () => ({
-  createRoot: jest.fn(),
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const renderMock = vi.fn();
+const createRootMock = vi.fn(() => ({ render: renderMock }));
+
+vi.mock('react-dom/client', () => ({
+  default: { createRoot: createRootMock },
+  createRoot: createRootMock,
 }));
 
-jest.mock('./App', () => () => <div>App Component</div>);
-jest.mock('./reportWebVitals', () => jest.fn());
+vi.mock('./App', () => ({
+  default: () => <div>App Component</div>,
+}));
+
+const reportWebVitalsMock = vi.fn();
+vi.mock('./reportWebVitals', () => ({
+  default: reportWebVitalsMock,
+}));
 
 describe('index', () => {
-  const renderMock = jest.fn();
-  let createRoot;
-
   beforeEach(() => {
-    jest.resetModules();
+    vi.clearAllMocks();
     document.body.innerHTML = '<div id="root"></div>';
-    ({ createRoot } = require('react-dom/client'));
-    createRoot.mockReturnValue({ render: renderMock });
-    renderMock.mockClear();
-    createRoot.mockClear();
   });
 
-  it('renders the app into the root element', () => {
-    require('./index');
+  it('renders the app into the root element and calls reportWebVitals', async () => {
+    await import('./index');
 
-    expect(createRoot).toHaveBeenCalledWith(document.getElementById('root'));
+    expect(createRootMock).toHaveBeenCalledWith(
+      document.getElementById('root')
+    );
     expect(renderMock).toHaveBeenCalled();
-  });
-
-  it('calls the performance reporting helper', () => {
-    const reportWebVitals = require('./reportWebVitals');
-
-    require('./index');
-
-    expect(reportWebVitals).toHaveBeenCalled();
+    expect(reportWebVitalsMock).toHaveBeenCalled();
   });
 });
