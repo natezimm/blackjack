@@ -2695,6 +2695,19 @@ describe('BlackjackGame', () => {
     expect(setRevealDealerCard).toHaveBeenCalledWith(true);
     expect(setMessage).toHaveBeenCalledWith('hi');
     expect(setCanPersistState).toHaveBeenCalledWith(true);
+
+    // Test fresh table on mount (bettingOpen: true, gameOver: false, no cards) defaults revealDealerCard to false
+    hydrateState(
+      {
+        balance: 1000,
+        playerHands: [],
+        dealerHand: [],
+        gameOver: false,
+        bettingOpen: true,
+      },
+      {}
+    );
+    expect(setRevealDealerCard).toHaveBeenCalledWith(false);
   });
 
   it('ensureHand falls back to an empty array', () => {
@@ -2708,14 +2721,14 @@ describe('BlackjackGame', () => {
     expect(fallbackTo(0, 10)).toBe(0);
   });
 
-  it('createDeckCountChangeHandler updates deck counts', () => {
+  it('createDeckCountChangeHandler updates deck state', () => {
     const setNumberOfDecks = jest.fn();
     const setDeckSize = jest.fn();
-
     const handler = createDeckCountChangeHandler({
       setNumberOfDecks,
       setDeckSize,
     });
+
     handler({ target: { value: '4' } });
 
     expect(setNumberOfDecks).toHaveBeenCalledWith(4);
@@ -2769,6 +2782,35 @@ describe('BlackjackGame', () => {
 
     expect(placeBet).toHaveBeenCalledWith(15);
     expect(setCurrentBet).toHaveBeenCalledWith(15);
+  });
+
+  it('handleBetLogic rolls back optimistic update when placeBet fails', async () => {
+    const setMessage = jest.fn();
+    const setCurrentBet = jest.fn();
+    const onSuccess = jest.fn();
+    const placeBet = jest.fn().mockRejectedValue(new Error('Network error'));
+
+    await handleBetLogic(
+      {
+        bettingOpen: true,
+        currentBet: 10,
+        balance: 100,
+        setMessage,
+        setCurrentBet,
+        placeBet,
+        onSuccess,
+      },
+      25
+    );
+
+    // Optimistic update fired first
+    expect(setCurrentBet).toHaveBeenNthCalledWith(1, 35);
+    expect(onSuccess).toHaveBeenCalled();
+    // Then rolled back on failure
+    expect(setCurrentBet).toHaveBeenNthCalledWith(2, 10);
+    expect(setMessage).toHaveBeenCalledWith(
+      'Failed to place bet. Please try again.'
+    );
   });
 
   it('handles startGame with balance from API', async () => {

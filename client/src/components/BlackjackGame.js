@@ -508,7 +508,9 @@ export const createHydrateStateFromResponse =
     setRevealDealerCard(
       state.revealDealerCard !== undefined
         ? state.revealDealerCard
-        : !!(state.gameOver || state.bettingOpen)
+        : Boolean(
+            state.gameOver && state.dealerHand && state.dealerHand.length > 0
+          )
     );
     setMessage(state.message ?? fallback?.message ?? '');
     if (setInsuranceBet) setInsuranceBet(fallbackTo(state.insuranceBet, 0));
@@ -552,13 +554,18 @@ export const handleBetLogic = async (
     return;
   }
 
+  const previousBet = currentBet;
+  const newBet = currentBet + amount;
+
+  setCurrentBet(newBet);
+  if (onSuccess) onSuccess();
+
   try {
-    const newBet = currentBet + amount;
     await placeBet(newBet);
-    setCurrentBet(newBet);
-    if (onSuccess) onSuccess();
   } catch (error) {
     console.error('Error placing bet:', error);
+    setCurrentBet(previousBet);
+    setMessage('Failed to place bet. Please try again.');
   }
 };
 
@@ -613,9 +620,15 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const activeRoundActionsRef = useRef([]);
   const completedRoundRecordedRef = useRef(false);
 
+  const currentBetRef = useRef(currentBet);
+
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
+
+  useEffect(() => {
+    currentBetRef.current = currentBet;
+  }, [currentBet]);
 
   const playSound = useCallback((file) => {
     if (mutedRef.current) return;
@@ -1255,13 +1268,17 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleBet = async (amount) => {
+    const baseBet = currentBetRef.current;
     await handleBetLogic(
       {
         bettingOpen,
-        currentBet,
+        currentBet: baseBet,
         balance,
         setMessage,
-        setCurrentBet,
+        setCurrentBet: (nextBet) => {
+          currentBetRef.current = nextBet;
+          setCurrentBet(nextBet);
+        },
         placeBet,
         onSuccess: playChipSound,
       },
@@ -1270,13 +1287,18 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   };
 
   const handleClearBet = async () => {
-    if (!bettingOpen || currentBet === 0) return;
+    const previousBet = currentBetRef.current;
+    if (!bettingOpen || previousBet === 0) return;
     playClickSound();
+    currentBetRef.current = 0;
+    setCurrentBet(0);
     try {
       await placeBet(0);
-      setCurrentBet(0);
     } catch (error) {
       console.error('Error clearing bet:', error);
+      currentBetRef.current = previousBet;
+      setCurrentBet(previousBet);
+      setMessage('Failed to clear bet. Please try again.');
     }
   };
 
