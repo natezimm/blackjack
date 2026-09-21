@@ -1,9 +1,0 @@
-# Dealer hand asset
-
-This original photographic asset is retained as the alpha mask for the [cartoon replacement](dealer-hand-cartoon.md). Its photographic colors are no longer rendered in the game.
-
-Generated using the built-in image-generation tool. The transparent PNG is stored at `client/src/assets/dealer/dealer-hand.png` and is mirrored for the opposite hand. The generated alpha is preserved. Sleeves and gestures are positioned in CSS.
-
-## Final prompt
-
-Use case: photorealistic-natural. Asset type: transparent PNG hand sprite for a premium blackjack table game. Create ONE anatomically accurate adult dealer hand with natural proportions, photographed from directly overhead, palm facing DOWN so the BACK of the hand, knuckles, and short clean fingernails are visible. Wrist enters from the TOP edge; fingers point DOWN toward bottom edge; thumb is on the image RIGHT. The hand is resting comfortably on a horizontal table: fingers relaxed, gently curved and mostly together, with modest natural separation, a normal fleshy palm, short sturdy pinky and a naturally jointed thumb. A charcoal tailored jacket sleeve and an ivory shirt cuff cover the forearm and enter the top edge. Include the entire hand and all fingertips with generous transparent margins at sides and bottom; crop only sleeve at top. Center this single hand in a portrait composition, hand occupying about 70% width and 70% height, sleeve/cuff upper 30%. Realistic high quality studio photography, warm soft overhead lighting, detailed natural skin with restrained texture and light-medium warm skin tone. GENUINELY TRANSPARENT background with alpha, no table, no backdrop, no drop shadow, no cards, no chips, no jewelry, no text. Exactly five digits. Avoid flat cartoon/vector shapes, stretched fingers, splayed starfish pose, mannequin appearance, malformed thumb, palm creases on the dorsal side. This must read as a real relaxed hand when reduced to a small game sprite.

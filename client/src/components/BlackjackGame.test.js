@@ -9,6 +9,7 @@ import { act } from 'react';
 import userEvent from '@testing-library/user-event';
 import BlackjackGame, {
   ACTION_RESOLUTION_DELAY_MS,
+  DEALER_CARD_REVEAL_DELAY_MS,
   OUTCOME_REVEAL_DELAY_MS,
   calculateTotal,
   buildHandHistoryEntry,
@@ -25,15 +26,6 @@ import BlackjackGame, {
   sanitizeHandHistory,
 } from './BlackjackGame';
 
-import {
-  CARD_DEAL_DURATION_MS,
-  INITIAL_DEAL_DELAY_MS,
-  INITIAL_DEAL_INTERVAL_MS,
-  DEALER_REVEAL_PAUSE_MS,
-  DEALER_REACH_MS,
-  DEALER_FLIP_GESTURE_MS,
-  DEALER_AFTER_FLIP_PAUSE_MS,
-} from '../constants/motionTiming';
 import { MESSAGES } from '../constants/messages';
 import {
   getState,
@@ -323,58 +315,6 @@ describe('BlackjackGame', () => {
     ).toBeInTheDocument();
   });
 
-  it('leaves a pause between initial cards and waits for the final landing', async () => {
-    startGame.mockResolvedValue({
-      data: {
-        playerHands: [
-          {
-            cards: [
-              { value: '10', suit: 'Hearts' },
-              { value: '7', suit: 'Clubs' },
-            ],
-            bet: 25,
-            isTurn: true,
-          },
-        ],
-        dealerHand: [
-          { value: '9', suit: 'Spades' },
-          { value: '6', suit: 'Diamonds' },
-        ],
-        balance: 975,
-        currentBet: 25,
-        bettingOpen: false,
-        gameOver: false,
-      },
-    });
-    await act(async () => render(<BlackjackGame />));
-    await act(async () =>
-      userEvent.click(screen.getByRole('button', { name: 'Add $25 to wager' }))
-    );
-    await act(async () =>
-      userEvent.click(screen.getByRole('button', { name: 'DEAL', exact: true }))
-    );
-    await advanceTimers(INITIAL_DEAL_DELAY_MS - 1);
-    expect(document.querySelectorAll('[data-card-deal]')).toHaveLength(0);
-    await advanceTimers(1);
-    expect(document.querySelectorAll('[data-card-deal]')).toHaveLength(1);
-    for (let count = 2; count <= 4; count += 1) {
-      await advanceTimers(INITIAL_DEAL_INTERVAL_MS - 1);
-      expect(document.querySelectorAll('[data-card-deal]')).toHaveLength(
-        count - 1
-      );
-      await advanceTimers(1);
-      expect(document.querySelectorAll('[data-card-deal]')).toHaveLength(count);
-    }
-    await advanceTimers(CARD_DEAL_DURATION_MS - 1);
-    expect(
-      screen.getByRole('button', { name: 'HIT', exact: true })
-    ).toBeDisabled();
-    await advanceTimers(1);
-    expect(
-      screen.getByRole('button', { name: 'HIT', exact: true })
-    ).toBeEnabled();
-  });
-
   it('delays outcome badges until dealer reveal animation completes', async () => {
     getState.mockResolvedValue({
       data: {
@@ -415,31 +355,10 @@ describe('BlackjackGame', () => {
 
     expect(screen.queryByText('WIN')).not.toBeInTheDocument();
 
-    const holeCard = document.querySelector(
-      '[data-dealer-hole-card] .card-inner'
-    );
-    await advanceTimers(DEALER_REVEAL_PAUSE_MS);
-    expect(document.querySelector('.dealer-scene')).toHaveAttribute(
-      'data-reveal-pulse',
-      '1'
-    );
-    expect(holeCard).not.toHaveClass('flipped');
-    await advanceTimers(DEALER_REACH_MS - 1);
-    expect(holeCard).not.toHaveClass('flipped');
-    await advanceTimers(1);
-    expect(holeCard).toHaveClass('flipped');
-    expect(
-      document.querySelector('.dealer-hand .hand-total')
-    ).toHaveTextContent('?');
-    expect(screen.queryByAltText('6 of Spades')).not.toBeInTheDocument();
-    await advanceTimers(DEALER_FLIP_GESTURE_MS - DEALER_REACH_MS);
-    expect(screen.queryByAltText('6 of Spades')).not.toBeInTheDocument();
-    expect(
-      document.querySelector('.dealer-hand .hand-total')
-    ).toHaveTextContent('14');
-    await advanceTimers(DEALER_AFTER_FLIP_PAUSE_MS);
-    expect(screen.getByAltText('6 of Spades')).toBeInTheDocument();
-    expect(screen.queryByText('WIN')).not.toBeInTheDocument();
+    for (let cardIndex = 0; cardIndex < 3; cardIndex += 1) {
+      await advanceTimers(DEALER_CARD_REVEAL_DELAY_MS);
+      expect(screen.queryByText('WIN')).not.toBeInTheDocument();
+    }
 
     await advanceTimers(OUTCOME_REVEAL_DELAY_MS - 1);
     expect(screen.queryByText('WIN')).not.toBeInTheDocument();
