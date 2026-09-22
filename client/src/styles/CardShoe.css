@@ -1,0 +1,116 @@
+.table-card-shoe {
+  position: absolute;
+  top: 34px;
+  right: 28px;
+  width: 68px;
+  height: 98px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 6px 12px rgba(10, 5, 8, 0.55));
+  transition: transform 200ms ease;
+}
+
+.shoe-accent-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2b1f23, #151013 65%, #342629);
+  border: 1px solid rgba(212, 185, 132, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.6);
+  padding: 5px;
+}
+
+.shoe-accent-well {
+  position: relative;
+  width: 100%;
+  height: 76px;
+  background: #0f0c0e;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.7);
+}
+
+.shoe-accent-cards {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  right: 6px;
+  height: 15px;
+  background: repeating-linear-gradient(180deg, #d3c8b1 0 1px, #70685e 1px 2px);
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.shoe-accent-top-card {
+  position: absolute;
+  top: 12px;
+  left: 6px;
+  right: 6px;
+  width: calc(100% - 12px);
+  height: auto;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  transition: transform 150ms ease;
+}
+
+.table-card-shoe.is-dealing .shoe-accent-top-card {
+  animation: shoe-card-nudge 400ms ease-out;
+}
+
+@keyframes shoe-card-nudge {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.shoe-accent-lip {
+  position: absolute;
+  bottom: 3px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  background: linear-gradient(180deg, #d4b984, #8b6e3f);
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.shoe-accent-roller {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 4px;
+  background: linear-gradient(90deg, #8b6e3f, #d4b984, #8b6e3f);
+  border-radius: 2px;
+}
+
+@media (max-width: 820px) {
+  .table-card-shoe {
+    top: 30px;
+    right: 18px;
+    width: 54px;
+    height: 78px;
+  }
+  .shoe-accent-well {
+    height: 60px;
+  }
+}
+
+@media (max-width: 680px) {
+  .table-card-shoe {
+    display: none;
+  }
+}

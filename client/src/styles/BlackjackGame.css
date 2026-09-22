@@ -507,8 +507,8 @@
 .table-topline {
   position: absolute;
   top: 16px;
-  left: 22px;
-  right: 22px;
+  left: 26px;
+  right: 28px;
   display: flex;
   justify-content: space-between;
   color: #dbc5a8a6;

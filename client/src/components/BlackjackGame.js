@@ -15,6 +15,8 @@ import DealerHand from './DealerHand';
 import Chip from './Chip';
 import Toast from './Toast';
 import BankrollGraph from './BankrollGraph';
+import CardShoe from './CardShoe';
+import DealerChipTray from './DealerChipTray';
 
 import chip5Png from '../assets/chips/chip-5.png';
 import chip5Webp from '../assets/chips/chip-5.webp';
@@ -1957,6 +1959,8 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span>THE CARD ROOM</span>
               <span>TABLE № 21</span>
             </div>
+            <DealerChipTray />
+            <CardShoe cardBackColor={cardBackColor} isDealing={isDealing} />
             <div className="table-watermark" aria-hidden="true">
               <span className="watermark-suits">
                 ♠ <i>♥</i> ♣ <i>♦</i>
