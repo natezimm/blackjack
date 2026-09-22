@@ -1635,6 +1635,160 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
     });
   }, [insuranceDecisionPending, maxInsurance]);
 
+  const keyboardActionsRef = useRef({});
+  keyboardActionsRef.current = {
+    handleStart,
+    handleHit,
+    handleStand,
+    handleDoubleDown,
+    handleSplit,
+    handleBet,
+    handleClearBet,
+    bettingOpen,
+    currentBet,
+    isAnimating,
+    isDealing,
+    insuranceDecisionPending,
+    activeHand,
+    balance,
+    canSplit,
+    gameOver,
+    showStatsModal,
+    setShowStatsModal,
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeTag = document.activeElement
+        ? document.activeElement.tagName.toLowerCase()
+        : '';
+      if (
+        activeTag === 'input' ||
+        activeTag === 'textarea' ||
+        activeTag === 'select' ||
+        document.activeElement?.isContentEditable
+      ) {
+        return;
+      }
+
+      const {
+        handleStart: start,
+        handleHit: hit,
+        handleStand: stand,
+        handleDoubleDown: doubleDown,
+        handleSplit: split,
+        handleBet: bet,
+        handleClearBet: clearBet,
+        bettingOpen: isBettingOpen,
+        currentBet: betAmount,
+        isAnimating: isAnim,
+        isDealing: isDeal,
+        insuranceDecisionPending: isInsurance,
+        activeHand: currHand,
+        balance: currBalance,
+        canSplit: isSplittable,
+        gameOver: isGameOver,
+        showStatsModal: isStatsOpen,
+        setShowStatsModal: setStatsOpen,
+      } = keyboardActionsRef.current;
+
+      if (e.key === 'Escape' && isStatsOpen) {
+        e.preventDefault();
+        setStatsOpen(false);
+        return;
+      }
+
+      if (isStatsOpen) {
+        return;
+      }
+
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      // DEAL: Space or Enter
+      if ((e.key === ' ' || e.key === 'Enter') && isBettingOpen) {
+        if (betAmount > 0 && !isAnim && !isDeal) {
+          e.preventDefault();
+          start();
+        }
+        return;
+      }
+
+      // CHIP SELECTION (1-4) & CLEAR (C)
+      if (isBettingOpen && !isAnim && !isDeal) {
+        if (e.key === '1') {
+          e.preventDefault();
+          bet(5);
+          return;
+        }
+        if (e.key === '2') {
+          e.preventDefault();
+          bet(10);
+          return;
+        }
+        if (e.key === '3') {
+          e.preventDefault();
+          bet(25);
+          return;
+        }
+        if (e.key === '4') {
+          e.preventDefault();
+          bet(100);
+          return;
+        }
+        if (key === 'c') {
+          e.preventDefault();
+          if (betAmount > 0) {
+            clearBet();
+          }
+          return;
+        }
+      }
+
+      // GAMEPLAY ACTIONS (H, S, D, P)
+      if (!isBettingOpen && !isGameOver && !isInsurance && !isAnim) {
+        if (key === 'h') {
+          if (currHand) {
+            e.preventDefault();
+            hit();
+          }
+          return;
+        }
+        if (key === 's') {
+          if (currHand) {
+            e.preventDefault();
+            stand();
+          }
+          return;
+        }
+        if (key === 'd') {
+          if (
+            currHand &&
+            currHand.cards.length === 2 &&
+            currBalance >= currHand.bet
+          ) {
+            e.preventDefault();
+            doubleDown();
+          }
+          return;
+        }
+        if (key === 'p') {
+          if (isSplittable) {
+            e.preventDefault();
+            split();
+          }
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="blackjack-game">
       <nav className="card-room-nav" aria-label="Main navigation">
@@ -1879,7 +2033,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
           </div>
           <div className="chip-picker-heading">
             <span>Select a chip</span>
-            <span className="chip-picker-note">Click to add</span>
+            <span className="chip-picker-note">Click or Keys 1–4</span>
           </div>
           <div className="chip-row">
             <Chip
@@ -2105,7 +2259,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
                     <div className="secondary-actions">
                       {canSplit && (
                         <button
-                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
+                          className={`action-btn secondary-btn split-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.split)}`.trim()}
                           onClick={handleSplit}
                           disabled={insuranceDecisionPending || isAnimating}
                         >
@@ -2115,7 +2269,7 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
                       {activeHand && activeHand.cards.length === 2 && (
                         <button
-                          className={`action-btn secondary-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
+                          className={`action-btn secondary-btn double-btn ${getRecommendedActionClass(STRATEGY_ACTIONS.double)}`.trim()}
                           onClick={handleDoubleDown}
                           disabled={
                             insuranceDecisionPending ||

@@ -4157,4 +4157,169 @@ describe('BlackjackGame', () => {
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
   });
+
+  describe('Keyboard Shortcuts', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('handles chip selection (1-4), clear bet (c), and deal (Space) via keyboard', async () => {
+      getState.mockResolvedValue({ data: defaultApiState });
+      placeBet.mockResolvedValue({ data: { success: true, balance: 975 } });
+      startGame.mockResolvedValue({
+        data: {
+          ...defaultApiState,
+          bettingOpen: false,
+          playerHands: [
+            {
+              cards: [
+                { value: '10', suit: 'Hearts' },
+                { value: '8', suit: 'Clubs' },
+              ],
+              isTurn: true,
+              bet: 25,
+            },
+          ],
+        },
+      });
+
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+
+      // Press '3' to add $25 chip
+      await act(async () => {
+        fireEvent.keyDown(window, { key: '3' });
+      });
+      await waitFor(() => expect(placeBet).toHaveBeenCalledWith(25));
+
+      // Press 'c' to clear bet
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'c' });
+      });
+      await waitFor(() => expect(placeBet).toHaveBeenCalledWith(0));
+
+      // Place bet again and press ' ' to deal
+      await act(async () => {
+        fireEvent.keyDown(window, { key: '1' });
+      });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: ' ' });
+      });
+      await waitFor(() => expect(startGame).toHaveBeenCalled());
+    });
+
+    it('handles gameplay actions (h for Hit, s for Stand) via keyboard', async () => {
+      getState.mockResolvedValue({ data: defaultApiState });
+      placeBet.mockResolvedValue({ data: { success: true, balance: 990 } });
+      startGame.mockResolvedValue({
+        data: {
+          ...defaultApiState,
+          bettingOpen: false,
+          playerHands: [
+            {
+              cards: [
+                { value: '10', suit: 'Hearts' },
+                { value: '6', suit: 'Clubs' },
+              ],
+              isTurn: true,
+              bet: 10,
+            },
+          ],
+          dealerHand: [{ value: '8', suit: 'Spades' }],
+          currentBet: 10,
+          balance: 990,
+        },
+      });
+      hit.mockResolvedValue({
+        data: {
+          ...defaultApiState,
+          bettingOpen: false,
+          playerHands: [
+            {
+              cards: [
+                { value: '10', suit: 'Hearts' },
+                { value: '6', suit: 'Clubs' },
+                { value: '2', suit: 'Diamonds' },
+              ],
+              isTurn: true,
+              bet: 10,
+            },
+          ],
+          dealerHand: [{ value: '8', suit: 'Spades' }],
+          currentBet: 10,
+          balance: 990,
+        },
+      });
+      stand.mockResolvedValue({
+        data: {
+          ...defaultApiState,
+          bettingOpen: false,
+          playerHands: [
+            {
+              cards: [
+                { value: '10', suit: 'Hearts' },
+                { value: '6', suit: 'Clubs' },
+                { value: '2', suit: 'Diamonds' },
+              ],
+              isTurn: false,
+              bet: 10,
+            },
+          ],
+          dealerHand: [{ value: '8', suit: 'Spades' }],
+          currentBet: 10,
+          balance: 990,
+          gameOver: true,
+        },
+      });
+
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+
+      // Place bet and deal via keyboard
+      await act(async () => {
+        fireEvent.keyDown(window, { key: '2' });
+      });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: ' ' });
+      });
+      await waitFor(() => expect(startGame).toHaveBeenCalled());
+
+      await advanceTimers(5000);
+
+      // Press 'h' to hit
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'h' });
+      });
+      await waitFor(() => expect(hit).toHaveBeenCalled());
+
+      await advanceTimers(2000);
+
+      // Press 's' to stand
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 's' });
+      });
+      await waitFor(() => expect(stand).toHaveBeenCalled());
+    });
+
+    it('ignores shortcuts when focus is inside an input', async () => {
+      getState.mockResolvedValue({ data: defaultApiState });
+
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: '1' });
+      });
+      expect(placeBet).not.toHaveBeenCalled();
+
+      document.body.removeChild(input);
+    });
+  });
 });
