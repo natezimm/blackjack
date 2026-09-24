@@ -2,11 +2,10 @@ import React from 'react';
 import '../styles/DealerChipTray.css';
 
 const CHIP_SLOTS = [
-  { id: 'blue', label: '10' },
   { id: 'red', label: '5' },
+  { id: 'blue', label: '10' },
   { id: 'green', label: '25' },
   { id: 'black', label: '100' },
-  { id: 'purple', label: '500' },
 ];
 
 const DealerChipTray = () => {
