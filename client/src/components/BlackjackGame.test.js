@@ -98,9 +98,7 @@ describe('BlackjackGame', () => {
     const readStats = () => JSON.parse(localStorage.getItem('blackjackStats'));
     const click = async (name) => {
       await act(async () => {
-        fireEvent.click(
-          screen.getByRole('button', { name, exact: true })
-        );
+        fireEvent.click(screen.getByRole('button', { name, exact: true }));
       });
     };
     const deal = async (balance = 1000) => {
@@ -394,15 +392,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Add $25 to wager' })
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Add $25 to wager' }));
     });
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Clear wager' })
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Clear wager' }));
     });
 
     expect(placeBet).toHaveBeenLastCalledWith(0);
