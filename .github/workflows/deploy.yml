@@ -56,22 +56,22 @@ jobs:
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts || true
-          ssh-keyscan ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts || true
+          ssh-keyscan ${{ secrets.GCP_HOST }} >> ~/.ssh/known_hosts || true
 
           cat <<EOF > ~/.ssh/config
-          Host lightsail
-            HostName ${{ secrets.LIGHTSAIL_HOST }}
-            User ${{ secrets.LIGHTSAIL_USER }}
+          Host gcp
+            HostName ${{ secrets.GCP_HOST }}
+            User ${{ secrets.GCP_USER }}
             IdentityFile ~/.ssh/id_rsa
             StrictHostKeyChecking=no
           EOF
 
-      - name: Deploy to Lightsail
+      - name: Deploy to GCP
         run: |
-          ssh lightsail "bash -s" <<'EOF'
+          ssh gcp "bash -s" <<'EOF'
           set -euo pipefail
 
           repo_dir=$(
@@ -96,7 +96,7 @@ jobs:
           fi
           EOF
 
-          ssh lightsail "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
+          ssh gcp "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
 
       - name: Health check (frontend + backend)
         env:

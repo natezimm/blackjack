@@ -111,4 +111,4 @@ Health endpoint: `GET /api/health` returns service health internally, and `GET /
 
 ## CI / Deploy
 
-GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. Pushes to `main` then SSH into Lightsail to run an external deploy script.
+GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. Pushes to `main` then SSH into GCP to run an external deploy script.

@@ -20,7 +20,7 @@ flowchart LR
   Controller --> Security["Spring Security<br/>CORS + headers + rate limits"]
   Controller --> Health["Health endpoints<br/>/api/health + /api/blackjack/health"]
   Repo["Repo quality gate<br/>npm run quality"] --> Builds["React build<br/>Gradle tests + JaCoCo"]
-  Builds --> Deploy["GitHub Actions<br/>Lightsail deploy script"]
+  Builds --> Deploy["GitHub Actions<br/>GCP deploy script"]
 
   classDef user fill:#f8fafc,stroke:#475569,color:#0f172a
   classDef site fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
@@ -47,7 +47,7 @@ Run `npm run quality` from the repo root after installing root and client npm de
 
 ## Deployment Flow
 
-GitHub Actions runs the root quality gate for pull requests and pushes to `main`. Pushes to `main` then SSH to Lightsail and run the external deploy script for this repository, followed by frontend and backend health checks.
+GitHub Actions runs the root quality gate for pull requests and pushes to `main`. Pushes to `main` then SSH to GCP and run the external deploy script for this repository, followed by frontend and backend health checks.
 
 ## Workspace Connectivity
 
@@ -77,12 +77,12 @@ flowchart LR
   NerdleRepo --> Actions
   SudokuRepo --> Actions
   BlackjackRepo --> Actions
-  Actions --> Lightsail["AWS Lightsail<br/>static sites + app services"]
-  Lightsail --> PortfolioSite
-  Lightsail --> BrickSite
-  Lightsail --> NerdleSite
-  Lightsail --> SudokuSite
-  Lightsail --> BlackjackSite
+  Actions --> GCP["AWS GCP<br/>static sites + app services"]
+  GCP --> PortfolioSite
+  GCP --> BrickSite
+  GCP --> NerdleSite
+  GCP --> SudokuSite
+  GCP --> BlackjackSite
 
   classDef user fill:#f8fafc,stroke:#475569,color:#0f172a
   classDef site fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
@@ -94,7 +94,7 @@ flowchart LR
   classDef external fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d
   class PortfolioRepo,BrickRepo,NerdleRepo,SudokuRepo,BlackjackRepo repo
   class PortfolioSite,BrickSite,NerdleSite,SudokuSite,BlackjackSite site
-  class Actions,Lightsail delivery
+  class Actions,GCP delivery
 ```
 
 ## Deferred Architecture Follow-Ups
