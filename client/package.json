@@ -4,21 +4,22 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "22.x"
+    "node": "26.x"
   },
   "dependencies": {
     "axios": "^1.7.8",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^14.3.1",
-    "@testing-library/user-event": "^13.5.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.8",
-    "jsdom": "^25.0.1",
+    "jsdom": "^30.1.1",
     "vite": "^6.0.6",
     "vitest": "^2.1.8"
   },

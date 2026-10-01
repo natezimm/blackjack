@@ -6,7 +6,7 @@ import {
   within,
 } from '@testing-library/react';
 import { act } from 'react';
-import userEvent from '@testing-library/user-event';
+
 import BlackjackGame, {
   ACTION_RESOLUTION_DELAY_MS,
   DEALER_CARD_REVEAL_DELAY_MS,
@@ -98,7 +98,7 @@ describe('BlackjackGame', () => {
     const readStats = () => JSON.parse(localStorage.getItem('blackjackStats'));
     const click = async (name) => {
       await act(async () => {
-        await userEvent.click(
+        fireEvent.click(
           screen.getByRole('button', { name, exact: true })
         );
       });
@@ -350,7 +350,7 @@ describe('BlackjackGame', () => {
     );
 
     await act(async () => {
-      await userEvent.click(screen.getByText('Resume'));
+      fireEvent.click(screen.getByText('Resume'));
     });
 
     expect(screen.queryByText('WIN')).not.toBeInTheDocument();
@@ -375,7 +375,7 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$5 chip'));
+      fireEvent.click(screen.getByAltText('$5 chip'));
     });
 
     expect(placeBet).toHaveBeenCalledWith(5);
@@ -394,13 +394,13 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(
+      fireEvent.click(
         screen.getByRole('button', { name: 'Add $25 to wager' })
       );
     });
 
     await act(async () => {
-      await userEvent.click(
+      fireEvent.click(
         screen.getByRole('button', { name: 'Clear wager' })
       );
     });
@@ -425,7 +425,7 @@ describe('BlackjackGame', () => {
     );
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$25 chip'));
+      fireEvent.click(screen.getByAltText('$25 chip'));
     });
 
     expect(placeBet).not.toHaveBeenCalled();
@@ -444,7 +444,7 @@ describe('BlackjackGame', () => {
     expect(muteButton).toHaveAccessibleName('Mute sounds');
 
     await act(async () => {
-      await userEvent.click(muteButton);
+      fireEvent.click(muteButton);
     });
 
     expect(screen.getByTitle('Unmute sounds')).toBeInTheDocument();
@@ -452,7 +452,7 @@ describe('BlackjackGame', () => {
     expect(localStorage.getItem('blackjack_muted')).toBe('true');
 
     await act(async () => {
-      await userEvent.click(muteButton);
+      fireEvent.click(muteButton);
     });
 
     expect(screen.getByTitle('Mute sounds')).toBeInTheDocument();
@@ -491,17 +491,17 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await advanceTimers(5000);
 
     await act(async () => {
-      await userEvent.click(screen.getByText('Basic strategy'));
+      fireEvent.click(screen.getByText('Basic strategy'));
     });
 
     expect(localStorage.getItem('blackjackBasicStrategyHints')).toBe('true');
@@ -524,13 +524,13 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await waitFor(() => expect(placeBet).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     expect(startGame).toHaveBeenCalled();
@@ -600,11 +600,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$100 chip'));
+      fireEvent.click(screen.getByAltText('$100 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await advanceTimers(5000);
@@ -615,7 +615,7 @@ describe('BlackjackGame', () => {
     expect(screen.getByText('HIT')).toBeDisabled();
 
     await act(async () => {
-      await userEvent.click(screen.getByText('INSURE'));
+      fireEvent.click(screen.getByText('INSURE'));
     });
 
     expect(resolveInsurance).toHaveBeenCalledWith(50);
@@ -670,11 +670,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -688,7 +688,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await advanceTimers(2000);
@@ -750,11 +750,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -768,7 +768,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -827,11 +827,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -845,7 +845,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -903,11 +903,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -921,7 +921,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -985,11 +985,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1003,7 +1003,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await advanceTimers(1100);
@@ -1016,7 +1016,7 @@ describe('BlackjackGame', () => {
     expect(screen.getByText('Stand')).toBeInTheDocument();
 
     await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: /Details/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Details/i }));
     });
 
     expect(screen.getByText('Dealer cards')).toBeInTheDocument();
@@ -1104,11 +1104,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1122,7 +1122,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await advanceTimers(5000);
@@ -1184,11 +1184,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1202,7 +1202,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(1100);
@@ -1248,11 +1248,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1266,7 +1266,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await waitFor(() => expect(doubleDown).toHaveBeenCalled());
@@ -1330,11 +1330,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1348,7 +1348,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(1100);
@@ -1414,11 +1414,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1432,7 +1432,7 @@ describe('BlackjackGame', () => {
 
     const splitButton = screen.getByText('SPLIT');
     await act(async () => {
-      await userEvent.click(splitButton);
+      fireEvent.click(splitButton);
     });
 
     await waitFor(() => expect(split).toHaveBeenCalled());
@@ -1477,7 +1477,7 @@ describe('BlackjackGame', () => {
 
     const resumeButton = screen.getByText('Resume');
     await act(async () => {
-      await userEvent.click(resumeButton);
+      fireEvent.click(resumeButton);
     });
 
     await waitFor(() =>
@@ -1564,7 +1564,7 @@ describe('BlackjackGame', () => {
 
     const freshStartButton = screen.getByText('Start New');
     await act(async () => {
-      await userEvent.click(freshStartButton);
+      fireEvent.click(freshStartButton);
     });
 
     await waitFor(() => expect(resetGame).toHaveBeenCalled());
@@ -1643,7 +1643,7 @@ describe('BlackjackGame', () => {
 
     const freshStartButton = screen.getByText('Start New');
     await act(async () => {
-      await userEvent.click(freshStartButton);
+      fireEvent.click(freshStartButton);
     });
 
     await waitFor(() => expect(resetGame).toHaveBeenCalled());
@@ -1658,7 +1658,7 @@ describe('BlackjackGame', () => {
 
     const settingsButton = screen.getByLabelText('Game settings');
     await act(async () => {
-      await userEvent.click(settingsButton);
+      fireEvent.click(settingsButton);
     });
 
     await waitFor(() =>
@@ -1667,7 +1667,7 @@ describe('BlackjackGame', () => {
 
     const closeButton = screen.getByText('Close');
     await act(async () => {
-      await userEvent.click(closeButton);
+      fireEvent.click(closeButton);
     });
 
     await waitFor(() =>
@@ -1684,7 +1684,7 @@ describe('BlackjackGame', () => {
 
     const settingsButton = screen.getByLabelText('Game settings');
     await act(async () => {
-      await userEvent.click(settingsButton);
+      fireEvent.click(settingsButton);
     });
 
     await waitFor(() =>
@@ -1693,7 +1693,7 @@ describe('BlackjackGame', () => {
 
     const deckSelect = screen.getByDisplayValue('1');
     await act(async () => {
-      await userEvent.selectOptions(deckSelect, '4');
+      fireEvent.change(deckSelect, { target: { value: '4' } });
     });
 
     expect(deckSelect.value).toBe('4');
@@ -1708,7 +1708,7 @@ describe('BlackjackGame', () => {
 
     const settingsButton = screen.getByLabelText('Game settings');
     await act(async () => {
-      await userEvent.click(settingsButton);
+      fireEvent.click(settingsButton);
     });
 
     await waitFor(() =>
@@ -1717,7 +1717,7 @@ describe('BlackjackGame', () => {
 
     const checkbox = screen.getByRole('checkbox');
     await act(async () => {
-      await userEvent.click(checkbox);
+      fireEvent.click(checkbox);
     });
 
     expect(checkbox.checked).toBe(true);
@@ -1732,7 +1732,7 @@ describe('BlackjackGame', () => {
 
     const settingsButton = screen.getByLabelText('Game settings');
     await act(async () => {
-      await userEvent.click(settingsButton);
+      fireEvent.click(settingsButton);
     });
 
     await waitFor(() =>
@@ -1741,7 +1741,7 @@ describe('BlackjackGame', () => {
 
     const blueRadio = screen.getByDisplayValue('blue');
     await act(async () => {
-      await userEvent.click(blueRadio);
+      fireEvent.click(blueRadio);
     });
 
     expect(blueRadio.checked).toBe(true);
@@ -1756,7 +1756,7 @@ describe('BlackjackGame', () => {
 
     const statsButton = screen.getByLabelText('Show stats');
     await act(async () => {
-      await userEvent.click(statsButton);
+      fireEvent.click(statsButton);
     });
 
     await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
@@ -1767,7 +1767,7 @@ describe('BlackjackGame', () => {
     );
     if (statsCloseButton) {
       await act(async () => {
-        await userEvent.click(statsCloseButton);
+        fireEvent.click(statsCloseButton);
       });
     }
 
@@ -1785,14 +1785,14 @@ describe('BlackjackGame', () => {
 
     const statsButton = screen.getByLabelText('Show stats');
     await act(async () => {
-      await userEvent.click(statsButton);
+      fireEvent.click(statsButton);
     });
 
     await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
 
     const resetButton = screen.getByText('Reset Stats');
     await act(async () => {
-      await userEvent.click(resetButton);
+      fireEvent.click(resetButton);
     });
 
     expect(screen.getByText('Stats')).toBeInTheDocument();
@@ -1812,11 +1812,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     expect(startGame).toHaveBeenCalled();
@@ -1836,7 +1836,7 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     expect(placeBet).toHaveBeenCalled();
@@ -1875,11 +1875,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1894,7 +1894,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled(), { timeout: 3000 });
@@ -1933,11 +1933,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -1952,7 +1952,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await waitFor(() => expect(stand).toHaveBeenCalled(), { timeout: 3000 });
@@ -2010,7 +2010,7 @@ describe('BlackjackGame', () => {
 
     const freshStartButton = screen.getByText('Start New');
     await act(async () => {
-      await userEvent.click(freshStartButton);
+      fireEvent.click(freshStartButton);
     });
 
     expect(resetGame).toHaveBeenCalled();
@@ -2059,11 +2059,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2085,7 +2085,7 @@ describe('BlackjackGame', () => {
     expect(chipContainer).toHaveClass('disabled');
 
     await act(async () => {
-      await userEvent.click(chip);
+      fireEvent.click(chip);
     });
 
     expect(placeBet).not.toHaveBeenCalled();
@@ -2143,7 +2143,7 @@ describe('BlackjackGame', () => {
     if (resumePrompt) {
       const resumeButton = screen.getByText('Resume');
       await act(async () => {
-        await userEvent.click(resumeButton);
+        fireEvent.click(resumeButton);
       });
     }
   });
@@ -2157,7 +2157,7 @@ describe('BlackjackGame', () => {
 
     const statsButton = screen.getByLabelText('Show stats');
     await act(async () => {
-      await userEvent.click(statsButton);
+      fireEvent.click(statsButton);
     });
 
     await waitFor(() => expect(screen.getByText('Stats')).toBeInTheDocument());
@@ -2165,7 +2165,7 @@ describe('BlackjackGame', () => {
     const overlay = document.querySelector('.settings-modal-overlay');
     if (overlay) {
       await act(async () => {
-        await userEvent.click(overlay);
+        fireEvent.click(overlay);
       });
     }
 
@@ -2185,7 +2185,7 @@ describe('BlackjackGame', () => {
     for (const amount of chips) {
       const chip = screen.getByAltText(`$${amount} chip`);
       await act(async () => {
-        await userEvent.click(chip);
+        fireEvent.click(chip);
       });
     }
 
@@ -2245,11 +2245,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2261,7 +2261,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await advanceTimers(1100);
@@ -2324,11 +2324,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2342,7 +2342,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(5000);
@@ -2357,20 +2357,22 @@ describe('BlackjackGame', () => {
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = jest.fn(() => {
       throw new Error('Storage quota exceeded');
+    });
+
+    try {
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+
+      await waitFor(() => expect(getState).toHaveBeenCalled());
+
+      await act(async () => {
+        fireEvent.click(screen.getByAltText('$10 chip'));
+      });
+    } finally {
+      localStorage.setItem = originalSetItem;
       consoleSpy.mockRestore();
-    });
-
-    await act(async () => {
-      render(<BlackjackGame initialSkipAnimations={true} />);
-    });
-
-    await waitFor(() => expect(getState).toHaveBeenCalled());
-
-    await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
-    });
-
-    localStorage.setItem = originalSetItem;
+    }
   });
 
   it('handles localStorage getItem errors gracefully', async () => {
@@ -2380,16 +2382,18 @@ describe('BlackjackGame', () => {
     const originalGetItem = localStorage.getItem;
     localStorage.getItem = jest.fn(() => {
       throw new Error('Storage error');
+    });
+
+    try {
+      await act(async () => {
+        render(<BlackjackGame initialSkipAnimations={true} />);
+      });
+
+      await waitFor(() => expect(getState).toHaveBeenCalled());
+    } finally {
+      localStorage.getItem = originalGetItem;
       consoleSpy.mockRestore();
-    });
-
-    await act(async () => {
-      render(<BlackjackGame initialSkipAnimations={true} />);
-    });
-
-    await waitFor(() => expect(getState).toHaveBeenCalled());
-
-    localStorage.getItem = originalGetItem;
+    }
   });
 
   it('handles invalid JSON in localStorage', async () => {
@@ -2834,11 +2838,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2863,11 +2867,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2885,11 +2889,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2941,11 +2945,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -2957,7 +2961,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -2998,11 +3002,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3010,7 +3014,7 @@ describe('BlackjackGame', () => {
     await advanceTimers(5000);
 
     await act(async () => {
-      await userEvent.click(screen.getByText('HIT'));
+      fireEvent.click(screen.getByText('HIT'));
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -3058,11 +3062,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3074,7 +3078,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await advanceTimers(5000);
@@ -3115,11 +3119,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3128,7 +3132,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await advanceTimers(5000);
@@ -3178,11 +3182,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3196,7 +3200,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(5000);
@@ -3237,11 +3241,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3250,7 +3254,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(5000);
@@ -3300,11 +3304,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3349,7 +3353,7 @@ describe('BlackjackGame', () => {
 
     const resumeButton = screen.getByText('Resume');
     await act(async () => {
-      await userEvent.click(resumeButton);
+      fireEvent.click(resumeButton);
     });
 
     await waitFor(() =>
@@ -3388,7 +3392,7 @@ describe('BlackjackGame', () => {
 
     const resumeButton = screen.getByText('Resume');
     await act(async () => {
-      await userEvent.click(resumeButton);
+      fireEvent.click(resumeButton);
     });
 
     await waitFor(() =>
@@ -3515,11 +3519,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3531,7 +3535,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await advanceTimers(2000);
@@ -3686,7 +3690,7 @@ describe('BlackjackGame', () => {
 
     const freshStartButton = screen.getByText('Start New');
     await act(async () => {
-      await userEvent.click(freshStartButton);
+      fireEvent.click(freshStartButton);
     });
 
     await waitFor(() => expect(resetGame).toHaveBeenCalled());
@@ -3732,7 +3736,7 @@ describe('BlackjackGame', () => {
 
     const freshStartButton = screen.getByText('Start New');
     await act(async () => {
-      await userEvent.click(freshStartButton);
+      fireEvent.click(freshStartButton);
     });
 
     await waitFor(() => expect(resetGame).toHaveBeenCalled());
@@ -3791,11 +3795,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3807,7 +3811,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -3865,11 +3869,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3881,7 +3885,7 @@ describe('BlackjackGame', () => {
 
     const hitButton = screen.getByText('HIT');
     await act(async () => {
-      await userEvent.click(hitButton);
+      fireEvent.click(hitButton);
     });
 
     await waitFor(() => expect(hit).toHaveBeenCalled());
@@ -3937,11 +3941,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -3955,7 +3959,7 @@ describe('BlackjackGame', () => {
 
     const doubleDownButton = screen.getByText('DOUBLE');
     await act(async () => {
-      await userEvent.click(doubleDownButton);
+      fireEvent.click(doubleDownButton);
     });
 
     await advanceTimers(5000);
@@ -4043,7 +4047,7 @@ describe('BlackjackGame', () => {
 
     const settingsButton = screen.getByLabelText('Game settings');
     await act(async () => {
-      await userEvent.click(settingsButton);
+      fireEvent.click(settingsButton);
     });
 
     await waitFor(() =>
@@ -4052,13 +4056,13 @@ describe('BlackjackGame', () => {
 
     const blueRadio = screen.getByDisplayValue('blue');
     await act(async () => {
-      await userEvent.click(blueRadio);
+      fireEvent.click(blueRadio);
     });
     expect(blueRadio.checked).toBe(true);
 
     const redRadio = screen.getByDisplayValue('red');
     await act(async () => {
-      await userEvent.click(redRadio);
+      fireEvent.click(redRadio);
     });
     expect(redRadio.checked).toBe(true);
   });
@@ -4097,11 +4101,11 @@ describe('BlackjackGame', () => {
     await waitFor(() => expect(getState).toHaveBeenCalled());
 
     await act(async () => {
-      await userEvent.click(screen.getByAltText('$10 chip'));
+      fireEvent.click(screen.getByAltText('$10 chip'));
     });
 
     await act(async () => {
-      await userEvent.click(screen.getByText('DEAL'));
+      fireEvent.click(screen.getByText('DEAL'));
     });
 
     await waitFor(() => expect(startGame).toHaveBeenCalled());
@@ -4115,7 +4119,7 @@ describe('BlackjackGame', () => {
 
     const standButton = screen.getByText('STAND');
     await act(async () => {
-      await userEvent.click(standButton);
+      fireEvent.click(standButton);
     });
 
     await waitFor(() => expect(stand).toHaveBeenCalled());

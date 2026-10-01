@@ -609,12 +609,20 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
   const [handHistory, setHandHistory] = useState([]);
   const [expandedHistoryIds, setExpandedHistoryIds] = useState([]);
   const [showBasicStrategy, setShowBasicStrategy] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.strategyHints) === 'true';
+    try {
+      return localStorage.getItem(STORAGE_KEYS.strategyHints) === 'true';
+    } catch {
+      return false;
+    }
   });
 
   const [isDealing, setIsDealing] = useState(false);
   const [muted, setMuted] = useState(() => {
-    return localStorage.getItem('blackjack_muted') === 'true';
+    try {
+      return localStorage.getItem('blackjack_muted') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   const mutedRef = useRef(muted);
