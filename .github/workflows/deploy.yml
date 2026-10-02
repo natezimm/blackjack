@@ -113,7 +113,13 @@ jobs:
           fi
 
           echo "Waiting for services to start..."
-          sleep 10
+          # Poll up to 3 minutes for Spring Boot on slow VMs
+          for i in {1..36}; do
+            if curl --silent --fail "https://${app_domain}/api/blackjack/health" > /dev/null; then
+              break
+            fi
+            sleep 5
+          done
 
           echo "Checking frontend..."
           curl --fail --location --show-error --silent --output /dev/null "https://${app_domain}/" || {
