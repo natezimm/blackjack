@@ -96,7 +96,7 @@ jobs:
           fi
           EOF
 
-          ssh gcp "sed -i 's|/var/www/blackjack/|/home/ubuntu/apps/blackjack/frontend-live/|g' ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
+          ssh gcp "echo 'REACT_APP_API_URL=https://blackjack.nathanzimmerman.com/api/blackjack' > ~/blackjack/client/.env.production"
           ssh gcp "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
 
       - name: Health check (frontend + backend)
