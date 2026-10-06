@@ -2005,7 +2005,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
 
       <header className="table-header">
         <div>
-          <span className="brand-kicker">A classic, well played.</span>
           <h1 aria-label="Blackjack">
             Blackjack
             <span className="title-suit" aria-hidden="true">
@@ -2013,18 +2012,12 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
             </span>
           </h1>
         </div>
-        <p className="table-introduction">
-          A little luck. A little instinct.
-          <br />
-          <span>Take a seat. Make your next move.</span>
-        </p>
       </header>
 
       <div className="table-layout" id="game-table">
         <aside className="betting-panel" aria-label="Wager controls">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">Make it interesting</span>
               <h2 className="panel-title">Your wager.</h2>
             </div>
             <span className={`table-status ${bettingOpen ? 'is-open' : ''}`}>
@@ -2092,9 +2085,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span className="strategy-toggle-thumb" />
             </span>
           </label>
-          <p className="strategy-caption">
-            A second opinion on your next move.
-          </p>
           <div className="table-rules">
             <span className="panel-kicker">The house rules</span>
             <p>
@@ -2109,9 +2099,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
               <span>Dealer on soft 17</span>
               <strong>{dealerHitsOnSoft17 ? 'Hits' : 'Stands'}</strong>
             </p>
-          </div>
-          <div className="practice-note">
-            <span aria-hidden="true">♧</span> Play chips. Real practice.
           </div>
         </aside>
 
@@ -2323,9 +2310,6 @@ const BlackjackGame = ({ initialSkipAnimations = false }) => {
       </div>
 
       <footer className="site-footer">
-        <span className="footer-signoff">
-          A good hand is just the beginning.
-        </span>
         <div>
           <span>Made by </span>
           <a
