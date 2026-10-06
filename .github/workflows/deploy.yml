@@ -96,6 +96,9 @@ jobs:
           fi
           EOF
 
+          ssh gcp "cat ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
+          ssh gcp "cat /etc/nginx/sites-enabled/*" || true
+          ssh gcp "ls -la /var/www/blackjack || ls -la /var/www/html" || true
           ssh gcp "bash ~/deploy-scripts/deploy-${{ github.event.repository.name }}.sh"
 
       - name: Health check (frontend + backend)
