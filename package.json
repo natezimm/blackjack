@@ -17,7 +17,7 @@
     "quality": "npm run format:check && npm run client:test:coverage && npm run server:test:coverage && npm run test:e2e"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.64.1",
     "prettier": "^3.8.3"
   }
 }
