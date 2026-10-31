@@ -5,8 +5,7 @@
 
 > **Retired.** The live demo at `blackjack.nathanzimmerman.com` is offline and this project is no longer maintained. The code still builds and runs locally; see [Running Locally](#running-locally).
 
-<!-- Demo recording: save it as docs/media/demo.gif, then uncomment the next line. -->
-<!-- ![Playing a hand of Blackjack](docs/media/demo.gif) -->
+![Playing a hand of Blackjack](docs/media/demo.gif)
 
 Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Game state lives in the server-side HTTP session (cookies) and the UI can also resume from a local snapshot.
 
