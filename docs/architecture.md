@@ -20,7 +20,7 @@ flowchart LR
   Controller --> Security["Spring Security<br/>CORS + headers + rate limits"]
   Controller --> Health["Health endpoints<br/>/api/health + /api/blackjack/health"]
   Repo["Repo quality gate<br/>npm run quality"] --> Builds["React build<br/>Gradle tests + JaCoCo"]
-  Builds --> Deploy["GitHub Actions<br/>GCP deploy script"]
+  Builds --> CI["GitHub Actions<br/>CI only (demo retired)"]
 
   classDef user fill:#f8fafc,stroke:#475569,color:#0f172a
   classDef site fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
@@ -34,7 +34,7 @@ flowchart LR
   class Client,GameUI,ApiClient client
   class Controller,Engine,Security,Health server
   class BrowserState,Assets,Session,DTOs data
-  class Repo,Builds,Deploy delivery
+  class Repo,Builds,CI delivery
 ```
 
 ## Source Boundaries
@@ -47,7 +47,7 @@ Run `npm run quality` from the repo root after installing root and client npm de
 
 ## Deployment Flow
 
-GitHub Actions runs the root quality gate for pull requests and pushes to `main`. Pushes to `main` then SSH to GCP and run the external deploy script for this repository, followed by frontend and backend health checks.
+GitHub Actions runs the root quality gate for pull requests and pushes to `main`. The demo is retired, so nothing deploys.
 
 ## Workspace Connectivity
 
