@@ -1,4 +1,4 @@
-[![CI](https://github.com/natezimm/blackjack/actions/workflows/deploy.yml/badge.svg)](https://github.com/natezimm/blackjack/actions/workflows/deploy.yml)
+[![CI](https://github.com/natezimm/blackjack/actions/workflows/ci.yml/badge.svg)](https://github.com/natezimm/blackjack/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-checked-brightgreen)](#testing--quality)
 
 # Blackjack Game
@@ -115,4 +115,4 @@ Health endpoint: `GET /api/health` returns service health internally, and `GET /
 
 ## CI / Deploy
 
-GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. While the demo was live, pushes to `main` then SSHed into GCP to run an external deploy script.
+GitHub Actions (`.github/workflows/ci.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. While the demo was live, pushes to `main` also SSHed into GCP to run an external deploy script; that deploy job has been removed.
