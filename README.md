@@ -3,6 +3,10 @@
 
 # Blackjack Game
 
+> **Retired.** The live demo at `blackjack.nathanzimmerman.com` is offline and this project is no longer maintained. The code still builds and runs locally; see [Running Locally](#running-locally).
+
+![Playing a hand of Blackjack](docs/media/demo.gif)
+
 Full-stack Blackjack: a React 18 SPA backed by a Spring Boot 3 (Java 21) API. Game state lives in the server-side HTTP session (cookies) and the UI can also resume from a local snapshot.
 
 ## Features
@@ -111,4 +115,4 @@ Health endpoint: `GET /api/health` returns service health internally, and `GET /
 
 ## CI / Deploy
 
-GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. Pushes to `main` then SSH into GCP to run an external deploy script.
+GitHub Actions (`.github/workflows/deploy.yml`) runs the root `npm run quality` gate on pull requests and pushes to `main`. While the demo was live, pushes to `main` then SSHed into GCP to run an external deploy script.
